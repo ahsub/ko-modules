@@ -1,6 +1,6 @@
 /**
  * ko-darkpool.js — Dark Pool & Institutional Flow Analyse
- * Version: 1.0 | ko-scanner v=141+
+ * Version: 1.1 | ko-scanner v=142+
  * Repository: ahsub/ko-modules
  * Abhängigkeiten: ko-config.js (optional)
  *
@@ -110,32 +110,38 @@ var KoDarkPool = {
     };
   },
 
-  // ── PUT/CALL RATIO von Yahoo Finance ─────────────────────────────────────
+  // ── PUT/CALL RATIO von CBOE (CSV) ────────────────────────────────────────
   async fetchPCR() {
-    // CBOE Total PCR über Yahoo Finance
-    const to   = Math.floor(Date.now() / 1000);
-    const from = to - 60 * 60 * 24 * 10;
-    const url  = 'https://query1.finance.yahoo.com/v7/finance/chart/%5EPCALL'
-      + '?interval=1d&period1=' + from + '&period2=' + to;
+    // CBOE Total Put/Call Ratio — direkte CSV-Datei
+    const url = 'https://www.cboe.com/publish/scheduledtask/mktdata/datahouse/totalpc.csv';
+    const text = await this._fetchText(url);
+    if (!text) return null;
 
-    const j = await this._fetchJson(url);
-    const result = j?.chart?.result?.[0];
-    if (!result) return null;
+    // CBOE CSV Format: "DATE","CALL","PUT","TOTAL","P/C Ratio"
+    // Erste Zeilen sind Header/Kommentare — letzte Zeilen sind Daten
+    const lines = text.trim().split('\n').filter(l => l && !l.startsWith('"DATE') && !l.startsWith('DATE'));
+    if (!lines.length) return null;
 
-    const closes = (result.indicators?.quote?.[0]?.close || []).filter(v => v != null);
-    if (!closes.length) return null;
+    const parseRow = (line) => {
+      const parts = line.split(',').map(v => v.replace(/"/g,'').trim());
+      return { date: parts[0], pcr: parseFloat(parts[4]) };
+    };
 
-    const pcr     = closes[closes.length - 1];
-    const pcrPrev = closes[closes.length - 2] || pcr;
-    const avg5    = closes.slice(-5).reduce((a,b) => a+b, 0) / Math.min(5, closes.length);
+    const rows = lines.map(parseRow).filter(r => !isNaN(r.pcr));
+    if (!rows.length) return null;
+
+    const last    = rows[rows.length - 1];
+    const prev    = rows[rows.length - 2] || last;
+    const last5   = rows.slice(-5);
+    const avg5    = last5.reduce((s,r) => s + r.pcr, 0) / last5.length;
 
     return {
-      pcr:     Math.round(pcr * 100) / 100,
-      pcrPrev: Math.round(pcrPrev * 100) / 100,
+      date:    last.date,
+      pcr:     Math.round(last.pcr * 100) / 100,
+      pcrPrev: Math.round(prev.pcr * 100) / 100,
       avg5:    Math.round(avg5 * 100) / 100,
-      trend:   pcr > pcrPrev ? 'steigend' : 'fallend',
-      // PCR Interpretation: <0.7 = zu bullisch (contrarian bärisch), >1.0 = Angst (contrarian bullisch)
-      signal:  pcr < 0.7 ? 'ÜBERKAUFT' : pcr > 1.0 ? 'ÜBERVERKAUFT' : 'NEUTRAL',
+      trend:   last.pcr > prev.pcr ? 'steigend' : 'fallend',
+      signal:  last.pcr < 0.7 ? 'ÜBERKAUFT' : last.pcr > 1.0 ? 'ÜBERVERKAUFT' : 'NEUTRAL',
     };
   },
 
@@ -320,4 +326,4 @@ var KoDarkPool = {
   },
 };
 
-console.log('[ko-darkpool.js] v1.0 geladen');
+console.log('[ko-darkpool.js] v1.1 geladen');
