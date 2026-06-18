@@ -1,18 +1,16 @@
 /**
  * ko-darkpool.js — Dark Pool & Institutional Flow Analyse
- * Version: 1.1 | ko-scanner v=142+
+ * Version: 1.2 | ko-scanner v=142+
  * Repository: ahsub/ko-modules
  * Abhängigkeiten: ko-config.js (optional)
  *
- * Datenquellen:
- *   DIX / GEX  → squeezemetrics.com/monitor/static/dix.csv (kostenlos)
- *   PCR        → CBOE via Yahoo Finance ^PCALL
- *   VIX Term   → Yahoo Finance ^VIX + ^VIX3M (Contango/Backwardation)
+ * Datenquellen (alle via CORS-Proxy / Yahoo Finance):
+ *   PCR/Sentiment → ^VVIX, ^SKEW, ^VIX, ^VIX3M (Yahoo Finance)
+ *   DIX-Proxy     → SPY OBV + Volumen-Analyse (synthetisch)
+ *   GEX-Proxy     → ^VVIX Ableitung
  *
- * Verwendung:
- *   const result = await KoDarkPool.fetchAll();
- *   const score  = KoDarkPool.score(result);
- *   const signal = KoDarkPool.interpret(score);
+ * Hinweis: squeezemetrics.com ist seit 2024 Paywall-geschützt.
+ * DIX/GEX werden als synthetische Proxies aus öffentlichen Daten berechnet.
  */
 
 var KoDarkPool = {
@@ -24,141 +22,155 @@ var KoDarkPool = {
       : 'https://my-cors-proxy.ahildebrand.workers.dev';
   },
 
-  // Historische DIX-Durchschnitte (Baseline für Normalisierung)
-  // Quelle: squeezemetrics langjährige Daten S&P500
-  DIX_AVG:  45.0,   // Ø DIX ~45% = neutral
-  DIX_HIGH: 50.0,   // >50% = bullisch (Institutionen kaufen verdeckt)
-  DIX_LOW:  40.0,   // <40% = bärisch
-  GEX_AVG:  0,      // GEX in Mrd USD, 0 = neutral
-  GEX_HIGH: 3000,   // >3Mrd = stabilisierend (MM hedgen Long)
-  GEX_LOW: -3000,   // <-3Mrd = destabilisierend (MM hedgen Short)
+  CACHE_MINUTES: 30,
+  _cache: null,
+  _cacheTime: 0,
 
   // ── HILFSFUNKTIONEN ───────────────────────────────────────────────────────
-  async _fetch(url) {
+  async _fetchYahoo(sym, days) {
+    const to   = Math.floor(Date.now() / 1000);
+    const from = to - 60 * 60 * 24 * (days || 30);
+    const url  = 'https://query1.finance.yahoo.com/v7/finance/chart/'
+      + encodeURIComponent(sym)
+      + '?interval=1d&period1=' + from + '&period2=' + to;
     const proxyUrl = this.corsProxy + '/?url=' + encodeURIComponent(url);
     try {
       const r = await fetch(proxyUrl);
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r;
+      const j = await r.json();
+      const result = j?.chart?.result?.[0];
+      if (!result) return null;
+      const q      = result.indicators?.quote?.[0] || {};
+      const closes = (q.close  || []).filter(v => v != null);
+      const vols   = (q.volume || []).filter(v => v != null);
+      const price  = result.meta?.regularMarketPrice || closes[closes.length-1];
+      return { sym, closes, vols, price, bars: closes.length };
     } catch(e) {
-      console.warn('[KoDarkPool] fetch error:', url, e.message);
+      console.warn('[KoDarkPool] fetch error:', sym, e.message);
       return null;
     }
   },
 
-  async _fetchJson(url) {
-    const r = await this._fetch(url);
-    if (!r) return null;
-    try { return await r.json(); } catch(e) { return null; }
-  },
-
-  async _fetchText(url) {
-    const r = await this._fetch(url);
-    if (!r) return null;
-    try { return await r.text(); } catch(e) { return null; }
-  },
-
-  // ── CSV PARSER ────────────────────────────────────────────────────────────
-  _parseCSV(text, maxRows) {
-    if (!text) return [];
-    const lines = text.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g,''));
-    const rows = [];
-    const start = Math.max(1, lines.length - (maxRows || 30));
-    for (let i = start; i < lines.length; i++) {
-      const vals = lines[i].split(',').map(v => v.trim().replace(/"/g,''));
-      const row = {};
-      headers.forEach((h, j) => { row[h] = vals[j]; });
-      rows.push(row);
-    }
-    return rows;
-  },
-
-  // ── DIX & GEX von squeezemetrics ─────────────────────────────────────────
+  // ── DIX-PROXY: Synthetischer Dark Index aus SPY-Daten ────────────────────
+  // Echter DIX = % S&P500-Trades über Dark Pools (squeezemetrics, Paywall)
+  // Proxy: OBV-Trend + Preis/Volumen-Divergenz auf SPY
+  // Interpretation ähnlich wie DIX: Hoch = institutionelles Kaufen
   async fetchDIX() {
-    const url = 'https://squeezemetrics.com/monitor/static/dix.csv';
-    const text = await this._fetchText(url);
-    if (!text) return null;
+    const spy = await this._fetchYahoo('SPY', 40);
+    if (!spy || spy.bars < 20) return null;
 
-    const rows = this._parseCSV(text, 30);
-    if (!rows.length) return null;
+    const closes = spy.closes;
+    const vols   = spy.vols;
+    const n      = closes.length;
 
-    // Letzte Zeile = aktuellster Tag
-    const last = rows[rows.length - 1];
-    const dix  = parseFloat(last['dix'] || last['DIX']) * 100; // 0-1 → Prozent
-    const gex  = parseFloat(last['gex'] || last['GEX']);       // in USD
-    const date = last['date'] || last['Date'] || last[Object.keys(last)[0]];
+    // OBV berechnen
+    let obv = 0;
+    const obvArr = [0];
+    for (let i = 1; i < n; i++) {
+      obv += closes[i] > closes[i-1] ? vols[i] : closes[i] < closes[i-1] ? -vols[i] : 0;
+      obvArr.push(obv);
+    }
 
-    // 20-Tage Durchschnitt für Trend
-    const recent = rows.slice(-20);
-    const dixAvg20 = recent.reduce((s, r) => s + parseFloat(r['dix']||r['DIX']||0)*100, 0) / recent.length;
-    const gexAvg20 = recent.reduce((s, r) => s + parseFloat(r['gex']||r['GEX']||0), 0) / recent.length;
+    // OBV-Trend 10T vs 20T
+    const obv10 = obvArr.slice(-10).reduce((a,b) => a+b, 0) / 10;
+    const obv20 = obvArr.slice(-20).reduce((a,b) => a+b, 0) / 20;
+
+    // Volumen-Trend: heutiges Vol vs Ø20T
+    const avgVol20 = vols.slice(-20).reduce((a,b) => a+b, 0) / 20;
+    const lastVol  = vols[n-1];
+    const volRatio = avgVol20 > 0 ? lastVol / avgVol20 : 1;
+
+    // Preis-Momentum 5T
+    const priceChange5 = closes.length >= 5
+      ? (closes[n-1] / closes[n-6] - 1) * 100 : 0;
+
+    // Synthetischer DIX-Score (40-55% Range wie echter DIX)
+    // Basis 47.5%, +/- abhängig von OBV-Trend und Volumen
+    const obvSignal = obv10 > obv20 ? 2.5 : -2.5;
+    const volSignal = volRatio > 1.2 && priceChange5 > 0 ? 1.5
+                    : volRatio > 1.2 && priceChange5 < 0 ? -1.5 : 0;
+    const dix = Math.max(38, Math.min(56, 47.5 + obvSignal + volSignal));
+
+    // GEX-Proxy aus Volumen-Anomalie
+    const volAnomaly = (lastVol - avgVol20) / avgVol20 * 100;
+    const gex = Math.round(volAnomaly * 80); // skaliert auf Mrd-ähnliche Werte
+
+    // 20T-Durchschnitte
+    const dixArr = [];
+    for (let i = 20; i <= n; i++) {
+      const sliceObv10 = obvArr.slice(i-10, i).reduce((a,b)=>a+b,0)/10;
+      const sliceObv20 = obvArr.slice(i-20, i).reduce((a,b)=>a+b,0)/20;
+      const sliceVol20 = vols.slice(i-20, i).reduce((a,b)=>a+b,0)/20;
+      const sliceVol   = vols[i-1];
+      const sliceVR    = sliceVol20 > 0 ? sliceVol/sliceVol20 : 1;
+      const sliceP5    = i >= 6 ? (closes[i-1]/closes[i-6]-1)*100 : 0;
+      const sliceObvSig = sliceObv10 > sliceObv20 ? 2.5 : -2.5;
+      const sliceVolSig = sliceVR > 1.2 && sliceP5 > 0 ? 1.5 : sliceVR > 1.2 && sliceP5 < 0 ? -1.5 : 0;
+      dixArr.push(Math.max(38, Math.min(56, 47.5 + sliceObvSig + sliceVolSig)));
+    }
+    const dixAvg20 = dixArr.length ? dixArr.reduce((a,b)=>a+b,0)/dixArr.length : dix;
+    const gexAvg20 = 0; // Proxy-GEX Basis = 0
 
     return {
-      date,
-      dix:       Math.round(dix * 10) / 10,
-      gex:       Math.round(gex / 1e6) / 1e3, // → Mrd USD
-      dixAvg20:  Math.round(dixAvg20 * 10) / 10,
-      gexAvg20:  Math.round(gexAvg20 / 1e6) / 1e3,
-      dixTrend:  dix > dixAvg20 ? 'steigend' : 'fallend',
-      gexTrend:  gex > gexAvg20 ? 'steigend' : 'fallend',
-      history:   rows.slice(-10).map(r => ({
-        date: r['date'] || r['Date'],
-        dix:  Math.round(parseFloat(r['dix']||r['DIX']||0)*1000)/10,
-        gex:  Math.round(parseFloat(r['gex']||r['GEX']||0)/1e9*10)/10,
-      })),
+      dix:      Math.round(dix * 10) / 10,
+      gex:      Math.round(gex / 1000) / 1000, // in Mrd
+      dixAvg20: Math.round(dixAvg20 * 10) / 10,
+      gexAvg20: gexAvg20,
+      dixTrend: dix > dixAvg20 ? 'steigend' : 'fallend',
+      gexTrend: gex > 0 ? 'positiv' : 'negativ',
+      proxy:    true, // Flag: das ist ein Proxy, kein echter DIX
+      spyPrice: Math.round(spy.price * 100) / 100,
+      volRatio: Math.round(volRatio * 100) / 100,
     };
   },
 
-  // ── PUT/CALL RATIO von CBOE (CSV) ────────────────────────────────────────
+  // ── PCR via VVIX + SKEW ───────────────────────────────────────────────────
+  // VVIX = Volatilität der VIX-Optionen (Fear of Fear)
+  // SKEW = Tail-Risk Index (institutionelles Hedging)
   async fetchPCR() {
-    // CBOE Total Put/Call Ratio — direkte CSV-Datei
-    const url = 'https://www.cboe.com/publish/scheduledtask/mktdata/datahouse/totalpc.csv';
-    const text = await this._fetchText(url);
-    if (!text) return null;
+    const [vvix, skew] = await Promise.all([
+      this._fetchYahoo('^VVIX', 10),
+      this._fetchYahoo('^SKEW', 10),
+    ]);
 
-    // CBOE CSV Format: "DATE","CALL","PUT","TOTAL","P/C Ratio"
-    // Erste Zeilen sind Header/Kommentare — letzte Zeilen sind Daten
-    const lines = text.trim().split('\n').filter(l => l && !l.startsWith('"DATE') && !l.startsWith('DATE'));
-    if (!lines.length) return null;
+    if (!vvix && !skew) return null;
 
-    const parseRow = (line) => {
-      const parts = line.split(',').map(v => v.replace(/"/g,'').trim());
-      return { date: parts[0], pcr: parseFloat(parts[4]) };
-    };
+    const vvixVal  = vvix ? vvix.price : null;
+    const skewVal  = skew ? skew.price : null;
 
-    const rows = lines.map(parseRow).filter(r => !isNaN(r.pcr));
-    if (!rows.length) return null;
+    // VVIX > 100 = erhöhte Angst bei Optionshändlern
+    // SKEW > 135 = institutionelles Tail-Hedging (bärisch)
+    // Synthetischer PCR aus VVIX/SKEW
+    let pcr = 0.85; // Neutral-Basis
+    if (vvixVal) {
+      // VVIX 80=niedrig/bullisch, 100=neutral, 120+=Angst/bärisch
+      pcr += (vvixVal - 100) / 200; // ±0.1 pro 20 VVIX-Punkte
+    }
+    if (skewVal) {
+      // SKEW 115=normal, 130=erhöht, 145+=extrem
+      pcr += (skewVal - 130) / 500; // ±0.03 pro 15 SKEW-Punkte
+    }
+    pcr = Math.max(0.4, Math.min(1.5, pcr));
 
-    const last    = rows[rows.length - 1];
-    const prev    = rows[rows.length - 2] || last;
-    const last5   = rows.slice(-5);
-    const avg5    = last5.reduce((s,r) => s + r.pcr, 0) / last5.length;
+    const signal = pcr < 0.7 ? 'ÜBERKAUFT' : pcr > 1.0 ? 'ÜBERVERKAUFT' : 'NEUTRAL';
 
     return {
-      date:    last.date,
-      pcr:     Math.round(last.pcr * 100) / 100,
-      pcrPrev: Math.round(prev.pcr * 100) / 100,
-      avg5:    Math.round(avg5 * 100) / 100,
-      trend:   last.pcr > prev.pcr ? 'steigend' : 'fallend',
-      signal:  last.pcr < 0.7 ? 'ÜBERKAUFT' : last.pcr > 1.0 ? 'ÜBERVERKAUFT' : 'NEUTRAL',
+      pcr:     Math.round(pcr * 100) / 100,
+      pcrPrev: Math.round(pcr * 100) / 100,
+      avg5:    Math.round(pcr * 100) / 100,
+      trend:   'stabil',
+      signal,
+      vvix:    vvixVal ? Math.round(vvixVal * 100) / 100 : null,
+      skew:    skewVal ? Math.round(skewVal * 100) / 100 : null,
+      proxy:   true,
     };
   },
 
   // ── VIX TERM STRUCTURE ────────────────────────────────────────────────────
   async fetchVIXTerm() {
-    const to   = Math.floor(Date.now() / 1000);
-    const from = to - 60 * 60 * 24 * 10;
-
     const fetchVix = async (sym) => {
-      const url = 'https://query1.finance.yahoo.com/v7/finance/chart/'
-        + encodeURIComponent(sym)
-        + '?interval=1d&period1=' + from + '&period2=' + to;
-      const j = await this._fetchJson(url);
-      const res = j?.chart?.result?.[0];
-      if (!res) return null;
-      const closes = (res.indicators?.quote?.[0]?.close || []).filter(v => v != null);
-      return closes.length ? closes[closes.length - 1] : null;
+      const d = await this._fetchYahoo(sym, 10);
+      return d ? d.price : null;
     };
 
     const [vix, vix3m] = await Promise.all([
@@ -168,17 +180,15 @@ var KoDarkPool = {
 
     if (!vix || !vix3m) return null;
 
-    const spread    = Math.round((vix3m - vix) * 100) / 100;
-    const contango  = spread > 0;  // VIX3M > VIX = normal/Contango = ruhig
-    const ratio     = Math.round((vix / vix3m) * 100) / 100;
+    const spread   = Math.round((vix3m - vix) * 100) / 100;
+    const contango = spread > 0;
+    const ratio    = Math.round((vix / vix3m) * 100) / 100;
 
     return {
-      vix:      Math.round(vix * 100) / 100,
-      vix3m:    Math.round(vix3m * 100) / 100,
+      vix:       Math.round(vix * 100) / 100,
+      vix3m:     Math.round(vix3m * 100) / 100,
       spread,
       ratio,
-      // Contango = normal, Markt ruhig
-      // Backwardation (spread<0) = Stress, kurzfristige Angst > langfristige
       structure: contango ? 'CONTANGO' : 'BACKWARDATION',
       stress:    !contango || ratio > 0.95,
       signal:    !contango ? 'STRESS' : ratio > 0.90 ? 'ERHÖHT' : 'NORMAL',
@@ -192,123 +202,73 @@ var KoDarkPool = {
       this.fetchPCR(),
       this.fetchVIXTerm(),
     ]);
-
     return {
-      dix:     dix.status     === 'fulfilled' ? dix.value     : null,
-      pcr:     pcr.status     === 'fulfilled' ? pcr.value     : null,
-      vixTerm: vixTerm.status === 'fulfilled' ? vixTerm.value : null,
+      dix:       dix.status     === 'fulfilled' ? dix.value     : null,
+      pcr:       pcr.status     === 'fulfilled' ? pcr.value     : null,
+      vixTerm:   vixTerm.status === 'fulfilled' ? vixTerm.value : null,
       timestamp: new Date().toISOString(),
     };
   },
 
-  // ── INSTITUTIONAL FLOW SCORE 0-100 ────────────────────────────────────────
-  // 100 = maximale institutionelle Kaufbereitschaft (bullisch)
-  //   0 = maximale institutionelle Verkaufsbereitschaft (bärisch)
+  // ── SCORE 0-100 ───────────────────────────────────────────────────────────
   score(data) {
     if (!data) return null;
-    let score = 50; // Neutral-Start
     let components = {};
 
-    // ── DIX Komponente (Gewicht 40%) ──────────────────────────────
     if (data.dix) {
-      const dix = data.dix.dix;
-      // DIX: 40%=0 Punkte, 45%=50 Punkte, 50%+=100 Punkte
-      const dixScore = Math.max(0, Math.min(100,
-        ((dix - this.DIX_LOW) / (this.DIX_HIGH - this.DIX_LOW)) * 100
-      ));
-      // Trend-Bonus: DIX steigend = +5
-      const dixTrendBonus = data.dix.dixTrend === 'steigend' ? 5 : -5;
-      components.dix = Math.round(dixScore + dixTrendBonus);
-
-      // GEX Komponente (Gewicht 20%)
-      const gexGrd = data.dix.gex; // in Mrd
-      // GEX positiv = stabilisierend = bullisch
-      const gexScore = Math.max(0, Math.min(100,
-        50 + (gexGrd / (this.GEX_HIGH / 1e9)) * 25
-      ));
-      components.gex = Math.round(gexScore);
+      const dixScore = Math.max(0, Math.min(100, ((data.dix.dix - 40) / (55 - 40)) * 100));
+      components.dix = Math.round(dixScore);
+      const gexScore = data.dix.gex >= 0 ? 65 : 35;
+      components.gex = gexScore;
     }
 
-    // ── PCR Komponente (Gewicht 25%) ──────────────────────────────
     if (data.pcr) {
-      const pcr = data.pcr.pcr;
-      // PCR contrarian: hoch = bullisch (Angst = Kaufgelegenheit)
-      // PCR >1.2 → 100, PCR 0.8 → 50, PCR <0.5 → 0
-      const pcrScore = Math.max(0, Math.min(100,
-        ((pcr - 0.5) / (1.2 - 0.5)) * 100
-      ));
+      // PCR contrarian: hoch = bullisch
+      const pcrScore = Math.max(0, Math.min(100, ((data.pcr.pcr - 0.5) / (1.3 - 0.5)) * 100));
       components.pcr = Math.round(pcrScore);
     }
 
-    // ── VIX Term Komponente (Gewicht 15%) ─────────────────────────
     if (data.vixTerm) {
-      // Contango + niedriger Ratio = bullisch
       const vixScore = data.vixTerm.structure === 'CONTANGO'
         ? (data.vixTerm.ratio < 0.85 ? 80 : data.vixTerm.ratio < 0.92 ? 60 : 40)
         : (data.vixTerm.ratio > 1.0 ? 10 : 20);
       components.vixTerm = Math.round(vixScore);
     }
 
-    // ── Gewichteter Gesamt-Score ───────────────────────────────────
-    const weights = { dix: 0.40, gex: 0.20, pcr: 0.25, vixTerm: 0.15 };
-    let totalWeight = 0;
-    let weightedSum = 0;
-
+    const weights = { dix: 0.35, gex: 0.15, pcr: 0.25, vixTerm: 0.25 };
+    let totalWeight = 0, weightedSum = 0;
     Object.keys(weights).forEach(k => {
       if (components[k] != null) {
-        weightedSum  += components[k] * weights[k];
-        totalWeight  += weights[k];
+        weightedSum += components[k] * weights[k];
+        totalWeight += weights[k];
       }
     });
 
-    const finalScore = totalWeight > 0
-      ? Math.round(weightedSum / totalWeight)
-      : 50;
-
-    return {
-      total:      finalScore,
-      components,
-      weights,
-      bullish:    finalScore >= 60,
-      bearish:    finalScore <= 40,
-    };
+    const total = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 50;
+    return { total, components, weights, bullish: total >= 60, bearish: total <= 40 };
   },
 
   // ── SIGNAL INTERPRETATION ─────────────────────────────────────────────────
   interpret(scoreObj, data) {
     if (!scoreObj) return { label: '–', color: 'var(--text3)', emoji: '❓', desc: 'Keine Daten' };
-
     const s = scoreObj.total;
+    let label, color, emoji;
+    if      (s >= 75) { label='STARK BULLISCH'; color='var(--green)'; emoji='🟢'; }
+    else if (s >= 60) { label='BULLISCH';       color='var(--green)'; emoji='🟢'; }
+    else if (s >= 45) { label='NEUTRAL';         color='var(--amber)'; emoji='🟡'; }
+    else if (s >= 30) { label='BÄRISCH';         color='var(--red)';   emoji='🔴'; }
+    else              { label='STARK BÄRISCH';  color='var(--red)';   emoji='🔴'; }
 
-    let label, color, emoji, desc;
-
-    if      (s >= 75) { label='STARK BULLISCH'; color='var(--green)';  emoji='🟢'; }
-    else if (s >= 60) { label='BULLISCH';       color='var(--green)';  emoji='🟢'; }
-    else if (s >= 45) { label='NEUTRAL';         color='var(--amber)';  emoji='🟡'; }
-    else if (s >= 30) { label='BÄRISCH';         color='var(--red)';    emoji='🔴'; }
-    else              { label='STARK BÄRISCH';  color='var(--red)';    emoji='🔴'; }
-
-    // Beschreibung aus Komponenten ableiten
     const parts = [];
-    if (data?.dix) {
-      parts.push('DIX ' + data.dix.dix + '% (' + data.dix.dixTrend + ')');
-    }
-    if (data?.pcr) {
-      parts.push('PCR ' + data.pcr.pcr + ' → ' + data.pcr.signal);
-    }
-    if (data?.vixTerm) {
-      parts.push('VIX-Kurve: ' + data.vixTerm.structure);
-    }
-    desc = parts.join(' · ') || 'Keine Daten verfügbar';
+    if (data?.dix)     parts.push('DIX-Proxy ' + data.dix.dix + '% (' + data.dix.dixTrend + ')');
+    if (data?.pcr)     parts.push('VVIX ' + (data.pcr.vvix || '?') + ' · SKEW ' + (data.pcr.skew || '?'));
+    if (data?.vixTerm) parts.push('VIX-Kurve: ' + data.vixTerm.structure);
+    const desc = parts.join(' · ') || 'Keine Daten';
 
     return { label, color, emoji, desc, score: s };
   },
 
   // ── CACHE ─────────────────────────────────────────────────────────────────
-  _cache: null,
-  _cacheTime: 0,
-  CACHE_MINUTES: 30,
-
   async fetchCached() {
     const now = Date.now();
     if (this._cache && (now - this._cacheTime) < this.CACHE_MINUTES * 60 * 1000) {
@@ -320,10 +280,7 @@ var KoDarkPool = {
     return data;
   },
 
-  clearCache() {
-    this._cache = null;
-    this._cacheTime = 0;
-  },
+  clearCache() { this._cache = null; this._cacheTime = 0; },
 };
 
-console.log('[ko-darkpool.js] v1.1 geladen');
+console.log('[ko-darkpool.js] v1.2 geladen');
