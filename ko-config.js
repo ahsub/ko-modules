@@ -7,7 +7,7 @@
 
 var KoConfig = {
 
-  version: 'v126',
+  version: 'v132',
 
   // ── API ENDPOINTS ──────────────────────────────────────────────
   api: {
