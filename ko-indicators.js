@@ -1,10 +1,12 @@
 /**
  * ko-indicators.js — Technische Indikatoren
  * Reine Mathematik, kein API-Call, kein DOM
- * Version: 1.0
+ * Version: 1.1 | ko-scanner v=128+
+ * Repository: ahsub/ko-modules
+ * Abhängigkeiten: keine
  */
 
-const KoIndicators = {
+var KoIndicators = {
 
   // ── EMA ─────────────────────────────────────────────────────────
   calcEMA(closes, period) {
@@ -188,3 +190,5 @@ const KoIndicators = {
     };
   },
 };
+
+console.log('[ko-indicators.js] geladen');
