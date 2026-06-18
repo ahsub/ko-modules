@@ -1,6 +1,7 @@
 /**
  * ko-data.js — Datenbeschaffung
- * Version: 1.0
+ * Version: 1.1 | ko-scanner v=132+
+ * Repository: ahsub/ko-modules
  * Abhängigkeiten: ko-config.js (optional)
  *
  * Zentraler Datenzugriff für alle Projekte.
@@ -127,3 +128,5 @@ var KoData = {
     return results;
   },
 };
+
+console.log('[ko-data.js] geladen');
