@@ -1,12 +1,13 @@
 /**
  * ko-config.js — Zentrale Konfiguration
  * Alle Feature-Flags, API-Keys, Gewichte
- * Version: 1.0 | ko-scanner v=115+
+ * Version: 1.1 | ko-scanner v=126+
+ * Repository: ahsub/ko-modules
  */
 
-const KoConfig = {
+var KoConfig = {
 
-  version: 'v115',
+  version: 'v126',
 
   // ── API ENDPOINTS ──────────────────────────────────────────────
   api: {
@@ -73,6 +74,7 @@ const KoConfig = {
     maxConcurrent: 3,
     retryAttempts: 2,
     cacheMinutes:  60,
+    daysMap: { '15m':5, '30m':8, '1h':14, '4h':30, '1d':260 },
   },
 
   // ── MARKOV ──────────────────────────────────────────────────────
@@ -141,3 +143,5 @@ const KoConfig = {
 
 // Overrides beim Start laden
 KoConfig.loadOverrides();
+
+console.log('[ko-config.js] geladen — Version', KoConfig.version);
