@@ -1,13 +1,13 @@
 /**
  * ko-config.js — Zentrale Konfiguration
  * Alle Feature-Flags, API-Keys, Gewichte
- * Version: 1.1 | ko-scanner v=126+
+ * Version: 1.2 | ko-scanner v=135+
  * Repository: ahsub/ko-modules
  */
 
 var KoConfig = {
 
-  version: 'v132',
+  version: 'v135',
 
   // ── API ENDPOINTS ──────────────────────────────────────────────
   api: {
@@ -144,4 +144,4 @@ var KoConfig = {
 // Overrides beim Start laden
 KoConfig.loadOverrides();
 
-console.log('[ko-config.js] geladen — Version', KoConfig.version);
+console.log('[ko-config.js] v1.2 geladen — KO-Scanner Version', KoConfig.version);
