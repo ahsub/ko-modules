@@ -1,10 +1,10 @@
 /**
  * ko-markov.js — Markov 2.0 Regime-Analyse
- * Version: 1.0
+ * Version: 1.1 | ko-scanner v=128+
+ * Repository: ahsub/ko-modules
  * Abhängigkeiten: ko-config.js (optional)
  */
 
-// ── MARKOV KERN-FUNKTIONEN ────────────────────────────────────────────────
 function buildTransitionMatrix(regimes, stride) {
   // FIX 1: Stride-Sampling — nur nicht-überlappende Fenster
   // stride=1 → Legacy (überlappend, statistisch unehrlich)
@@ -209,3 +209,5 @@ var KoMarkov = {
          : 'var(--green)';
   },
 };
+
+console.log('[ko-markov.js] geladen');
