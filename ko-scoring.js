@@ -1,10 +1,11 @@
 /**
  * ko-scoring.js — Composite Score & Signal-Qualität
- * Version: 1.0
+ * Version: 1.1 | ko-scanner v=128+
+ * Repository: ahsub/ko-modules
  * Abhängigkeiten: ko-config.js, ko-indicators.js
  */
 
-const KoScoring = {
+var KoScoring = {
 
   // ── DEFAULT GEWICHTE ─────────────────────────────────────────────
   defaultWeights: {
@@ -125,3 +126,5 @@ const KoScoring = {
     };
   },
 };
+
+console.log('[ko-scoring.js] geladen');
