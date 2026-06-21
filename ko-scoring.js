@@ -1,6 +1,6 @@
 /**
  * ko-scoring.js — Composite Score & Signal-Qualität
- * Version: 1.1 | ko-scanner v=128+
+ * Version: 1.2 | ko-scanner v=159+
  * Repository: ahsub/ko-modules
  * Abhängigkeiten: ko-config.js, ko-indicators.js
  */
@@ -128,3 +128,144 @@ var KoScoring = {
 };
 
 console.log('[ko-scoring.js] geladen');
+
+// ── SWING-TRADING SCORE ────────────────────────────────────────────────────
+// Wird nach dem calcADX/calcStochastic/detectMarketStructure Aufruf genutzt
+
+KoScoring.calcSwingScore = function(params) {
+  const {
+    adx, plusDI, minusDI,
+    stochK, stochD, stochBullCross,
+    price, ema50, ema200, atr,
+    macdHist, macdHistPrev,
+    obvSlope,
+    daysToEarnings,
+    marketStructure,
+    rsi,
+  } = params;
+
+  let score = 0;
+  const reasons = [];
+  const warnings = [];
+
+  // ── 1. ADX Trendstärke-Filter (+25 Punkte) ──────────────────────
+  if (adx != null) {
+    if (adx > 30) {
+      score += 25;
+      reasons.push('ADX ' + adx + ' — starker Trend');
+    } else if (adx > 25) {
+      score += 18;
+      reasons.push('ADX ' + adx + ' — Trend vorhanden');
+    } else if (adx < 20) {
+      score -= 15;
+      warnings.push('ADX ' + adx + ' — Seitwärts/Chop-Zone');
+    }
+    // DI-Richtung prüfen
+    if (plusDI != null && minusDI != null && plusDI > minusDI) {
+      score += 5;
+      reasons.push('+DI>' + '-DI (' + plusDI + '/' + minusDI + ')');
+    }
+  }
+
+  // ── 2. Market Structure + EMA50 Pullback-Zone (+20 Punkte) ──────
+  if (marketStructure && ema50 && atr && price) {
+    const distToEMA50 = (price - ema50) / atr;
+
+    if (marketStructure === 'BULLISH') {
+      score += 10;
+      reasons.push('Marktstruktur: BULLISH (HH/HL)');
+
+      // Ideale Pullback-Zone: 0 bis 1.5 ATR über EMA50
+      if (distToEMA50 >= 0 && distToEMA50 <= 1.5) {
+        score += 15;
+        reasons.push('Pullback-Zone: ' + distToEMA50.toFixed(1) + ' ATR über EMA50');
+      } else if (distToEMA50 < 0 && distToEMA50 > -0.5) {
+        score += 8;
+        reasons.push('Leicht unter EMA50 — Rebound-Zone');
+      }
+    } else if (marketStructure === 'BEARISH') {
+      warnings.push('Marktstruktur: BEARISH (LH/LL) — kein Long-Setup');
+      score -= 10;
+    } else if (marketStructure === 'CONTRACTION') {
+      reasons.push('Kontraktion — Ausbruch vorbereitet');
+      score += 5;
+    }
+  }
+
+  // ── 3. MACD Momentum-Wende (+20 Punkte) ─────────────────────────
+  if (macdHist != null && macdHistPrev != null) {
+    // Histogramm dreht nach oben (von negativ kommend = stärkste Form)
+    if (macdHist > macdHistPrev && macdHistPrev < 0 && macdHist < 0) {
+      score += 20;
+      reasons.push('MACD-Wende aus negativem Bereich');
+    } else if (macdHist > macdHistPrev && macdHist > 0) {
+      score += 12;
+      reasons.push('MACD-Histogramm steigend');
+    } else if (macdHist < macdHistPrev) {
+      score -= 5;
+      warnings.push('MACD-Histogramm fallend');
+    }
+  }
+
+  // ── 4. Stochastik Crossover in Extremzone (+15 Punkte) ──────────
+  if (stochK != null) {
+    if (stochBullCross && stochK < 25) {
+      score += 15;
+      reasons.push('Stoch Bull-Cross überverkauft (' + stochK + ')');
+    } else if (stochK < 20) {
+      score += 8;
+      reasons.push('Stochastik überverkauft (' + stochK + ')');
+    } else if (stochK > 80) {
+      score -= 8;
+      warnings.push('Stochastik überkauft (' + stochK + ')');
+    }
+  }
+
+  // ── 5. OBV Volumenbestätigung (+10 Punkte) ───────────────────────
+  if (obvSlope != null) {
+    if (obvSlope > 0) {
+      score += 10;
+      reasons.push('OBV steigend — Volumenbestätigung');
+    } else {
+      score -= 5;
+      warnings.push('OBV fallend — Volumen schwach');
+    }
+  }
+
+  // ── 6. Earnings-Sicherheitspuffer (+10 Punkte) ───────────────────
+  if (daysToEarnings != null) {
+    if (daysToEarnings > 14) {
+      score += 10;
+      reasons.push('Earnings in ' + daysToEarnings + ' Tagen — sicher');
+    } else if (daysToEarnings <= 3) {
+      score = 0; // Hartes Ausschlusskriterium
+      warnings.push('EARNINGS IN ' + daysToEarnings + ' TAGEN — kein Trade!');
+    } else {
+      warnings.push('Earnings in ' + daysToEarnings + ' Tagen — Vorsicht');
+    }
+  }
+
+  // ── RSI-Kontext (Bonus/Malus) ────────────────────────────────────
+  if (rsi != null) {
+    if (rsi < 35 && rsi > 20) { score += 5; reasons.push('RSI ' + rsi + ' — Rebound-Potential'); }
+    if (rsi > 75) { score -= 5; warnings.push('RSI ' + rsi + ' — überkauft'); }
+  }
+
+  score = Math.max(0, Math.min(100, score));
+
+  // Qualitätsstufe
+  const grade = score >= 75 ? 'STARK'
+              : score >= 55 ? 'GUT'
+              : score >= 35 ? 'MODERAT'
+              : 'SCHWACH';
+
+  return {
+    score,
+    grade,
+    reasons,
+    warnings,
+    bullish: score >= 55,
+  };
+};
+
+console.log('[ko-scoring.js] Swing-Score hinzugefügt');
