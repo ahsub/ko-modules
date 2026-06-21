@@ -1,9 +1,14 @@
 /**
  * ko-indicators.js — Technische Indikatoren
  * Reine Mathematik, kein API-Call, kein DOM
- * Version: 1.1 | ko-scanner v=128+
+ * Version: 1.2 | ko-scanner v=159+
  * Repository: ahsub/ko-modules
  * Abhängigkeiten: keine
+ *
+ * NEU in v1.2:
+ *   - calcADX: echte True Range mit Highs/Lows (Wilder's Smoothing)
+ *   - calcStochastic: Slow Stochastik (14/3/3)
+ *   - detectMarketStructure: Swing-Hoch/Tief (Williams Fractals)
  */
 
 var KoIndicators = {
@@ -87,12 +92,28 @@ var KoIndicators = {
     };
   },
 
-  // ── ATR ─────────────────────────────────────────────────────────
-  calcATR(closes, period = 14) {
+  // ── ATR (mit Highs/Lows) ────────────────────────────────────────
+  calcATR(highs, lows, closes, period = 14) {
+    // Fallback: wenn nur closes übergeben (alte Aufrufe)
+    if (!Array.isArray(lows)) {
+      period = lows || 14;
+      const c = highs;
+      if (!c || c.length < period + 1) return null;
+      const trs = [];
+      for (let i = 1; i < c.length; i++) trs.push(Math.abs(c[i] - c[i-1]));
+      return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
+    }
     if (!closes || closes.length < period + 1) return null;
     const trs = [];
     for (let i = 1; i < closes.length; i++) {
-      trs.push(Math.abs(closes[i] - closes[i - 1]));
+      const h = highs[i] ?? closes[i];
+      const l = lows[i]  ?? closes[i];
+      const tr = Math.max(
+        h - l,
+        Math.abs(h - closes[i - 1]),
+        Math.abs(l - closes[i - 1])
+      );
+      trs.push(tr);
     }
     return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
   },
@@ -112,35 +133,185 @@ var KoIndicators = {
     return { upper, lower, mid: sma, price, pos: Math.round(pos * 100) / 100, std };
   },
 
-  // ── ADX ─────────────────────────────────────────────────────────
-  calcADX(closes, period = 14) {
-    if (!closes || closes.length < period * 2) return null;
-    const n   = closes.length;
-    const dms = [];
-    for (let i = 1; i < n; i++) {
-      const up   = closes[i] - closes[i - 1];
-      const down = closes[i - 1] - closes[i];
-      dms.push({ plus: Math.max(0, up), minus: Math.max(0, down) });
+  // ── ADX v2: Echte True Range mit Highs/Lows (Wilder's Smoothing) ──
+  calcADX(highs, lows, closes, period = 14) {
+    // Fallback für alte Aufrufe mit nur closes
+    if (!Array.isArray(lows)) {
+      period = lows || 14;
+      highs = highs; lows = highs; closes = highs;
     }
-    let sumP = 0, sumM = 0;
-    for (let i = 0; i < period; i++) { sumP += dms[i].plus; sumM += dms[i].minus; }
+    if (!closes || closes.length < period * 2) return null;
+
+    const tr = [], plusDM = [], minusDM = [];
+
+    for (let i = 1; i < closes.length; i++) {
+      const h = highs[i] ?? closes[i];
+      const l = lows[i]  ?? closes[i];
+      const ph = highs[i-1] ?? closes[i-1];
+      const pl = lows[i-1]  ?? closes[i-1];
+
+      // True Range
+      tr.push(Math.max(h - l, Math.abs(h - closes[i-1]), Math.abs(l - closes[i-1])));
+
+      // Directional Movement
+      const upMove   = h - ph;
+      const downMove = pl - l;
+      plusDM.push(upMove > downMove && upMove > 0 ? upMove : 0);
+      minusDM.push(downMove > upMove && downMove > 0 ? downMove : 0);
+    }
+
+    // Wilder's Smoothing Init
+    let sTR  = tr.slice(0, period).reduce((a, b) => a + b, 0);
+    let sPDM = plusDM.slice(0, period).reduce((a, b) => a + b, 0);
+    let sMDM = minusDM.slice(0, period).reduce((a, b) => a + b, 0);
+
     const dxVals = [];
-    for (let i = period; i < dms.length; i++) {
-      sumP = sumP - sumP / period + dms[i].plus;
-      sumM = sumM - sumM / period + dms[i].minus;
-      const diP = sumP + sumM > 0 ? sumP / (sumP + sumM) * 100 : 0;
-      const diM = sumP + sumM > 0 ? sumM / (sumP + sumM) * 100 : 0;
-      const dx  = diP + diM > 0 ? Math.abs(diP - diM) / (diP + diM) * 100 : 0;
+    let lastPlusDI = 0, lastMinusDI = 0;
+
+    for (let i = period; i < tr.length; i++) {
+      sTR  = sTR  - sTR  / period + tr[i];
+      sPDM = sPDM - sPDM / period + plusDM[i];
+      sMDM = sMDM - sMDM / period + minusDM[i];
+
+      const pDI = sTR > 0 ? (sPDM / sTR) * 100 : 0;
+      const mDI = sTR > 0 ? (sMDM / sTR) * 100 : 0;
+      lastPlusDI  = pDI;
+      lastMinusDI = mDI;
+
+      const diSum  = pDI + mDI;
+      const dx     = diSum > 0 ? (Math.abs(pDI - mDI) / diSum) * 100 : 0;
       dxVals.push(dx);
     }
+
     if (dxVals.length < period) return null;
-    const adx     = dxVals.slice(-period).reduce((a, b) => a + b, 0) / period;
-    const adxPrev = dxVals.slice(-period * 2, -period).reduce((a, b) => a + b, 0) / period;
+
+    // ADX = Wilder-Smoothing der DX-Werte
+    let adx = dxVals.slice(0, period).reduce((a, b) => a + b, 0) / period;
+    for (let i = period; i < dxVals.length; i++) {
+      adx = (adx * (period - 1) + dxVals[i]) / period;
+    }
+
+    const adxPrev = dxVals.slice(Math.max(0, dxVals.length - period * 2), dxVals.length - period);
+    const adxPrevVal = adxPrev.length ? adxPrev.reduce((a,b) => a+b, 0) / adxPrev.length : adx;
+
     return {
-      value:  Math.round(adx * 10) / 10,
-      prev:   Math.round(adxPrev * 10) / 10,
-      trend:  adx > adxPrev ? 'rising' : 'falling',
-      strong: adx > 25,
+      value:    Math.round(adx * 10) / 10,
+      prev:     Math.round(adxPrevVal * 10) / 10,
+      plusDI:   Math.round(lastPlusDI * 10) / 10,
+      minusDI:  Math.round(lastMinusDI * 10) / 10,
+      trend:    adx > adxPrevVal ? 'rising' : 'falling',
+      strong:   adx > 25,
+      // Trend-Richtung aus DI-Kreuzung
+      bullTrend: lastPlusDI > lastMinusDI,
+    };
+  },
+
+  // ── STOCHASTIK (Slow 14/3/3) ────────────────────────────────────
+  calcStochastic(highs, lows, closes, kPeriod = 14, dPeriod = 3) {
+    if (!closes || closes.length < kPeriod + dPeriod * 2) return null;
+
+    // Fast %K
+    const fastK = [];
+    for (let i = kPeriod - 1; i < closes.length; i++) {
+      const wH = Math.max(...highs.slice(i - kPeriod + 1, i + 1));
+      const wL = Math.min(...lows.slice(i - kPeriod + 1, i + 1));
+      fastK.push(wH === wL ? 50 : ((closes[i] - wL) / (wH - wL)) * 100);
+    }
+
+    // Slow %K = SMA(fastK, dPeriod)
+    const slowK = [];
+    for (let i = dPeriod - 1; i < fastK.length; i++) {
+      slowK.push(fastK.slice(i - dPeriod + 1, i + 1).reduce((a, b) => a + b, 0) / dPeriod);
+    }
+
+    if (slowK.length < dPeriod) return null;
+
+    // Slow %D = SMA(slowK, dPeriod)
+    const k = slowK[slowK.length - 1];
+    const kPrev = slowK[slowK.length - 2] ?? k;
+    const d = slowK.slice(-dPeriod).reduce((a, b) => a + b, 0) / dPeriod;
+    const dPrev = slowK.length >= dPeriod + 1
+      ? slowK.slice(-(dPeriod + 1), -1).reduce((a, b) => a + b, 0) / dPeriod
+      : d;
+
+    // Crossover-Erkennung
+    const bullCross = k > d && kPrev <= dPrev;   // %K kreuzt %D nach oben
+    const bearCross = k < d && kPrev >= dPrev;   // %K kreuzt %D nach unten
+
+    return {
+      k:          Math.round(k * 10) / 10,
+      d:          Math.round(d * 10) / 10,
+      kPrev:      Math.round(kPrev * 10) / 10,
+      oversold:   k < 20,
+      overbought: k > 80,
+      bullCross,  // Kaufsignal: Cross in überverkaufter Zone
+      bearCross,  // Verkaufssignal: Cross in überkaufter Zone
+      signal:     k < 20 ? 'ÜBERVERKAUFT' : k > 80 ? 'ÜBERKAUFT' : 'NEUTRAL',
+    };
+  },
+
+  // ── MARKET STRUCTURE (Williams Fractals) ────────────────────────
+  detectMarketStructure(highs, lows, wing = 2) {
+    if (!highs || highs.length < wing * 2 + 3) return null;
+
+    const swingHighs = [];
+    const swingLows  = [];
+
+    // Scanne von hinten — brauchen wing Bars rechts zur Bestätigung
+    for (let i = highs.length - wing - 1; i >= wing; i--) {
+      // Swing High: höher als wing Bars links und rechts
+      let isHigh = true;
+      for (let j = 1; j <= wing; j++) {
+        if (highs[i] <= highs[i - j] || highs[i] <= highs[i + j]) { isHigh = false; break; }
+      }
+      if (isHigh) swingHighs.push({ idx: i, val: highs[i] });
+
+      // Swing Low: tiefer als wing Bars links und rechts
+      let isLow = true;
+      for (let j = 1; j <= wing; j++) {
+        if (lows[i] >= lows[i - j] || lows[i] >= lows[i + j]) { isLow = false; break; }
+      }
+      if (isLow) swingLows.push({ idx: i, val: lows[i] });
+
+      if (swingHighs.length >= 3 && swingLows.length >= 3) break;
+    }
+
+    // Marktstruktur aus letzten 2 Swing-Highs und -Lows
+    let structure = 'NEUTRAL';
+    let pullbackZone = false;
+
+    if (swingHighs.length >= 2 && swingLows.length >= 2) {
+      const hh = swingHighs[0].val > swingHighs[1].val;  // Higher High
+      const hl = swingLows[0].val  > swingLows[1].val;   // Higher Low
+      const lh = swingHighs[0].val < swingHighs[1].val;  // Lower High
+      const ll = swingLows[0].val  < swingLows[1].val;   // Lower Low
+
+      if (hh && hl) structure = 'BULLISH';   // Aufwärtstrend intakt
+      if (lh && ll) structure = 'BEARISH';   // Abwärtstrend intakt
+      if (hh && ll) structure = 'EXPANSION'; // Volatilitäts-Expansion
+      if (lh && hl) structure = 'CONTRACTION'; // Kontraktion/Dreieck
+    }
+
+    // Pullback-Zone: Preis zwischen letztem Swing-Low und -High
+    const lastHigh = swingHighs[0]?.val ?? null;
+    const lastLow  = swingLows[0]?.val  ?? null;
+    const price    = highs[highs.length - 1]; // Näherung
+    if (lastHigh && lastLow) {
+      const range = lastHigh - lastLow;
+      const pos   = range > 0 ? (price - lastLow) / range : 0.5;
+      // Pullback = Preis im unteren Drittel nach Bullish-Struktur
+      pullbackZone = structure === 'BULLISH' && pos < 0.4;
+    }
+
+    return {
+      structure,
+      lastSwingHigh: lastHigh ? Math.round(lastHigh * 100) / 100 : null,
+      lastSwingLow:  lastLow  ? Math.round(lastLow  * 100) / 100 : null,
+      swingHighCount: swingHighs.length,
+      swingLowCount:  swingLows.length,
+      pullbackZone,   // true = ideale Swing-Long Einstiegszone
+      bullish: structure === 'BULLISH',
+      bearish: structure === 'BEARISH',
     };
   },
 
@@ -191,4 +362,4 @@ var KoIndicators = {
   },
 };
 
-console.log('[ko-indicators.js] geladen');
+console.log('[ko-indicators.js] v1.2 geladen — ADX, Stochastik, Market Structure');
