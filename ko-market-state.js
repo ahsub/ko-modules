@@ -75,10 +75,11 @@ var KoMarketState = {
    */
   async loadHistoryFromAggregator() {
     try {
-      var kvUrl = 'https://ko-sync.ahildebrand.workers.dev/get?key=master_market_data';
+      var kvUrl = 'https://ko-sync.ahildebrand.workers.dev/sync/master_market_data';
       var r = await fetch(kvUrl);
       if (!r.ok) throw new Error('KV ' + r.status);
-      var json = await r.json();
+      var resp = await r.json();
+      var json = resp.data || resp;   // Worker gibt {key, data, updated_at}
 
       var mseH = json?.market?.mseHistory;
       if (!mseH || !mseH.dates || mseH.dates.length < 5) {
