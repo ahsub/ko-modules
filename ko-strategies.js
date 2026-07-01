@@ -1,7 +1,13 @@
 /**
  * ko-strategies.js — UnderlyingIQ Strategy Rule Engine
  * ══════════════════════════════════════════════════════════════════
- * Version: 2.0.0
+ * Version: 2.1.0
+ *
+ * NEU in v2.1.0 (01.07.2026) — Short-Strategien Phase 1 (Gemini-Blueprint):
+ *   Neue Strategie 'fading_short': KO-Short auf überhitzte Einzeltitel via
+ *   Trade Republic. Vollständiges Regelwerk mit umgekehrter Output-Struktur
+ *   (Stop = +X% über Entry, CRV-Minimum 2.5:1, Squeeze-Exit-Trigger). Hartes
+ *   Ausschluss-Protokoll: Earnings <28d, squeezeRisk ≥70, ATH-Nähe, <$15.
  * Repository: ahsub/ko-modules
  *
  * NEU in v2.0.0 (30.06.2026) — Architektur-Umbau (Axels 5 Anforderungen):
@@ -458,26 +464,96 @@ const Strategies = {
     maxWords: 400,
   },
 
-  // ── BEISPIEL-SCHABLONE für künftige Optionsketten-Strategien ────────────
-  // (Strangle/Straddle/Iron Condor — Punkt "Erweiterbarkeit"). Auskommentiert,
-  // da noch keine echten Schwellenwerte/Inhalte abgestimmt sind. Beim
-  // Aktivieren: aus Strategies-Objekt rausnehmen, mit echten Werten füllen.
-  //
-  // iron_condor: {
-  //   label: '🦅 Iron Condor',
-  //   hint: '🦅 Iron Condor: Range-Bound · Short Strangle + Long-Wings · Definiertes Risiko',
-  //   color: '#f472b6',
-  //   category: 'options',
-  //   intro: 'Du bist ein erfahrener Options-Trader mit Fokus auf marktneutrale Iron-Condor-Strategien.',
-  //   exclusions: [
-  //     { text: 'HVP < ${minHvp}% (zu wenig Prämie für 4-Leg-Struktur)' },
-  //     { text: 'ER innerhalb ${erDays} Tage' },
-  //     { text: 'ADX > 25 (zu trendig, kein Range-Bound-Setup)' },
-  //   ],
-  //   focus: [ /* 4 Kernfragen */ ],
-  //   task: [ /* AUFGABE-Punkte */ ],
-  //   maxWords: 500,
-  // },
+  // ── NEUE SHORT-STRATEGIEN (Gemini-Blueprint 01.07.2026) ────────────────────
+  // Phase 1: Fading Short via KO-Zertifikat (Trade Republic) — erste Priorität
+  // lt. Gemini-Review, da perfekte Daten-Synergie mit vorhandenen Metriken und
+  // klare Instrumenten-Trennung (KO-Short = max €2K, definiertes Risiko, kein
+  // Squeeze-Exposure durch Knock-out als eingebautem Stop).
+
+  fading_short: {
+    label: '⚠️ Fading Short (KO)',
+    hint: '⚠️ Fading Short: FOMO-Climax · KO-Zertifikat TR · Hebel 3-8x dynamisch · max €2.000',
+    color: '#f97316',
+    category: 'leverage_short',
+    warningPrefix:
+      '⛔ SHORT-STRATEGIE — ASYMMETRISCHES RISIKO-PROTOKOLL ⛔\n' +
+      'Shorts sind NIEMALS Buy-and-Hold. Harte Regeln:\n' +
+      '1. Earnings innerhalb 28 Tage → SOFORTIGER AUSSCHLUSS, keine Ausnahmen.\n' +
+      '2. Squeeze-Risk-Score ≥70 → SOFORTIGER AUSSCHLUSS, keine Ausnahmen.\n' +
+      '3. Preis nahe/über 52W-Hoch → SOFORTIGER AUSSCHLUSS.\n' +
+      '4. Positionsgröße: max. €2.000 Gesamtrisiko inkl. Hebel-Verlust.\n' +
+      '5. Sofort-Exit bei Volumen-Spike >200% des 20d-Durchschnitts an grünem Tag.\n' +
+      'DATENDISZIPLIN: Nur Werte aus dem Prompt verwenden. Kurse NIEMALS erfinden.',
+    intro:
+      'Du bist ein erfahrener Short-Trader spezialisiert auf überhitzte Einzeltitel ' +
+      '(FOMO-Climax-Fading) via KO-Zertifikate auf Trade Republic.\n' +
+      'Portfolio-Kontext: KO-Short-Positionen max €2.000, max 2 offen gleichzeitig. ' +
+      'Das IBKR-Hauptdepot (Wheel/CSP) ist inhärent long-lastig — diese Shorts bilden ' +
+      'das taktische Gegengewicht bei Markt-Erschöpfung.',
+    exclusions: [
+      { text: 'Preis < $15 (Penny-Stock-Squeeze-Risiko)' },
+      { text: 'Squeeze-Risk-Score ≥ 70 (aus squeezeRisk-Feld)' },
+      { text: 'Preis ≥ 99% des 52W-Hochs (kein Short gegen ATH)' },
+      { text: 'Earnings innerhalb 28 Tage' },
+    ],
+    exclusionsHeader: '🚫 HARTES SHORT-AUSSCHLUSS-PROTOKOLL (vor jeder Analyse zwingend prüfen):',
+    basics: [
+      'Instrument: KO-Short-Zertifikat auf Trade Republic (HSBC), Hebel dynamisch aus ATR',
+      'Hebelformel: clamp(1.5 / (ATR/Preis), 3, 8) — je höher die Volatilität, desto niedriger der Hebel',
+      'KO-Strike Abstand: mindestens 2.0 ATR über aktuellem Kurs (Puffer gegen technische Rebounds)',
+      'Haltedauer: 10-25 Tage. Short-Impulse laufen historisch ~3× schneller ab als Long-Zyklen',
+      'Frühausstieg (Verlust): sofortiger Exit bei Volumen-Spike >200% 20d-Durchschnitt an grünem Tag',
+      'Frühausstieg (Gewinn): 50% Gewinnziel → Position halbieren, 70% → vollständig schließen',
+      'CRV-Minimum: 2.5:1 (Ziel/Stop). Darunter kein Einstieg — Short-Trades haben kürzeres Gelegenheitsfenster',
+    ],
+    basicsTitle: 'SHORT-SETUP GRUNDLAGEN (Fading via KO-Zertifikat)',
+    focus: [
+      '1. Überhitzungsanalyse: overheat-Score, RSI, BB-Position und ATR-Distanz zur EMA200 bewerten.',
+      '2. Squeeze-Risiko explizit einschätzen: squeezeRisk-Score + HVP-Niveau (≥85% = Warnung).',
+      '3. KO-Strike-Empfehlung: EMA50 + 1.5 ATR als KO-Level, Hebel aus koShortLev-Feld.',
+      '4. Exit-Szenario: Wo liegt das erste Fibo-Retracement-Level als Gewinnziel (Abwärts)?',
+    ],
+    task: [
+      {
+        title: 'MARKTLAGE-CHECK',
+        body: 'Übergeordnetes Regime und Sektor-Kontext: Unterstützt das Umfeld Fading-Shorts, ' +
+              'oder dominieren noch bullische Kräfte? (2-3 Sätze, nur aus Messwerten)',
+      },
+      {
+        title: 'TOP-KANDIDATEN BEWERTUNG (max. 3)', body: 'Für jeden Kandidaten nach Ausschluss-Protokoll:',
+        subitems: [
+          'a) Überhitzungssignale: overheat-Score + RSI + BB-Position + ATR-Distanz EMA200',
+          'b) Squeeze-Risiko: squeezeRisk-Wert + HVP explizit nennen',
+          'c) KO-Setup: Empfohlener Hebel (koShortLev) · KO-Strike = EMA50 + 1.5 ATR in $',
+          'd) Einstiegs-Trigger: welches Ereignis/Level bestätigt den Short-Einstieg?',
+          'e) Stop-Loss: + X% über Entry (= Y ATR), konkreter Kurs in $',
+          'f) Gewinnziel 1 (50% Position): erstes Fibo-Retracement-Level abwärts',
+          'g) Gewinnziel 2 (Restposition): nächstes Fibo-Level oder EMA200',
+          'h) CRV berechnen und explizit nennen (Pflicht: ≥ 2.5:1)',
+          'i) Squeeze-Exit-Trigger: Volumen-Bedingung für Sofortausstieg',
+        ],
+      },
+      {
+        title: 'NICHT GEEIGNET',
+        body: 'Ausgeschlossene Kandidaten + konkreter Grund (Squeeze-Risk/Earnings/ATH/Penny)',
+      },
+      {
+        title: 'RISIKO-ASSESSMENT',
+        body: 'Hauptrisiko für diese Short-Setups heute: Mögliche Squeeze-Auslöser, ' +
+              'Makro-Events, Sektor-Rotation. Kein Weichspüler.',
+      },
+    ],
+    closingNote:
+      '⚠️ PFLICHT-ABSCHLUSS: Gesamtexposure Short-Seite prüfen. ' +
+      'Max. 2 KO-Short-Positionen gleichzeitig offen. ' +
+      'Stops sind Pflicht — kein ungesicherter Short.',
+    maxWords: 500,
+    completeEachPoint: true,
+  },
+
+  // Schablone für spätere Breakdown-Short-Variante (Bear-Put-Spread via IBKR)
+  // Wird aktiviert wenn Phase 2 implementiert wird.
+  // breakdown_short: { ... }
 
 };
 
@@ -509,7 +585,7 @@ const listByCategory = (category) =>
   Object.entries(Strategies).filter(([, s]) => s.category === category).map(([id]) => id);
 
 const KoStrategies = {
-  VERSION: '2.0.0',
+  VERSION: '2.1.0',
   Strategies,
   STRATEGIES: Strategies, // Alias für Rückwärtskompatibilität (alte Schreibweise)
   KI_ANTI_HALLUZINATION,
