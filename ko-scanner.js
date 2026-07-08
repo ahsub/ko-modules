@@ -1,20 +1,20 @@
 /**
  * ko-scanner.js — UIQ Scanner-Helfer
  * ══════════════════════════════════════════════════════════════════
- * Handelsplatz-Dropdown, Listen-Auswahl, Chip-Rendering
+ * Handelsplatz-Dropdown (US/DE), Listen-Auswahl, Chip-Rendering
  *
- * Extrahiert aus index.html v265 (09.07.2026)
- * Modular, ES6-kompatibel, UIQ v2 / Vite+React ready
- *
- * Abhängigkeiten: showKoToast (ko-ui), onPresetChange (Scanner)
+ * Version: 1.0.0 (09.07.2026)
+ * Extrahiert aus index.html v265
  * Repository: ahsub/ko-modules
+ *
+ * Abhängigkeiten: showKoToast (index.html), onPresetChange (index.html)
+ *
+ * WICHTIG: _marketDropdowns darf nur hier definiert sein.
+ * In index.html ist die inline-Version durch dieses Modul ersetzt.
  */
 
-'use strict';
-
 // ── Handelsplatz-Listen ───────────────────────────────────────────
-// ── Handelsplatz-Dropdown (AP Scanner-Header v253) ────────────────────────────
-const _marketDropdowns = {
+var _marketDropdowns = {
   us: [
     ["default",               "🇺🇸 50 US-Aktien (Standard)"],
     ["top50-us",              "📈 IBD Momentum Top-50"],
@@ -42,15 +42,13 @@ const _marketDropdowns = {
 
 // ── Dropdown-Toggle ───────────────────────────────────────────────
 function toggleMarketDropdown(market, btn) {
-  // Bestehende Dropdowns schließen
   var existing = document.getElementById('mkt-dropdown');
   if (existing) {
     existing.remove();
-    // Wenn gleicher Button: nur schließen
     if (existing.dataset.market === market) return;
   }
 
-  setMarket(market);
+  if (typeof setMarket === 'function') setMarket(market);
 
   var dropdown = document.createElement('div');
   dropdown.id = 'mkt-dropdown';
@@ -91,15 +89,13 @@ function toggleMarketDropdown(market, btn) {
 }
 
 // ── Listen-Auswahl ────────────────────────────────────────────────
-function selectMarketList(val, market, el) {
-  // Preset-Select synchronisieren
+function selectMarketList(val, market) {
   var sel = document.getElementById('ticker-preset');
   if (sel) {
     sel.value = val;
     if (typeof onPresetChange === 'function') onPresetChange();
     if (typeof updateWlButtons === 'function') updateWlButtons();
   }
-  // Chip anzeigen
   _updateActiveChip(val, market);
 }
 
@@ -107,7 +103,6 @@ function selectMarketList(val, market, el) {
 function _updateActiveChip(val, market) {
   var chipsEl = document.getElementById('active-list-chips');
   if (!chipsEl) return;
-  // Label aus _marketDropdowns holen
   var lists = _marketDropdowns[market] || [];
   var found = lists.find(function(i) { return i[0] === val; });
   var label = found ? found[1] : val;
@@ -126,7 +121,4 @@ function _clearActiveChip() {
   if (sel) { sel.value = 'default'; if (typeof onPresetChange==='function') onPresetChange(); }
 }
 
-// ── Exports (für UIQ v2 / ES6-Module) ────────────────────────────
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toggleMarketDropdown, selectMarketList, _updateActiveChip, _clearActiveChip };
-}
+console.log('[ko-scanner.js] v1.0.0 geladen — Handelsplatz-Dropdown, Listen-Auswahl');
