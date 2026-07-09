@@ -49,7 +49,7 @@ var KoMarketState = {
 
   // ── Z-SCORE & PERZENTIL ────────────────────────────────────────
   zScore(series, currentVal) {
-    if (!series || series.length < 3) return 0;
+    if (!series || series.length < 3) return null;   // v: kein Fake-0 bei fehlender History — 0 sähe wie ein echter neutraler Z-Score aus
     const n    = Math.min(series.length, this.LOOKBACK);
     const data = series.slice(-n);
     const mean = data.reduce((a, b) => a + b, 0) / n;
@@ -60,7 +60,7 @@ var KoMarketState = {
   },
 
   percentileRank(series, currentVal) {
-    if (!series || series.length < 3) return 50;
+    if (!series || series.length < 3) return null;   // v: kein Fake-50% bei fehlender History
     const n    = Math.min(series.length, this.LOOKBACK);
     const data = series.slice(-n);
     const below = data.filter(v => v <= currentVal).length;
