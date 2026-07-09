@@ -73,7 +73,11 @@ function getIndicatorValue(id, alphaData) {
   if ((ind.source === 'dom' || ind.source === 'computed') && ind.domId) {
     var el = document.getElementById(ind.domId);
     if (!el && ind.domIdFallback) el = document.getElementById(ind.domIdFallback);
-    var val = el ? el.textContent.trim() : '';
+    var val = '';
+    if (el) {
+      var dv = el.getAttribute('data-value');
+      val = (dv !== null && dv !== '') ? dv : el.textContent.trim();
+    }
     if (val && val !== '—' && val !== '') return val;
   }
 
@@ -123,7 +127,9 @@ async function waitForAllIndicators(ids, timeoutMs) {
         if (!ind || !ind.domId) return true; // kein DOM = kein Warten
         var el = document.getElementById(ind.domId);
         if (!el && ind.domIdFallback) el = document.getElementById(ind.domIdFallback);
-        var val = el ? el.textContent.trim() : '';
+        if (!el) return false;
+        var dv = el.getAttribute('data-value');
+        var val = (dv !== null && dv !== '') ? dv : el.textContent.trim();
         return val && val !== '—' && val !== '';
       });
 
