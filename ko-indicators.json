@@ -6,9 +6,7 @@
     "repository": "ahsub/ko-modules",
     "note": "Neue Indikatoren = neues Objekt. Kein Code-Eingriff nötig."
   },
-
   "indicators": {
-
     "vix": {
       "label": "VIX",
       "category": "volatility",
@@ -20,18 +18,19 @@
       "promptWeight": "hoch",
       "promptHint": "<16 ruhig, 16-25 normal, >25 Stress, >35 Panik"
     },
-
     "vix_term": {
       "label": "VIX Termstruktur",
       "category": "volatility",
       "source": "computed",
-      "computeFrom": ["vix", "vix3m"],
+      "computeFrom": [
+        "vix",
+        "vix3m"
+      ],
       "domId": null,
       "promptKey": "VIX Term Structure",
       "promptWeight": "hoch",
       "promptHint": "CONTANGO=normal, BACKWARDATION=Stress"
     },
-
     "vvix": {
       "label": "VVIX Z-Score",
       "category": "volatility",
@@ -42,7 +41,6 @@
       "promptWeight": "mittel",
       "promptHint": "Volatilität der Volatilität — Frühindikator"
     },
-
     "skew": {
       "label": "SKEW Perzentil",
       "category": "volatility",
@@ -53,7 +51,6 @@
       "promptWeight": "mittel",
       "promptHint": ">130 = Tail-Risk erhöht"
     },
-
     "pcr": {
       "label": "Put/Call Ratio",
       "category": "sentiment",
@@ -65,7 +62,6 @@
       "promptWeight": "mittel",
       "promptHint": ">1.2 bearish Sentiment, <0.7 bullish/überhitzt"
     },
-
     "pcr_z": {
       "label": "PCR Z-Score (DIX-Proxy)",
       "category": "sentiment",
@@ -76,7 +72,6 @@
       "promptWeight": "mittel",
       "promptHint": "Ersatz für DIX (Squeezemetrics 403). Negativ = Akkumulation"
     },
-
     "gex_proxy": {
       "label": "GEX-Proxy Z-Score",
       "category": "sentiment",
@@ -87,17 +82,16 @@
       "promptWeight": "niedrig",
       "promptHint": "Positiv = Dealer dämpfen Bewegung (Pin-Risk)"
     },
-
     "fear_greed": {
       "label": "Fear & Greed",
       "category": "sentiment",
       "source": "computed",
-      "domId": "fear-greed-val",
+      "domId": "cnn-fg-score",
       "promptKey": "Fear & Greed CNN",
       "promptWeight": "mittel",
-      "promptHint": "0-25 extreme Angst, 75-100 extreme Gier"
+      "promptHint": "0-25 extreme Angst, 75-100 extreme Gier",
+      "domIdFallback": "home-fg-val"
     },
-
     "intermarket_score": {
       "label": "Intermarket Risk Score",
       "category": "macro",
@@ -109,7 +103,6 @@
       "promptWeight": "hoch",
       "promptHint": "0=kein Stress, 100=maximaler Risk-Off"
     },
-
     "bull_indicator": {
       "label": "Bull-Market Frühindikator",
       "category": "macro",
@@ -120,7 +113,6 @@
       "promptWeight": "hoch",
       "promptHint": "Composite aus Breadth, Momentum, Sektor-Rotation"
     },
-
     "treasury_stress": {
       "label": "Treasury Stress Score",
       "category": "macro",
@@ -132,7 +124,6 @@
       "promptWeight": "hoch",
       "promptHint": ">60 = Stress im Anleihenmarkt"
     },
-
     "tnx": {
       "label": "10J Treasury Yield",
       "category": "macro",
@@ -144,7 +135,6 @@
       "promptWeight": "hoch",
       "promptHint": "Leitzins-Erwartung, Diskontierungsfaktor Aktien"
     },
-
     "irx": {
       "label": "3M T-Bill Yield",
       "category": "macro",
@@ -156,7 +146,6 @@
       "promptWeight": "mittel",
       "promptHint": "Spread zu 10J = Yield-Kurve"
     },
-
     "dxy": {
       "label": "DXY vs SMA200",
       "category": "macro",
@@ -169,7 +158,6 @@
       "promptWeight": "mittel",
       "promptHint": "Über SMA200 = USD stark = Druck auf Commodities + EM"
     },
-
     "ndx_breadth": {
       "label": "NDX Breadth >50d MA",
       "category": "macro",
@@ -181,7 +169,6 @@
       "promptWeight": "mittel",
       "promptHint": "<50% = Markt auf dünnem Eis trotz Index-Stärke"
     },
-
     "oil_wti": {
       "label": "WTI Rohöl",
       "category": "commodity",
@@ -193,7 +180,6 @@
       "promptWeight": "mittel",
       "promptHint": "Konjunkturindikator, Inflation, Energiesektor"
     },
-
     "gold": {
       "label": "Gold",
       "category": "commodity",
@@ -205,7 +191,6 @@
       "promptWeight": "mittel",
       "promptHint": "Safe-Haven, Real-Zinsen-Proxy, USD-Korrelation"
     },
-
     "copper": {
       "label": "Kupfer",
       "category": "commodity",
@@ -217,7 +202,6 @@
       "promptWeight": "niedrig",
       "promptHint": "Dr. Copper — globaler Konjunkturindikator"
     },
-
     "lithium": {
       "label": "Lithium (LIT ETF)",
       "category": "commodity",
@@ -229,19 +213,16 @@
       "promptHint": "EV-Zyklus, Batterietechnologie. Quelle: Yahoo Finance",
       "note": "Noch kein eigenes DOM-Element — Aggregator-Integration geplant"
     },
-
     "sektor_overheat": {
       "label": "Sektor-Überhitzung",
       "category": "macro",
       "source": "dom",
-      "domId": "overheat-text",
-      "domIdFallback": "sektor-overheat-content",
+      "domId": "sektor-overheat-grid",
       "loadFn": "loadSektorOverheat",
       "promptKey": "Sektor-Überhitzung",
       "promptWeight": "mittel",
       "promptHint": "Überhitzte Sektoren meiden, rotierende Sektoren beobachten"
     },
-
     "sektor_rs": {
       "label": "Sektor RS vs. SPY",
       "category": "macro",
@@ -252,7 +233,6 @@
       "promptWeight": "mittel",
       "promptHint": "Relative Stärke — zeigt Kapitalflüsse zwischen Sektoren"
     },
-
     "ios_market": {
       "label": "IOS Market Score",
       "category": "sentiment",
@@ -262,7 +242,6 @@
       "promptWeight": "hoch",
       "promptHint": "AA=KAUFEN ERLAUBT, F=SIDELINED. Kombination aus 5 Faktoren"
     },
-
     "mse_regime": {
       "label": "MSE Regime",
       "category": "regime",
@@ -272,7 +251,6 @@
       "promptWeight": "sehr_hoch",
       "promptHint": "BULL_QUIET/BULL_FRAGILE/STRESS_UNSTABLE/POST_PANIC_REVERSION"
     },
-
     "aud_usd": {
       "label": "AUD/USD",
       "category": "fx",
@@ -283,7 +261,6 @@
       "promptWeight": "niedrig",
       "promptHint": "Risk-On Proxy — steigt wenn Risikobereitschaft hoch"
     },
-
     "jpy_usd": {
       "label": "JPY/USD",
       "category": "fx",
