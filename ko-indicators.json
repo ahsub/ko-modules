@@ -1,10 +1,12 @@
 {
   "_meta": {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "created": "2026-07-09",
     "description": "UIQ Indikator-Registry — zentrale Quelle aller Makro-Indikatoren",
     "repository": "ahsub/ko-modules",
-    "note": "Neue Indikatoren = neues Objekt. Kein Code-Eingriff nötig."
+    "note": "Neue Indikatoren = neues Objekt. Kein Code-Eingriff nötig.",
+    "updated": "2026-07-10",
+    "changelog": "v1.0.1: pcr_z + gex_proxy entfernt (permanent null seit zScore-null-Fix, DIX/GEX-Bindung war irreführend). lithium-Hint präzisiert."
   },
   "indicators": {
     "vix": {
@@ -61,26 +63,6 @@
       "promptKey": "Put/Call Ratio",
       "promptWeight": "mittel",
       "promptHint": ">1.2 bearish Sentiment, <0.7 bullish/überhitzt"
-    },
-    "pcr_z": {
-      "label": "PCR Z-Score (DIX-Proxy)",
-      "category": "sentiment",
-      "source": "aggregator",
-      "domId": null,
-      "aggregatorKey": "dix_z20",
-      "promptKey": "PCR Z-Score(20T)",
-      "promptWeight": "mittel",
-      "promptHint": "Ersatz für DIX (Squeezemetrics 403). Negativ = Akkumulation"
-    },
-    "gex_proxy": {
-      "label": "GEX-Proxy Z-Score",
-      "category": "sentiment",
-      "source": "aggregator",
-      "domId": null,
-      "aggregatorKey": "gex_z20",
-      "promptKey": "GEX-Proxy Z(20T)",
-      "promptWeight": "niedrig",
-      "promptHint": "Positiv = Dealer dämpfen Bewegung (Pin-Risk)"
     },
     "fear_greed": {
       "label": "Fear & Greed",
@@ -203,14 +185,14 @@
       "promptHint": "Dr. Copper — globaler Konjunkturindikator"
     },
     "lithium": {
-      "label": "Lithium (LIT ETF)",
+      "label": "Lithium (kein freier Feed)",
       "category": "commodity",
       "source": "unavailable",
       "symbol": "LIT",
       "domId": null,
       "promptKey": "Lithium (LIT)",
       "promptWeight": "niedrig",
-      "promptHint": "EV-Zyklus, Batterietechnologie. Quelle: Yahoo Finance",
+      "promptHint": "Kein verlässlicher freier Spotpreis-Feed verfügbar — n/v",
       "note": "Noch kein eigenes DOM-Element — Aggregator-Integration geplant"
     },
     "sektor_overheat": {
