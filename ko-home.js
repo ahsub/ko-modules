@@ -40,7 +40,14 @@ async function runHomeBriefing(force) {
   if (!force) {
     try {
       var cached = JSON.parse(localStorage.getItem(cacheKey));
-      if (cached && cached.kiBriefing) { renderHomeLanding(); return; }
+      if (cached && cached.kiBriefing) {
+        renderHomeLanding();
+        // v293: Tearsheet-Modal öffnen statt nur die kleine Inline-Vorschau
+        // zu aktualisieren — vorher zeigte "Letztes Briefing" scheinbar
+        // "kein Resultat", weil nie das eigentliche Modal öffnete.
+        if (typeof showMorningTearsheet === 'function') showMorningTearsheet(cached);
+        return;
+      }
     } catch(e) {}
   }
 
