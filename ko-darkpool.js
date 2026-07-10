@@ -84,14 +84,20 @@ var KoDarkPool = {
     const priceChange5 = closes.length >= 5
       ? (closes[n-1] / closes[n-6] - 1) * 100 : 0;
 
-    // Synthetischer DIX-Score (40-55% Range wie echter DIX)
-    // Basis 47.5%, +/- abhängig von OBV-Trend und Volumen
+    // ⚠️ VOLUMEN-HEURISTIK (kein echter DIX/GEX) — 10.07.2026
+    // FINRA/SqueezeMetrics-Feed für echten DIX nicht verfügbar (kostenpflichtig).
+    // Diese Formel bildet KEINEN echten Dark-Pool-Short-Volume-Anteil ab —
+    // sie ist eine aus SPY-OBV/Volumen abgeleitete Heuristik, deren Wertebereich
+    // (38-56%) bewusst an den optischen Bereich von echtem DIX angeglichen ist.
+    // TODO: durch echten SqueezeMetrics-Feed ersetzen sobald finanzierbar
+    // (Entscheidung Axel, 10.07.2026 — Option B: vorerst behalten, umbenannt,
+    // runtergewichtet, aus KI-Prompt ausgeschlossen).
     const obvSignal = obv10 > obv20 ? 2.5 : -2.5;
     const volSignal = volRatio > 1.2 && priceChange5 > 0 ? 1.5
                     : volRatio > 1.2 && priceChange5 < 0 ? -1.5 : 0;
     const dix = Math.max(38, Math.min(56, 47.5 + obvSignal + volSignal));
 
-    // GEX-Proxy aus Volumen-Anomalie
+    // Volumen-Anomalie-Heuristik (kein echtes GEX aus Optionsketten)
     const volAnomaly = (lastVol - avgVol20) / avgVol20 * 100;
     const gex = Math.round(volAnomaly * 80); // skaliert auf Mrd-ähnliche Werte
 
@@ -119,6 +125,7 @@ var KoDarkPool = {
       dixTrend: dix > dixAvg20 ? 'steigend' : 'fallend',
       gexTrend: gex > 0 ? 'positiv' : 'negativ',
       proxy:    true, // Flag: das ist ein Proxy, kein echter DIX
+      heuristicLabel: 'Volumen-Heuristik (kein echter DIX/GEX — SqueezeMetrics-Ersatz geplant)',
       spyPrice: Math.round(spy.price * 100) / 100,
       volRatio: Math.round(volRatio * 100) / 100,
     };
@@ -235,7 +242,12 @@ var KoDarkPool = {
       components.vixTerm = Math.round(vixScore);
     }
 
-    const weights = { dix: 0.35, gex: 0.15, pcr: 0.25, vixTerm: 0.25 };
+    // Gewichtung 10.07.2026 geändert (Axel-Entscheidung, Option B):
+    // dix/gex sind Volumen-Heuristiken ohne echte Dark-Pool-Datenbasis —
+    // runtergewichtet statt entfernt (Ersatz durch SqueezeMetrics geplant,
+    // sobald finanzierbar). pcr (VVIX/SKEW-basiert) und vixTerm (100% real)
+    // sind methodisch legitim und tragen jetzt die Hauptlast.
+    const weights = { dix: 0.10, gex: 0.05, pcr: 0.40, vixTerm: 0.45 };
     let totalWeight = 0, weightedSum = 0;
     Object.keys(weights).forEach(k => {
       if (components[k] != null) {
@@ -245,7 +257,27 @@ var KoDarkPool = {
     });
 
     const total = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 50;
-    return { total, components, weights, bullish: total >= 60, bearish: total <= 40 };
+
+    // ── KI-Score: NUR echte Daten (PCR + VIX-Term) ───────────────────────────
+    // Fließt in den Morning-Briefing-Prompt (results.dpSignal). Die Volumen-
+    // Heuristik (dix/gex) darf NICHT in KI-Prompts — sonst hält die KI eine
+    // erfundene Zahl für ein echtes institutionelles Signal.
+    let kiWeight = 0, kiSum = 0;
+    ['pcr', 'vixTerm'].forEach(k => {
+      if (components[k] != null) {
+        kiSum += components[k] * weights[k];
+        kiWeight += weights[k];
+      }
+    });
+    const kiTotal = kiWeight > 0 ? Math.round(kiSum / kiWeight) : null;
+
+    return {
+      total, components, weights,
+      bullish: total >= 60, bearish: total <= 40,
+      kiTotal,  // nur PCR+VIX-Term — für KI-Prompt-Konsum bestimmt
+      kiBullish: kiTotal != null ? kiTotal >= 60 : null,
+      kiBearish: kiTotal != null ? kiTotal <= 40 : null,
+    };
   },
 
   // ── SIGNAL INTERPRETATION ─────────────────────────────────────────────────
