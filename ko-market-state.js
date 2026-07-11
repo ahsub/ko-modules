@@ -25,6 +25,32 @@
 
 var KoMarketState = {
 
+  // ── STRATEGIE-REIHENFOLGE + LABELS: Single Source of Truth ──────────────
+  // Konsolidiert 11.07.2026 (Praesentationsfeedback) — vorher gab es VIER
+  // unabhaengige Kopien dieser Zuordnung im Frontend (index.html), die bei
+  // Aenderungen einzeln nachgezogen werden mussten (Ursache des "undefined"-
+  // Labels-Bugs vom 10.07.2026). Ab jetzt: alle Renderer referenzieren
+  // KoMarketState.STRATEGY_ORDER / .STRATEGY_LABELS statt eigener Kopien.
+  // Reihenfolge thematisch (Axel, 11.07.2026): Trend/Momentum → Mean Reversion
+  // → Value/Dividende → Options-Income (Wheel → ATM/NA → Weekly → CC) → Short.
+  STRATEGY_ORDER: ['ko', 'momentum', 'breakout', 'swing', 'meanrev', 'dividend',
+                   'value', 'csp_wheel', 'atmna', 'weekly_income', 'cc', 'fading_short'],
+
+  STRATEGY_LABELS: {
+    ko:            '⚡ KO-Zertifikat',
+    momentum:      '📈 Momentum',
+    breakout:      '🚀 Breakout',
+    swing:         '🔄 Swing',
+    meanrev:       '↩️ Mean Rev.',
+    dividend:      '🏦 Dividende',
+    value:         '💎 Value',
+    csp_wheel:     '⚙️ CSP/Wheel',
+    atmna:         '🎯 CSP (ATM/NA)',
+    weekly_income: '💰 CSP (Weekly)',
+    cc:            '📝 Covered Call',
+    fading_short:  '🔻 Fading Short',
+  },
+
   // ── KONFIGURATION ──────────────────────────────────────────────
   LOOKBACK: 20,
 
