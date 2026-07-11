@@ -210,9 +210,9 @@ var KoMarketState = {
 
   // ── STRATEGY ROUTER ────────────────────────────────────────────
   getStrategyGates(regime) {
-    // ── Alle 11 UIQ-Strategien, regelbasiert je Regime (v2.1.0) ──────────────
+    // ── Alle 12 UIQ-Strategien, regelbasiert je Regime (v2.2.0) ──────────────
     // Long-Strategien: momentum, swing, breakout, ko, value, dividend
-    // Income-Strategien: csp_wheel, weekly_income, atmna
+    // Income-Strategien: csp_wheel, weekly_income, atmna, cc (Covered Call, eigenständig ab 11.07.2026)
     // Bidirektional: meanrev
     // Short-Strategie: fading_short
     var gates = {
@@ -228,6 +228,7 @@ var KoMarketState = {
           csp_wheel:    { active: true,  color: 'green',  note: 'PRIORITÄT 2 — ATM-Strikes aggressiv, kaum Gap-Risiko' },
           atmna:        { active: true,  color: 'green',  note: 'PRIORITÄT 2 — ATM-Strategie in stabilem Umfeld optimal' },
           weekly_income:{ active: true,  color: 'green',  note: 'PRIORITÄT 2 — Covered Calls & Cash-Secured Puts freigegeben' },
+          cc:           { active: true,  color: 'green',  note: 'PRIORITÄT 2 — Buy-Write auf Qualitätstitel, hohe Prämien bei geringem Gap-Risiko' },
           value:        { active: true,  color: 'amber',  note: 'MÖGLICH — Einstieg in unterbewertete Titel bei Pullback' },
           dividend:     { active: true,  color: 'amber',  note: 'MÖGLICH — Dividendentitel bei Marktruhe attraktiv' },
           meanrev:      { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — kein Oversold-Signal in Bullmarkt' },
@@ -244,6 +245,7 @@ var KoMarketState = {
           swing:        { active: true,  color: 'amber',  note: 'MÖGLICH — nur bei extrem starken Titeln (RS>90)' },
           csp_wheel:    { active: true,  color: 'amber',  note: 'DROSSELN — defensive Strikes (Δ<0.25), kürzere Laufzeit' },
           weekly_income:{ active: true,  color: 'amber',  note: 'EINSCHRÄNKEN — kürzere Laufzeiten, höhere Strikes' },
+          cc:           { active: true,  color: 'amber',  note: 'EINSCHRÄNKEN — nur auf bereits gehaltene Qualitätstitel, defensive Strikes' },
           atmna:        { active: true,  color: 'amber',  note: 'EINSCHRÄNKEN — defensiver Strike-Abstand' },
           value:        { active: true,  color: 'amber',  note: 'MÖGLICH — defensivere Value-Titel bevorzugen' },
           dividend:     { active: true,  color: 'green',  note: 'EMPFOHLEN — Dividendentitel bieten Puffer bei Rücksetzer' },
@@ -263,6 +265,7 @@ var KoMarketState = {
           meanrev:      { active: true,  color: 'amber',  note: 'MÖGLICH — selektiv Short-Squeeze Rebounds, enger Stop' },
           csp_wheel:    { active: true,  color: 'amber',  note: 'NUR DEFENSIV — Δ<0.15, krisenresistente Value-Titel' },
           value:        { active: true,  color: 'amber',  note: 'SELEKTIV — tiefe Einstiegsgelegenheiten in Value prüfen' },
+          cc:           { active: true,  color: 'amber',  note: 'SELEKTIV — nur auf bereits gehaltene Positionen, keine Neupositionen zum Buy-Write' },
           dividend:     { active: true,  color: 'amber',  note: 'SELEKTIV — nur höchste Qualität mit solider Bilanz' },
           momentum:     { active: false, color: 'red',    note: 'GESPERRT — fallende Messer nicht anfassen' },
           swing:        { active: false, color: 'red',    note: 'GESPERRT — Fehlausbrüche dominant, keine Trendstruktur' },
@@ -282,6 +285,7 @@ var KoMarketState = {
           csp_wheel:    { active: true,  color: 'green',  note: 'PRIORITÄT 1 — erhöhte IV verkaufen, hohe Prämien kassieren' },
           atmna:        { active: true,  color: 'green',  note: 'PRIORITÄT 1 — ATM-Prämien bei hoher IV optimal' },
           weekly_income:{ active: true,  color: 'green',  note: 'PRIORITÄT 2 — Vol-Crush nutzen für Income' },
+          cc:           { active: true,  color: 'green',  note: 'PRIORITÄT 2 — erhöhte IV nach Panik für Buy-Write nutzen, hohe Prämien' },
           value:        { active: true,  color: 'green',  note: 'PRIORITÄT 2 — antizyklische Einstiege in fundamentalstarke Titel' },
           dividend:     { active: true,  color: 'amber',  note: 'MÖGLICH — defensive Qualitätstitel in Erholung' },
           fading_short: { active: false, color: 'amber',  note: 'REDUZIEREN — Short-Positionen bei Bodenbildung abbauen' },
@@ -301,6 +305,7 @@ var KoMarketState = {
           swing:        { active: true,  color: 'amber',  note: 'SELEKTIV — klare technische Struktur erforderlich' },
           csp_wheel:    { active: true,  color: 'amber',  note: 'KONSERVATIV — defensive Strikes, kürzere Laufzeit' },
           weekly_income:{ active: true,  color: 'amber',  note: 'KONSERVATIV — reduziertes Exposure' },
+          cc:           { active: true,  color: 'amber',  note: 'KONSERVATIV — nur auf bereits gehaltene Qualitätstitel' },
           dividend:     { active: true,  color: 'amber',  note: 'MÖGLICH — defensiver Anker in unsicherem Umfeld' },
           value:        { active: true,  color: 'amber',  note: 'MÖGLICH — fundamentale Qualität als Sicherheitspuffer' },
           atmna:        { active: true,  color: 'amber',  note: 'KONSERVATIV — nur klare Setups' },
