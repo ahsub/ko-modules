@@ -101,7 +101,7 @@ var KoMarketState = {
    */
   async loadHistoryFromAggregator() {
     try {
-      var kvUrl = 'https://ko-sync.ahildebrand.workers.dev/sync/master_market_data';
+      var kvUrl = 'https://ko-sync.ahildebrand.workers.dev/public/master_market_data';
       var r = await fetch(kvUrl);
       if (!r.ok) throw new Error('KV ' + r.status);
       var resp = await r.json();
