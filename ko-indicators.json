@@ -1,12 +1,12 @@
 {
   "_meta": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "created": "2026-07-09",
     "description": "UIQ Indikator-Registry — zentrale Quelle aller Makro-Indikatoren",
     "repository": "ahsub/ko-modules",
     "note": "Neue Indikatoren = neues Objekt. Kein Code-Eingriff nötig.",
     "updated": "2026-07-14",
-    "changelog": "v2.0.0: Market Context Module (MCM) — enabled-Flag + weight (reserviert, nicht ausgewertet bis Track-Record-Kalibrierung) je Indikator; signalRules (deklarative Schwellwerte -> ok/caution/risk, erste passende Regel gewinnt) fuer 9 Gate-relevante Indikatoren; 3 Calendar-Faktoren (FOMC/NFP/CPI) mit source=calendar, lesen macro-calendar.json fail-closed. | v1.0.1: pcr_z + gex_proxy entfernt."
+    "changelog": "v2.1.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc-Zeitstempel umgestellt (Loader v1.2.0) — FOMC nutzt jetzt Zweitage-Fenster (meeting_start_utc), bufferMinutes fuer Karenzzeit um Decision-Zeitpunkt (Spread-Normalisierung). FOMC/CPI-Termine gegen federalreserve.gov/bls.gov verifiziert (Axel, 14.07.2026). | v2.0.0: MCM Grundgeruest (enabled/weight/signalRules/Calendar)."
   },
   "indicators": {
     "vix": {
@@ -414,13 +414,14 @@
       "source": "calendar",
       "eventType": "FOMC",
       "windowHoursBefore": 48,
-      "windowHoursAfter": 6,
+      "windowHoursAfter": 0,
       "signalOnEvent": "caution",
       "promptKey": "FOMC-Fenster",
       "promptWeight": "hoch",
-      "promptHint": "48h vor FOMC-Entscheid: erhöhte Vol-Gefahr, neue Positionen zurückhaltend",
+      "promptHint": "Zweitägige FOMC-Sitzung (meeting_start_utc bis decision_utc). Karenzzeit 15min vor Sitzungsbeginn / nach Decision. 48h-Vorlaufwarnung Fallback wenn kein meeting_start_utc hinterlegt.",
       "enabled": true,
-      "weight": 1.0
+      "weight": 1.0,
+      "bufferMinutes": 15
     },
     "nfp_window": {
       "label": "NFP-Fenster (Arbeitsmarkt)",
@@ -434,7 +435,8 @@
       "promptWeight": "mittel",
       "promptHint": "24h vor Non-Farm Payrolls: Gap-Risiko bei Öffnung",
       "enabled": true,
-      "weight": 1.0
+      "weight": 1.0,
+      "bufferMinutes": 10
     },
     "cpi_window": {
       "label": "CPI-Fenster (Inflationsdaten)",
@@ -448,7 +450,8 @@
       "promptWeight": "mittel",
       "promptHint": "24h vor CPI-Release: Zins-Repricing-Risiko",
       "enabled": true,
-      "weight": 1.0
+      "weight": 1.0,
+      "bufferMinutes": 10
     }
   }
 }

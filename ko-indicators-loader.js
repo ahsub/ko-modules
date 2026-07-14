@@ -6,7 +6,10 @@
  *   - buildPromptSection()    → generischer Prompt-Aufbau
  *   - getIndicatorValue()     → einheitlicher DOM/Window/Aggregator-Read
  *
- * Version: 1.1.0 (14.07.2026) — MCM: buildMarketContext, signalRules, Makro-Kalender
+ * Version: 1.2.0 (14.07.2026) — MCM: buildMarketContext, signalRules, Makro-Kalender
+ *   v1.2.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc
+ *   umgestellt (kein Timezone-String-Parsing mehr), bufferMinutes fuer
+ *   Karenzzeit, FOMC-Zweitage-Fenster.
  * Repository: ahsub/ko-modules
  *
  * Abhängigkeiten: ko-indicators.json (gleicher CDN-Pfad)
@@ -248,25 +251,41 @@ async function loadMacroCalendar() {
 
 /**
  * Calendar-Faktor auswerten: liegt JETZT im Event-Fenster?
- * @returns {object|null} { value, signal, label } oder null (kein Event im Fenster / fail-closed)
+ * v1.1.0: nutzt explizite decision_utc/meeting_start_utc ISO-Zeitstempel
+ * statt Timezone-String-Parsing (v1.0.0 hatte '-04:00' hardcodiert —
+ * bei EST-Terminen nach DST-Ende wäre das 1h daneben gelegen).
+ * Fenster: [meeting_start_utc ?? decision_utc - windowHoursBefore] bis
+ *          [decision_utc + windowHoursAfter], zusätzlich bufferMinutes
+ *          symmetrisch für Karenzzeit um den exakten Decision-Zeitpunkt.
+ * @returns {object|null} { value, signal, label } oder null (fail-closed)
  */
 function _evalCalendarFactor(ind, now) {
   if (!_macroCalendar) return null; // fail-closed
   var hBefore = (ind.windowHoursBefore != null ? ind.windowHoursBefore : 24) * 3600000;
   var hAfter  = (ind.windowHoursAfter  != null ? ind.windowHoursAfter  : 4)  * 3600000;
+  var bufMin  = (ind.bufferMinutes != null ? ind.bufferMinutes : 0) * 60000;
+
   for (var i = 0; i < _macroCalendar.length; i++) {
     var ev = _macroCalendar[i];
-    if (ev.type !== ind.eventType || !ev.date) continue;
-    // Event-Zeitpunkt: date + time_et (ET ≈ UTC-4 im Sommer; bewusst grob — Fenster ist ohnehin ≥24h)
-    var evTime = new Date(ev.date + 'T' + (ev.time_et || '14:00') + ':00-04:00').getTime();
-    if (isNaN(evTime)) continue;
-    var diff = evTime - now;
-    if (diff <= hBefore && diff >= -hAfter) {
-      var hrs = Math.round(diff / 3600000);
+    if (ev.type !== ind.eventType || !ev.decision_utc) continue;
+    var decisionTime = new Date(ev.decision_utc).getTime();
+    if (isNaN(decisionTime)) continue;
+
+    // Fenster-Start: Zweitage-Sitzungsbeginn falls vorhanden, sonst hBefore vor Decision
+    var windowStart = ev.meeting_start_utc
+      ? new Date(ev.meeting_start_utc).getTime()
+      : decisionTime - hBefore;
+    windowStart -= bufMin; // zusätzliche Karenzzeit vor Sitzungsbeginn
+    var windowEnd = decisionTime + hAfter + bufMin;
+
+    if (now >= windowStart && now <= windowEnd) {
+      var diffToDecision = decisionTime - now;
+      var hrs = Math.round(diffToDecision / 3600000);
       return {
         value:  true,
         signal: ind.signalOnEvent || 'caution',
-        label:  ev.label + (hrs >= 0 ? ' in ' + hrs + 'h' : ' vor ' + (-hrs) + 'h'),
+        label:  ev.label + (diffToDecision >= 0 ? ' in ' + hrs + 'h' : ' vor ' + (-hrs) + 'h') +
+                (ev.note ? ' (' + ev.note + ')' : ''),
         event:  ev.label,
         hours:  hrs,
       };
@@ -382,4 +401,4 @@ function listIndicators() {
   }));
 }
 
-console.log('[ko-indicators-loader] v1.1.0 geladen — Indikator-Registry + Market Context Module (MCM)');
+console.log('[ko-indicators-loader] v1.2.0 geladen — Indikator-Registry + Market Context Module (MCM)');
