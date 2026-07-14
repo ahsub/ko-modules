@@ -6,7 +6,7 @@
  *   - buildPromptSection()    → generischer Prompt-Aufbau
  *   - getIndicatorValue()     → einheitlicher DOM/Window/Aggregator-Read
  *
- * Version: 1.0.0 (09.07.2026)
+ * Version: 1.1.0 (14.07.2026) — MCM: buildMarketContext, signalRules, Makro-Kalender
  * Repository: ahsub/ko-modules
  *
  * Abhängigkeiten: ko-indicators.json (gleicher CDN-Pfad)
@@ -45,9 +45,13 @@ async function loadIndicatorRegistry() {
   }
 }
 
-// ── Hash-Konstante (wird von index.html gesetzt) ───────────────────
+// ── Hash-Konstante: aus dem EIGENEN Script-Tag ableiten ────────────
+// v1.1.0: vorher wurde der Hash des ERSTEN ko-modules@-Scripts genommen
+// (i.d.R. ko-config) — ko-indicators.json kam dann aus einem fremden,
+// potenziell älteren Commit. Jetzt: Loader + JSON sind versions-gelockt.
 var KO_MODULES_HASH = (function() {
-  var scripts = document.querySelectorAll('script[src*="ko-modules@"]');
+  var own = document.querySelectorAll('script[src*="ko-indicators-loader"]');
+  var scripts = own.length ? own : document.querySelectorAll('script[src*="ko-modules@"]');
   if (scripts.length > 0) {
     var m = scripts[0].src.match(/ko-modules@([a-f0-9]+)\//);
     return m ? m[1] : 'latest';
@@ -195,6 +199,173 @@ function buildPromptSection(category, alphaData) {
   return lines;
 }
 
+// ── MCM: Market Context Module (v1.1.0) ───────────────────────────
+/**
+ * Signal aus deklarativen Regeln ableiten.
+ * Regeln werden in Reihenfolge geprüft — erste passende gewinnt.
+ * @param {Array} rules - [{signal, gte?, gt?, lte?, lt?}, ...]
+ * @param {number} val  - numerischer Wert
+ * @returns {string|null} 'ok'|'caution'|'risk' oder null wenn keine Regel passt
+ */
+function _evalSignalRules(rules, val) {
+  if (!rules || val == null || isNaN(val)) return null;
+  for (var i = 0; i < rules.length; i++) {
+    var r = rules[i];
+    var match = true;
+    if (r.gte != null && !(val >= r.gte)) match = false;
+    if (r.gt  != null && !(val >  r.gt))  match = false;
+    if (r.lte != null && !(val <= r.lte)) match = false;
+    if (r.lt  != null && !(val <  r.lt))  match = false;
+    if (match) return r.signal;
+  }
+  return null;
+}
+
+// Makro-Kalender Cache (fail-closed: null = keine Events = keine Flags)
+var _macroCalendar = null;
+var _macroCalendarLoaded = false;
+
+/**
+ * macro-calendar.json laden (same-origin, einmalig gecacht).
+ * FAIL-CLOSED: Bei Fehler bleibt _macroCalendar null — Calendar-Faktoren
+ * setzen dann kein Signal statt eines falschen.
+ */
+async function loadMacroCalendar() {
+  if (_macroCalendarLoaded) return _macroCalendar;
+  try {
+    var resp = await fetch('/macro-calendar.json', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var data = await resp.json();
+    _macroCalendar = (data && Array.isArray(data.events)) ? data.events : null;
+    console.log('[MCM] Makro-Kalender geladen — ' + (_macroCalendar ? _macroCalendar.length : 0) + ' Events');
+  } catch (e) {
+    console.warn('[MCM] macro-calendar.json nicht ladbar (fail-closed, keine Event-Flags):', e.message);
+    _macroCalendar = null;
+  }
+  _macroCalendarLoaded = true;
+  return _macroCalendar;
+}
+
+/**
+ * Calendar-Faktor auswerten: liegt JETZT im Event-Fenster?
+ * @returns {object|null} { value, signal, label } oder null (kein Event im Fenster / fail-closed)
+ */
+function _evalCalendarFactor(ind, now) {
+  if (!_macroCalendar) return null; // fail-closed
+  var hBefore = (ind.windowHoursBefore != null ? ind.windowHoursBefore : 24) * 3600000;
+  var hAfter  = (ind.windowHoursAfter  != null ? ind.windowHoursAfter  : 4)  * 3600000;
+  for (var i = 0; i < _macroCalendar.length; i++) {
+    var ev = _macroCalendar[i];
+    if (ev.type !== ind.eventType || !ev.date) continue;
+    // Event-Zeitpunkt: date + time_et (ET ≈ UTC-4 im Sommer; bewusst grob — Fenster ist ohnehin ≥24h)
+    var evTime = new Date(ev.date + 'T' + (ev.time_et || '14:00') + ':00-04:00').getTime();
+    if (isNaN(evTime)) continue;
+    var diff = evTime - now;
+    if (diff <= hBefore && diff >= -hAfter) {
+      var hrs = Math.round(diff / 3600000);
+      return {
+        value:  true,
+        signal: ind.signalOnEvent || 'caution',
+        label:  ev.label + (hrs >= 0 ? ' in ' + hrs + 'h' : ' vor ' + (-hrs) + 'h'),
+        event:  ev.label,
+        hours:  hrs,
+      };
+    }
+  }
+  return null; // kein Event im Fenster
+}
+
+/**
+ * MARKET CONTEXT bauen — Single Source of Truth für Strategie-Ampel UND KI-Prompt.
+ * Liest ALLE enabled-Indikatoren aus der Registry, leitet Signale ab,
+ * wertet Calendar-Faktoren aus und aggregiert ein Summary.
+ *
+ * MUSS erst nach vollständigem Datenladen aufgerufen werden
+ * (nach waitForAllIndicators in runMorningBriefing Schritt 8→9).
+ *
+ * @param {object} alphaData - window._alphaData (Aggregator-Daten)
+ * @param {string} regime    - aktuelles MSE-Regime (KoMarketState._lastRegime)
+ * @returns {object} market_context
+ */
+async function buildMarketContext(alphaData, regime) {
+  var reg = _indicatorRegistry;
+  if (!reg) { console.warn('[MCM] Registry nicht geladen'); return null; }
+  await loadMacroCalendar();
+
+  var now = Date.now();
+  var ctx = {
+    _generated: new Date(now).toISOString(),
+    _regime:    regime || null,
+    factors:    {},
+    summary:    { risk_level: 'low', caution_flags: [], risk_flags: [] },
+  };
+
+  Object.keys(reg).forEach(function(id) {
+    var ind = reg[id];
+    if (ind.enabled === false) return;           // abschaltbar ohne Code
+    if (ind.source === 'unavailable') return;
+
+    // Calendar-Faktoren gesondert
+    if (ind.source === 'calendar') {
+      var evResult = _evalCalendarFactor(ind, now);
+      if (evResult) {
+        ctx.factors[id] = evResult;
+        if (evResult.signal === 'caution') ctx.summary.caution_flags.push(id);
+        if (evResult.signal === 'risk')    ctx.summary.risk_flags.push(id);
+      }
+      return; // kein Event im Fenster → Faktor gar nicht im Context (fail-closed)
+    }
+
+    // Normale Indikatoren: Wert lesen, Signal ableiten
+    var raw = getIndicatorValue(id, alphaData);
+    if (raw === '—' || raw === 'n/v' || raw === '') return;
+
+    var num = parseFloat(String(raw).replace(/[^0-9.\-]/g, ''));
+    var signal = _evalSignalRules(ind.signalRules, num);
+
+    ctx.factors[id] = {
+      value:  isNaN(num) ? raw : num,
+      raw:    raw,
+      signal: signal,   // null wenn keine signalRules definiert
+      label:  ind.promptKey + ': ' + raw + (ind.unit ? ' ' + ind.unit : ''),
+    };
+    if (signal === 'caution') ctx.summary.caution_flags.push(id);
+    if (signal === 'risk')    ctx.summary.risk_flags.push(id);
+  });
+
+  // Aggregiertes Risk-Level: risk-Flag → 'high' | ≥2 caution → 'elevated' | sonst 'low'
+  if (ctx.summary.risk_flags.length > 0)          ctx.summary.risk_level = 'high';
+  else if (ctx.summary.caution_flags.length >= 2) ctx.summary.risk_level = 'elevated';
+
+  console.log('[MCM] market_context gebaut — ' + Object.keys(ctx.factors).length +
+    ' Faktoren | risk_level: ' + ctx.summary.risk_level +
+    (ctx.summary.caution_flags.length ? ' | caution: ' + ctx.summary.caution_flags.join(',') : '') +
+    (ctx.summary.risk_flags.length ? ' | RISK: ' + ctx.summary.risk_flags.join(',') : ''));
+  return ctx;
+}
+
+/**
+ * market_context → Prompt-Zeilen für KI (ersetzt verstreute DOM-Reads).
+ * @param {object} ctx - Ergebnis von buildMarketContext()
+ * @returns {string[]} Prompt-Zeilen
+ */
+function contextToPromptLines(ctx) {
+  if (!ctx) return [];
+  var lines = [];
+  lines.push('--- MARKET CONTEXT (Single Source of Truth, ' + ctx._generated + ') ---');
+  if (ctx._regime) lines.push('MSE Regime: ' + ctx._regime);
+  lines.push('Aggregiertes Risk-Level: ' + ctx.summary.risk_level.toUpperCase() +
+    (ctx.summary.caution_flags.length ? ' | Caution: ' + ctx.summary.caution_flags.join(', ') : '') +
+    (ctx.summary.risk_flags.length ? ' | Risk: ' + ctx.summary.risk_flags.join(', ') : ''));
+  lines.push('');
+  Object.keys(ctx.factors).forEach(function(id) {
+    var f = ctx.factors[id];
+    var sig = f.signal ? ' [' + f.signal.toUpperCase() + ']' : '';
+    lines.push(f.label + sig);
+  });
+  return lines;
+}
+
 // ── Indikatoren-Liste für Debugging ──────────────────────────────
 function listIndicators() {
   var reg = _indicatorRegistry;
@@ -211,4 +382,4 @@ function listIndicators() {
   }));
 }
 
-console.log('[ko-indicators-loader] v1.0.0 geladen — Indikator-Registry bereit');
+console.log('[ko-indicators-loader] v1.1.0 geladen — Indikator-Registry + Market Context Module (MCM)');

@@ -1,5 +1,5 @@
 /**
- * ko-market-state.js — Market State Engine v2.0
+ * ko-market-state.js — Market State Engine v2.1
  * ================================================
  * Bestimmt das übergeordnete Markt-Regime aus normalisierten
  * Dark-Pool, Volatilitäts- und Flow-Indikatoren.
@@ -346,6 +346,97 @@ var KoMarketState = {
     return gates[regime] || gates.NEUTRAL;
   },
 
+  // ── CONTEXT-AWARE STRATEGY GATES (MCM v2.1) ────────────────────
+  /**
+   * Downgrade-Regeln: welcher Faktor-Signal-Zustand stuft welche Strategien herab.
+   * Deklarativ + erweiterbar: neuer Faktor = neuer Eintrag, kein Logik-Eingriff.
+   * Semantik: green→amber bei 'caution', green/amber→red NUR bei 'risk'.
+   * Upgrades gibt es NICHT — der Kontext kann Gates nur verschärfen, nie lockern
+   * (konservatives Prinzip: Regime-Routing definiert das Maximum an Freigabe).
+   */
+  CONTEXT_DOWNGRADE_RULES: [
+    // Faktor-ID            betroffene Strategien (Long-Trend/Hebel zuerst)
+    { factor: 'treasury_stress',   strategies: ['ko','momentum','breakout','swing','csp_wheel','atmna','weekly_income','cc'] },
+    { factor: 'ndx_breadth',       strategies: ['ko','momentum','breakout','swing'] },
+    { factor: 'intermarket_score', strategies: ['ko','momentum','breakout','swing','value'] },
+    { factor: 'vix',               strategies: ['ko','breakout','atmna'] },
+    { factor: 'vvix',              strategies: ['ko','breakout','csp_wheel','weekly_income'] },
+    { factor: 'skew',              strategies: ['csp_wheel','atmna','weekly_income'] },
+    { factor: 'pcr',               strategies: ['momentum','breakout'] },
+    { factor: 'fear_greed',        strategies: ['momentum','breakout','ko'] },
+    { factor: 'bull_indicator',    strategies: ['ko','momentum','breakout','swing'] },
+    // Calendar-Fenster: alle Neupositions-Strategien vorsichtiger
+    { factor: 'fed_window',        strategies: ['ko','momentum','breakout','swing','csp_wheel','atmna','weekly_income'] },
+    { factor: 'nfp_window',        strategies: ['ko','breakout'] },
+    { factor: 'cpi_window',        strategies: ['ko','breakout','csp_wheel'] },
+  ],
+
+  /**
+   * Strategie-Gates aus dem VOLLSTÄNDIGEN market_context berechnen.
+   * Single Source of Truth: identischer Context geht an die KI.
+   *
+   * Ablauf:
+   *   1. Regime-Basis-Gates (getStrategyGates) — definiert Maximum an Freigabe
+   *   2. Downgrade-Pass über CONTEXT_DOWNGRADE_RULES:
+   *      caution → green wird amber (Note ergänzt um Grund)
+   *      risk    → green/amber wird red (Note ergänzt um Grund)
+   *   3. Gate-Objekt bekommt _context-Metadaten (Nachvollziehbarkeit im UI)
+   *
+   * @param {object} ctx - market_context aus buildMarketContext()
+   * @returns {object} gates (Struktur identisch zu getStrategyGates + _context)
+   */
+  calcStrategyGates(ctx) {
+    var regime = (ctx && ctx._regime) || this._lastRegime || 'NEUTRAL';
+    var base   = this.getStrategyGates(regime);
+
+    // Deep Copy — Basis-Tabellen nie mutieren
+    var gates = JSON.parse(JSON.stringify(base));
+    gates._context = {
+      generated:     ctx ? ctx._generated : null,
+      regime:        regime,
+      risk_level:    ctx ? ctx.summary.risk_level : 'unknown',
+      downgrades:    [],   // [{strategy, from, to, reason}]
+      factors_used:  ctx ? Object.keys(ctx.factors).length : 0,
+    };
+    if (!ctx || !ctx.factors) return gates; // fail-open auf Regime-Basis (Context fehlt)
+
+    var self = this;
+    var registryLabels = (typeof _indicatorRegistry !== 'undefined' && _indicatorRegistry) || {};
+
+    this.CONTEXT_DOWNGRADE_RULES.forEach(function(rule) {
+      var f = ctx.factors[rule.factor];
+      if (!f || !f.signal || f.signal === 'ok') return;
+
+      var reasonLabel = (registryLabels[rule.factor] && registryLabels[rule.factor].label) || rule.factor;
+      var reason = reasonLabel + ': ' + (f.raw != null ? f.raw : f.label) + ' [' + f.signal.toUpperCase() + ']';
+
+      rule.strategies.forEach(function(sKey) {
+        var s = gates.strategies[sKey];
+        if (!s) return;
+        var from = s.color;
+        var to   = null;
+
+        if (f.signal === 'caution' && s.color === 'green') to = 'amber';
+        if (f.signal === 'risk' && (s.color === 'green' || s.color === 'amber')) to = 'red';
+
+        if (to) {
+          s.color = to;
+          if (to === 'red') s.active = false;
+          s.note = s.note + ' | ⚠ ' + reason;
+          gates._context.downgrades.push({ strategy: sKey, from: from, to: to, reason: reason });
+        }
+      });
+    });
+
+    if (gates._context.downgrades.length) {
+      console.log('[MSE] calcStrategyGates — ' + gates._context.downgrades.length +
+        ' Downgrades durch Context: ' + gates._context.downgrades.map(function(d) {
+          return d.strategy + ' ' + d.from + '→' + d.to;
+        }).join(', '));
+    }
+    return gates;
+  },
+
   // ── HAUPT-FUNKTION ─────────────────────────────────────────────
   analyze(rawData) {
     this.addDataPoint(rawData);
@@ -440,4 +531,4 @@ KoMarketState.loadHistoryFromAggregator().then(function(ok) {
   if (ok) console.log('[MSE v2] Aggregator-History bereit — Z-Scores sofort zuverlässig');
 });
 
-console.log('[ko-market-state.js] v2.0 geladen — 4-Regime MSE mit Aggregator-History');
+console.log('[ko-market-state.js] v2.1 geladen — 4-Regime MSE + Context-Aware Strategy Gates (MCM)');

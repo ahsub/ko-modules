@@ -1,12 +1,12 @@
 {
   "_meta": {
-    "version": "1.0.1",
+    "version": "2.0.0",
     "created": "2026-07-09",
     "description": "UIQ Indikator-Registry — zentrale Quelle aller Makro-Indikatoren",
     "repository": "ahsub/ko-modules",
     "note": "Neue Indikatoren = neues Objekt. Kein Code-Eingriff nötig.",
-    "updated": "2026-07-10",
-    "changelog": "v1.0.1: pcr_z + gex_proxy entfernt (permanent null seit zScore-null-Fix, DIX/GEX-Bindung war irreführend). lithium-Hint präzisiert."
+    "updated": "2026-07-14",
+    "changelog": "v2.0.0: Market Context Module (MCM) — enabled-Flag + weight (reserviert, nicht ausgewertet bis Track-Record-Kalibrierung) je Indikator; signalRules (deklarative Schwellwerte -> ok/caution/risk, erste passende Regel gewinnt) fuer 9 Gate-relevante Indikatoren; 3 Calendar-Faktoren (FOMC/NFP/CPI) mit source=calendar, lesen macro-calendar.json fail-closed. | v1.0.1: pcr_z + gex_proxy entfernt."
   },
   "indicators": {
     "vix": {
@@ -18,7 +18,22 @@
       "unit": "",
       "promptKey": "VIX",
       "promptWeight": "hoch",
-      "promptHint": "<16 ruhig, 16-25 normal, >25 Stress, >35 Panik"
+      "promptHint": "<16 ruhig, 16-25 normal, >25 Stress, >35 Panik",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "risk",
+          "gte": 35
+        },
+        {
+          "signal": "caution",
+          "gte": 25
+        },
+        {
+          "signal": "ok"
+        }
+      ]
     },
     "vix_term": {
       "label": "VIX Termstruktur",
@@ -31,7 +46,9 @@
       "domId": null,
       "promptKey": "VIX Term Structure",
       "promptWeight": "hoch",
-      "promptHint": "CONTANGO=normal, BACKWARDATION=Stress"
+      "promptHint": "CONTANGO=normal, BACKWARDATION=Stress",
+      "enabled": true,
+      "weight": 1.0
     },
     "vvix": {
       "label": "VVIX Z-Score",
@@ -41,7 +58,22 @@
       "domId": null,
       "promptKey": "VVIX Z-Score(20T)",
       "promptWeight": "mittel",
-      "promptHint": "Volatilität der Volatilität — Frühindikator"
+      "promptHint": "Volatilität der Volatilität — Frühindikator",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "risk",
+          "gte": 1.5
+        },
+        {
+          "signal": "caution",
+          "gte": 0.8
+        },
+        {
+          "signal": "ok"
+        }
+      ]
     },
     "skew": {
       "label": "SKEW Perzentil",
@@ -51,7 +83,18 @@
       "domId": null,
       "promptKey": "SKEW Perzentil(20T)",
       "promptWeight": "mittel",
-      "promptHint": ">130 = Tail-Risk erhöht"
+      "promptHint": ">130 = Tail-Risk erhöht",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "caution",
+          "gte": 80
+        },
+        {
+          "signal": "ok"
+        }
+      ]
     },
     "pcr": {
       "label": "Put/Call Ratio",
@@ -62,7 +105,22 @@
       "aggregatorKey": "pcr.value",
       "promptKey": "Put/Call Ratio",
       "promptWeight": "mittel",
-      "promptHint": ">1.2 bearish Sentiment, <0.7 bullish/überhitzt"
+      "promptHint": ">1.2 bearish Sentiment, <0.7 bullish/überhitzt",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "caution",
+          "gte": 1.2
+        },
+        {
+          "signal": "caution",
+          "lte": 0.7
+        },
+        {
+          "signal": "ok"
+        }
+      ]
     },
     "fear_greed": {
       "label": "Fear & Greed",
@@ -72,7 +130,22 @@
       "promptKey": "Fear & Greed CNN",
       "promptWeight": "mittel",
       "promptHint": "0-25 extreme Angst, 75-100 extreme Gier",
-      "domIdFallback": "home-fg-val"
+      "domIdFallback": "home-fg-val",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "caution",
+          "lte": 20
+        },
+        {
+          "signal": "caution",
+          "gte": 80
+        },
+        {
+          "signal": "ok"
+        }
+      ]
     },
     "intermarket_score": {
       "label": "Intermarket Risk Score",
@@ -83,7 +156,22 @@
       "unit": "/100",
       "promptKey": "Intermarket Risk Score",
       "promptWeight": "hoch",
-      "promptHint": "0=kein Stress, 100=maximaler Risk-Off"
+      "promptHint": "0=kein Stress, 100=maximaler Risk-Off",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "risk",
+          "gte": 60
+        },
+        {
+          "signal": "caution",
+          "gte": 40
+        },
+        {
+          "signal": "ok"
+        }
+      ]
     },
     "bull_indicator": {
       "label": "Bull-Market Frühindikator",
@@ -93,7 +181,18 @@
       "loadFn": "calcBullIndicator",
       "promptKey": "Bull-Market Frühindikator",
       "promptWeight": "hoch",
-      "promptHint": "Composite aus Breadth, Momentum, Sektor-Rotation"
+      "promptHint": "Composite aus Breadth, Momentum, Sektor-Rotation",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "caution",
+          "lte": 35
+        },
+        {
+          "signal": "ok"
+        }
+      ]
     },
     "treasury_stress": {
       "label": "Treasury Stress Score",
@@ -104,7 +203,22 @@
       "unit": "/100",
       "promptKey": "Treasury Stress Score",
       "promptWeight": "hoch",
-      "promptHint": ">60 = Stress im Anleihenmarkt"
+      "promptHint": ">60 = Stress im Anleihenmarkt",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "risk",
+          "gte": 60
+        },
+        {
+          "signal": "caution",
+          "gte": 35
+        },
+        {
+          "signal": "ok"
+        }
+      ]
     },
     "tnx": {
       "label": "10J Treasury Yield",
@@ -115,7 +229,9 @@
       "unit": "%",
       "promptKey": "10J Treasury",
       "promptWeight": "hoch",
-      "promptHint": "Leitzins-Erwartung, Diskontierungsfaktor Aktien"
+      "promptHint": "Leitzins-Erwartung, Diskontierungsfaktor Aktien",
+      "enabled": true,
+      "weight": 1.0
     },
     "irx": {
       "label": "3M T-Bill Yield",
@@ -126,7 +242,9 @@
       "unit": "%",
       "promptKey": "Kurzfristzins (3M)",
       "promptWeight": "mittel",
-      "promptHint": "Spread zu 10J = Yield-Kurve"
+      "promptHint": "Spread zu 10J = Yield-Kurve",
+      "enabled": true,
+      "weight": 1.0
     },
     "dxy": {
       "label": "DXY vs SMA200",
@@ -138,7 +256,9 @@
       "windowVar": "_imDxyBull",
       "promptKey": "DXY",
       "promptWeight": "mittel",
-      "promptHint": "Über SMA200 = USD stark = Druck auf Commodities + EM"
+      "promptHint": "Über SMA200 = USD stark = Druck auf Commodities + EM",
+      "enabled": true,
+      "weight": 1.0
     },
     "ndx_breadth": {
       "label": "NDX Breadth >50d MA",
@@ -149,7 +269,22 @@
       "unit": "%",
       "promptKey": "NDX Breadth (>50d MA)",
       "promptWeight": "mittel",
-      "promptHint": "<50% = Markt auf dünnem Eis trotz Index-Stärke"
+      "promptHint": "<50% = Markt auf dünnem Eis trotz Index-Stärke",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "risk",
+          "lte": 35
+        },
+        {
+          "signal": "caution",
+          "lte": 50
+        },
+        {
+          "signal": "ok"
+        }
+      ]
     },
     "oil_wti": {
       "label": "WTI Rohöl",
@@ -160,7 +295,9 @@
       "unit": "$",
       "promptKey": "Öl (WTI)",
       "promptWeight": "mittel",
-      "promptHint": "Konjunkturindikator, Inflation, Energiesektor"
+      "promptHint": "Konjunkturindikator, Inflation, Energiesektor",
+      "enabled": true,
+      "weight": 1.0
     },
     "gold": {
       "label": "Gold",
@@ -171,7 +308,9 @@
       "unit": "$",
       "promptKey": "Gold",
       "promptWeight": "mittel",
-      "promptHint": "Safe-Haven, Real-Zinsen-Proxy, USD-Korrelation"
+      "promptHint": "Safe-Haven, Real-Zinsen-Proxy, USD-Korrelation",
+      "enabled": true,
+      "weight": 1.0
     },
     "copper": {
       "label": "Kupfer",
@@ -182,7 +321,9 @@
       "unit": "$",
       "promptKey": "Kupfer",
       "promptWeight": "niedrig",
-      "promptHint": "Dr. Copper — globaler Konjunkturindikator"
+      "promptHint": "Dr. Copper — globaler Konjunkturindikator",
+      "enabled": true,
+      "weight": 1.0
     },
     "lithium": {
       "label": "Lithium (kein freier Feed)",
@@ -193,7 +334,9 @@
       "promptKey": "Lithium (LIT)",
       "promptWeight": "niedrig",
       "promptHint": "Kein verlässlicher freier Spotpreis-Feed verfügbar — n/v",
-      "note": "Noch kein eigenes DOM-Element — Aggregator-Integration geplant"
+      "note": "Noch kein eigenes DOM-Element — Aggregator-Integration geplant",
+      "enabled": true,
+      "weight": 1.0
     },
     "sektor_overheat": {
       "label": "Sektor-Überhitzung",
@@ -203,7 +346,9 @@
       "loadFn": "loadSektorOverheat",
       "promptKey": "Sektor-Überhitzung",
       "promptWeight": "mittel",
-      "promptHint": "Überhitzte Sektoren meiden, rotierende Sektoren beobachten"
+      "promptHint": "Überhitzte Sektoren meiden, rotierende Sektoren beobachten",
+      "enabled": true,
+      "weight": 1.0
     },
     "sektor_rs": {
       "label": "Sektor RS vs. SPY",
@@ -213,7 +358,9 @@
       "loadFn": "loadSektorRS",
       "promptKey": "Sektor RS vs. SPY",
       "promptWeight": "mittel",
-      "promptHint": "Relative Stärke — zeigt Kapitalflüsse zwischen Sektoren"
+      "promptHint": "Relative Stärke — zeigt Kapitalflüsse zwischen Sektoren",
+      "enabled": true,
+      "weight": 1.0
     },
     "ios_market": {
       "label": "IOS Market Score",
@@ -222,7 +369,9 @@
       "aggregatorKey": "iosMarket",
       "promptKey": "IOS Market Score",
       "promptWeight": "hoch",
-      "promptHint": "AA=KAUFEN ERLAUBT, F=SIDELINED. Kombination aus 5 Faktoren"
+      "promptHint": "AA=KAUFEN ERLAUBT, F=SIDELINED. Kombination aus 5 Faktoren",
+      "enabled": true,
+      "weight": 1.0
     },
     "mse_regime": {
       "label": "MSE Regime",
@@ -231,7 +380,9 @@
       "computeFn": "KoMarketState.getRegime",
       "promptKey": "MSE Regime",
       "promptWeight": "sehr_hoch",
-      "promptHint": "BULL_QUIET/BULL_FRAGILE/STRESS_UNSTABLE/POST_PANIC_REVERSION"
+      "promptHint": "BULL_QUIET/BULL_FRAGILE/STRESS_UNSTABLE/POST_PANIC_REVERSION",
+      "enabled": true,
+      "weight": 1.0
     },
     "aud_usd": {
       "label": "AUD/USD",
@@ -241,7 +392,9 @@
       "domId": "im-aud",
       "promptKey": "AUD/USD",
       "promptWeight": "niedrig",
-      "promptHint": "Risk-On Proxy — steigt wenn Risikobereitschaft hoch"
+      "promptHint": "Risk-On Proxy — steigt wenn Risikobereitschaft hoch",
+      "enabled": true,
+      "weight": 1.0
     },
     "jpy_usd": {
       "label": "JPY/USD",
@@ -251,7 +404,51 @@
       "domId": "im-jpy",
       "promptKey": "JPY/USD",
       "promptWeight": "niedrig",
-      "promptHint": "Safe-Haven — steigt bei Risk-Off (Yen-Stärke)"
+      "promptHint": "Safe-Haven — steigt bei Risk-Off (Yen-Stärke)",
+      "enabled": true,
+      "weight": 1.0
+    },
+    "fed_window": {
+      "label": "FOMC-Fenster",
+      "category": "calendar",
+      "source": "calendar",
+      "eventType": "FOMC",
+      "windowHoursBefore": 48,
+      "windowHoursAfter": 6,
+      "signalOnEvent": "caution",
+      "promptKey": "FOMC-Fenster",
+      "promptWeight": "hoch",
+      "promptHint": "48h vor FOMC-Entscheid: erhöhte Vol-Gefahr, neue Positionen zurückhaltend",
+      "enabled": true,
+      "weight": 1.0
+    },
+    "nfp_window": {
+      "label": "NFP-Fenster (Arbeitsmarkt)",
+      "category": "calendar",
+      "source": "calendar",
+      "eventType": "NFP",
+      "windowHoursBefore": 24,
+      "windowHoursAfter": 4,
+      "signalOnEvent": "caution",
+      "promptKey": "NFP-Fenster",
+      "promptWeight": "mittel",
+      "promptHint": "24h vor Non-Farm Payrolls: Gap-Risiko bei Öffnung",
+      "enabled": true,
+      "weight": 1.0
+    },
+    "cpi_window": {
+      "label": "CPI-Fenster (Inflationsdaten)",
+      "category": "calendar",
+      "source": "calendar",
+      "eventType": "CPI",
+      "windowHoursBefore": 24,
+      "windowHoursAfter": 4,
+      "signalOnEvent": "caution",
+      "promptKey": "CPI-Fenster",
+      "promptWeight": "mittel",
+      "promptHint": "24h vor CPI-Release: Zins-Repricing-Risiko",
+      "enabled": true,
+      "weight": 1.0
     }
   }
 }
