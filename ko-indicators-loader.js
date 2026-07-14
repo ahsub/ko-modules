@@ -6,7 +6,7 @@
  *   - buildPromptSection()    → generischer Prompt-Aufbau
  *   - getIndicatorValue()     → einheitlicher DOM/Window/Aggregator-Read
  *
- * Version: 1.2.0 (14.07.2026) — MCM: buildMarketContext, signalRules, Makro-Kalender
+ * Version: 1.2.1 (14.07.2026) — Calendar-Fetch von raw.githubusercontent statt same-origin — MCM: buildMarketContext, signalRules, Makro-Kalender
  *   v1.2.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc
  *   umgestellt (kein Timezone-String-Parsing mehr), bufferMinutes fuer
  *   Karenzzeit, FOMC-Zweitage-Fenster.
@@ -229,18 +229,29 @@ var _macroCalendar = null;
 var _macroCalendarLoaded = false;
 
 /**
- * macro-calendar.json laden (same-origin, einmalig gecacht).
+ * macro-calendar.json laden — direkt von raw.githubusercontent.com (nicht vom
+ * eigenen CF-Pages-Server). Grund (14.07.2026): Der manuelle Deploy-Prozess
+ * (Axel zippt index.html + help.html, laedt via CF Pages hoch) nimmt neue
+ * statische Dateien wie macro-calendar.json NIE automatisch mit — die Datei
+ * war im Git-Repo, aber nie live erreichbar (CF gab die 404-HTML-Seite
+ * zurueck, die dann als "<!DOCTYPE..." beim JSON-Parse crashte). Direkter
+ * GitHub-Read entkoppelt das Frontend vollstaendig vom Deploy-Zip — identisch
+ * zur bereits bestehenden Python-Server-Loesung (_mcm_load_macro_calendar()
+ * in market_aggregator.py), eine einzige Quelle fuer beide Seiten.
  * FAIL-CLOSED: Bei Fehler bleibt _macroCalendar null — Calendar-Faktoren
  * setzen dann kein Signal statt eines falschen.
  */
 async function loadMacroCalendar() {
   if (_macroCalendarLoaded) return _macroCalendar;
   try {
-    var resp = await fetch('/macro-calendar.json', { cache: 'no-store' });
+    var resp = await fetch(
+      'https://raw.githubusercontent.com/ahsub/axel-scanner/main/macro-calendar.json',
+      { cache: 'no-store' }
+    );
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     var data = await resp.json();
     _macroCalendar = (data && Array.isArray(data.events)) ? data.events : null;
-    console.log('[MCM] Makro-Kalender geladen — ' + (_macroCalendar ? _macroCalendar.length : 0) + ' Events');
+    console.log('[MCM] Makro-Kalender geladen (GitHub) — ' + (_macroCalendar ? _macroCalendar.length : 0) + ' Events');
   } catch (e) {
     console.warn('[MCM] macro-calendar.json nicht ladbar (fail-closed, keine Event-Flags):', e.message);
     _macroCalendar = null;
@@ -401,4 +412,4 @@ function listIndicators() {
   }));
 }
 
-console.log('[ko-indicators-loader] v1.2.0 geladen — Indikator-Registry + Market Context Module (MCM)');
+console.log('[ko-indicators-loader] v1.2.1 geladen — Indikator-Registry + Market Context Module (MCM)');
