@@ -3,7 +3,7 @@
  * ══════════════════════════════════════════════════════════════════
  * Handelsplatz-Dropdown (US/DE), Listen-Auswahl, Chip-Rendering
  *
- * Version: 1.0.0 (09.07.2026)
+ * Version: 1.1.0 (15.07.2026)
  * Extrahiert aus index.html v265
  * Repository: ahsub/ko-modules
  *
@@ -40,6 +40,16 @@ var _marketDropdowns = {
   ]
 };
 
+// ── Sinnvolle Default-Empfehlung je Handelsplatz (Phase 0.5 Arbeitspaket G
+//    Punkt 5, 15.07.2026): "Auto-Sinnvoll-Watchlists (DE → DAX/TecDAX/MDAX,
+//    US → S&P500/NASDAQ100), bei fehlender Watchlist als Popup-Empfehlung +
+//    Caching." Die Listen selbst existierten bereits — es fehlte die
+//    Erst-Nutzer-Empfehlung + das Merken der letzten Wahl ueber Sessions
+//    hinweg (vorher: bei jedem Dropdown-Oeffnen komplett neue manuelle Wahl).
+var _RECOMMENDED_DEFAULT = { us: 'fixed:SP500', de: 'fixed:DAX40' };
+
+function _lastWatchlistKey(market) { return 'ko_last_watchlist_' + market; }
+
 // ── Dropdown-Toggle ───────────────────────────────────────────────
 function toggleMarketDropdown(market, btn) {
   var existing = document.getElementById('mkt-dropdown');
@@ -49,6 +59,20 @@ function toggleMarketDropdown(market, btn) {
   }
 
   if (typeof setMarket === 'function') setMarket(market);
+
+  // BUGFIX (15.07.2026, Arbeitspaket G Punkt 5): Erst-Nutzer-Empfehlung —
+  // wenn fuer diesen Handelsplatz NOCH NIE eine Watchlist gewaehlt wurde,
+  // automatisch die sinnvolle Standard-Liste anwenden + kurzer Hinweis-Toast,
+  // statt den Nutzer vor eine leere/unklare Auswahl zu stellen.
+  var cachedChoice = null;
+  try { cachedChoice = localStorage.getItem(_lastWatchlistKey(market)); } catch(e) {}
+  if (!cachedChoice && _RECOMMENDED_DEFAULT[market]) {
+    var recLabel = (_marketDropdowns[market] || []).find(function(i){ return i[0] === _RECOMMENDED_DEFAULT[market]; });
+    if (typeof showKoToast === 'function') {
+      showKoToast('💡 Empfehlung für ' + (market === 'us' ? 'US' : 'DE') + ': ' + (recLabel ? recLabel[1] : _RECOMMENDED_DEFAULT[market]) + ' — im Dropdown änderbar');
+    }
+    selectMarketList(_RECOMMENDED_DEFAULT[market], market);
+  }
 
   var dropdown = document.createElement('div');
   dropdown.id = 'mkt-dropdown';
@@ -67,12 +91,20 @@ function toggleMarketDropdown(market, btn) {
   header.textContent = market === 'us' ? '🇺🇸 US-LISTEN' : '🇩🇪 DE-LISTEN';
   dropdown.appendChild(header);
 
+  // Aktuell gewaehlte/gecachte Liste hervorheben (Spec: "Caching")
+  var currentChoice = null;
+  try { currentChoice = localStorage.getItem(_lastWatchlistKey(market)); } catch(e) {}
+
   (_marketDropdowns[market] || []).forEach(function(item) {
     var el = document.createElement('div');
-    el.style.cssText = 'padding:7px 10px;font-size:12px;cursor:pointer;color:var(--text2);border-radius:6px';
-    el.textContent = item[1];
+    var isRecommended = item[0] === _RECOMMENDED_DEFAULT[market];
+    var isCurrent = item[0] === currentChoice;
+    el.style.cssText = 'padding:7px 10px;font-size:12px;cursor:pointer;color:var(--text2);border-radius:6px'
+      + (isCurrent ? ';background:rgba(79,142,247,0.1);font-weight:600' : '');
+    el.textContent = item[1] + (isRecommended ? ' ⭐' : '');
+    if (isRecommended) el.title = 'Empfohlene Standard-Liste für diesen Handelsplatz';
     el.onmouseover = function() { el.style.background = 'var(--bg3)'; };
-    el.onmouseout  = function() { el.style.background = ''; };
+    el.onmouseout  = function() { el.style.background = isCurrent ? 'rgba(79,142,247,0.1)' : ''; };
     el.onclick     = function() { selectMarketList(item[0], market); dropdown.remove(); };
     dropdown.appendChild(el);
   });
@@ -96,6 +128,8 @@ function selectMarketList(val, market) {
     if (typeof onPresetChange === 'function') onPresetChange();
     if (typeof updateWlButtons === 'function') updateWlButtons();
   }
+  // Caching (Spec G Punkt 5): letzte Wahl je Handelsplatz merken
+  try { localStorage.setItem(_lastWatchlistKey(market), val); } catch(e) {}
   _updateActiveChip(val, market);
 }
 
@@ -121,4 +155,4 @@ function _clearActiveChip() {
   if (sel) { sel.value = 'default'; if (typeof onPresetChange==='function') onPresetChange(); }
 }
 
-console.log('[ko-scanner.js] v1.0.0 geladen — Handelsplatz-Dropdown, Listen-Auswahl');
+console.log('[ko-scanner.js] v1.1.0 geladen — Handelsplatz-Dropdown, Listen-Auswahl, Auto-Empfehlung + Caching (AP G)');
