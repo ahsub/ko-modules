@@ -611,5 +611,5 @@ if (typeof window !== 'undefined') {
 
 // Echtes ES-Module-Export (Punkt 5: Zugriff von weiteren Modulen) — steht
 // für `import { Strategies, buildPrompt } from './ko-strategies.js'` bereit.
-export { Strategies, buildPrompt, get, getConfig, getFocus, getLabelList, listByCategory, ids, KI_ANTI_HALLUZINATION };
+export { Strategies, buildPrompt, get, getConfig, listByCategory, ids, KI_ANTI_HALLUZINATION };
 export default KoStrategies;
