@@ -402,7 +402,7 @@ const Strategies = {
         subitems: [
           'a) HVP-Bewertung: ≥${idealHvp}% ⭐ · ${goodHvp}-${idealHvp-1}% ✅ · ${minHvp}-${goodHvp-1}% ⚠️',
           'b) ATM-Strike Empfehlung in $',
-          'c) Laufzeit: nächster 3. Freitag (~${dte} DTE)',
+          'c) Laufzeit: nutze das im MARKTKONTEXT angegebene ZIEL-VERFALLSDATUM (nicht selbst berechnen)',
           'd) Prämien-SCHÄTZUNG aus HVP (⚠️ nur Näherung!) + 50/60/70%-Gewinn-Ziele in $',
           'e) Roll-Szenario Stufe 1: Strike ≈ Kurs − 2.5%',
           'f) PFLICHT-CHECKS: Strike-Staffelung · OI · Weekly Options · ER-Datum',
