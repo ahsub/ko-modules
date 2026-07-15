@@ -1,5 +1,5 @@
 /**
- * ko-market-state.js — Market State Engine v2.1
+ * ko-market-state.js — Market State Engine v2.2
  * ================================================
  * Bestimmt das übergeordnete Markt-Regime aus normalisierten
  * Dark-Pool, Volatilitäts- und Flow-Indikatoren.
@@ -260,7 +260,7 @@ var KoMarketState = {
           meanrev:      { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — kein Oversold-Signal in Bullmarkt' },
           fading_short: { active: false, color: 'red',    note: 'GESPERRT — Gegentrend-Short in stabilem Bullmarkt' },
         },
-        action: 'Trendfolge, Breakouts & aggressive Income-Strategien',
+        action: 'Gesamteinschätzung: Trendfolge, Breakouts & aggressive Income-Strategien',
       },
       BULL_FRAGILE: {
         label:       '🟡 BULL FRAGILE — Vorsicht geboten',
@@ -280,7 +280,7 @@ var KoMarketState = {
           meanrev:      { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — kein klares Oversold-Umfeld' },
           fading_short: { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — Trend intakt, Short-Risiko zu hoch' },
         },
-        action: 'Engere Stops · Defensive Income-Strikes · Dividenden bevorzugen',
+        action: 'Gesamteinschätzung: Engere Stops · Defensive Income-Strikes · Dividenden bevorzugen',
       },
       STRESS_UNSTABLE: {
         label:       '🔴 STRESS UNSTABLE — Defensiv',
@@ -300,7 +300,7 @@ var KoMarketState = {
           atmna:        { active: false, color: 'red',    note: 'GESPERRT — erhöhte IV-Risiken, Gap-Gefahr zu hoch' },
           weekly_income:{ active: false, color: 'red',    note: 'GESPERRT — Short-Put-Risiko bei fortgesetztem Downtrend' },
         },
-        action: 'Positionen absichern · Fading-Short prüfen · Defensive CSPs selektiv',
+        action: 'Gesamteinschätzung: Positionen absichern · Fading-Short prüfen · Defensive CSPs selektiv',
       },
       POST_PANIC_REVERSION: {
         label:       '🔵 POST-PANIC — Reversion Phase',
@@ -320,7 +320,7 @@ var KoMarketState = {
           breakout:     { active: false, color: 'red',    note: 'ZU FRÜH — kein nachhaltiger Trend nach Panik' },
           ko:           { active: false, color: 'red',    note: 'ZU FRÜH — Long-Hebel erst nach Trendbestätigung' },
         },
-        action: 'Mean Reversion & Income Priorität 1 · Vol-Crush nutzen · Value-Einstiege prüfen',
+        action: 'Gesamteinschätzung: Mean Reversion & Income Priorität 1 · Vol-Crush nutzen · Value-Einstiege prüfen',
       },
       NEUTRAL: {
         label:       '⚪ NEUTRAL — Kein klares Signal',
@@ -340,7 +340,7 @@ var KoMarketState = {
           meanrev:      { active: false, color: 'amber',  note: 'SELEKTIV — nur bei extremem Oversold-Signal' },
           fading_short: { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — kein klares Short-Signal' },
         },
-        action: 'Selektiv vorgehen · Nur höchste Qualität · Kein Leverage',
+        action: 'Gesamteinschätzung: Selektiv vorgehen · Nur höchste Qualität · Kein Leverage',
       },
     };
     return gates[regime] || gates.NEUTRAL;
@@ -531,4 +531,4 @@ KoMarketState.loadHistoryFromAggregator().then(function(ok) {
   if (ok) console.log('[MSE v2] Aggregator-History bereit — Z-Scores sofort zuverlässig');
 });
 
-console.log('[ko-market-state.js] v2.1 geladen — 4-Regime MSE + Context-Aware Strategy Gates (MCM)');
+console.log('[ko-market-state.js] v2.2 geladen — 4-Regime MSE + Context-Aware Strategy Gates (MCM) + kontextualisierte Regime-Texte (AP D)');
