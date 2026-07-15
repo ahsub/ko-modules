@@ -574,10 +574,9 @@ const getConfig = (stratId) => {
   return strat ? { hint: strat.hint, color: strat.color, label: strat.label, category: strat.category } : null;
 };
 
-const getFocus = (stratId) => Strategies[stratId]?.focus || null;
-
-const getLabelList = () =>
-  Object.entries(Strategies).map(([strat, s]) => ({ strat, label: s.hint.split(':')[0] }));
+// getFocus/getLabelList entfernt (15.07.2026, Dead-Code-Audit Backlog #19) —
+// exportiert, aber nirgends aufgerufen, keine Zukunfts-Begruendung wie bei
+// listByCategory dokumentiert.
 
 // NEU: Strategien nach Kategorie filtern — für zukünftige Module, die nur
 // eine Teilmenge anzeigen wollen (z.B. ein reines Options-Modul).
@@ -592,8 +591,6 @@ const KoStrategies = {
   buildPrompt: (stratId, ctx) => get(stratId, ctx), // gleiche Signatur wie altes .get()
   get,
   getConfig,
-  getFocus,
-  getLabelList,
   listByCategory,
   ids,
 };
