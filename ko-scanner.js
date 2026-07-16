@@ -83,8 +83,15 @@ function toggleMarketDropdown(market, btn) {
     'max-height:340px;overflow-y:auto';
 
   var r = btn.getBoundingClientRect();
+  // BUGFIX (16.07.2026, Mobile-Audit Arbeitspaket J): fehlendes Rechts-
+  // Clamping — auf schmalen Bildschirmen (< ~400px) konnte das Dropdown
+  // (min-width:220px) rechts ueber den Bildschirmrand hinausragen, wenn der
+  // Handelsplatz-Button nahe genug am rechten Rand sass. Gleiches Muster wie
+  // das bereits korrekt geklemmte ki-float-menu (siehe dort): erst rechts
+  // begrenzen (Math.min), dann links (Math.max).
+  var leftPos = Math.min(r.left, window.innerWidth - 228);
   dropdown.style.top  = (r.bottom + 4) + 'px';
-  dropdown.style.left = Math.max(8, r.left) + 'px';
+  dropdown.style.left = Math.max(8, leftPos) + 'px';
 
   var header = document.createElement('div');
   header.style.cssText = 'font-size:10px;color:var(--text3);padding:4px 8px 6px;letter-spacing:.5px;font-weight:600';
