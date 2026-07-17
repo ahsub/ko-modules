@@ -81,15 +81,34 @@ var KoData = {
     return data ? data.price : null;
   },
 
-  // ── CNN FEAR & GREED ─────────────────────────────────────────
+  // ── FEAR & GREED (alternative.me, 17.07.2026) ───────────────
+  // CNN-Endpunkt blockiert CORS-Proxy mit 418 (Bot-Detection).
+  // alternative.me liefert denselben Fear & Greed Index,
+  // hat korrekte CORS-Header und braucht keinen Proxy.
   async fetchCnnFearGreed() {
-    const url = 'https://production.dataviz.cnn.io/index/fearandgreed/graphdata';
-    const j = await this._fetch(url);
-    if (!j?.fear_and_greed) return null;
-    return {
-      score:  Math.round(j.fear_and_greed.score),
-      rating: j.fear_and_greed.rating,
-    };
+    try {
+      const r = await fetch('https://api.alternative.me/fng/?limit=1', { cache: 'no-store' });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const entry = j?.data?.[0];
+      if (!entry) return null;
+      const score = parseInt(entry.value, 10);
+      // alternative.me rating → deutschen Text mappen
+      const ratingMap = {
+        'Extreme Fear':  'Extreme Angst',
+        'Fear':          'Angst',
+        'Neutral':       'Neutral',
+        'Greed':         'Gier',
+        'Extreme Greed': 'Extreme Gier',
+      };
+      return {
+        score:  score,
+        rating: ratingMap[entry.value_classification] || entry.value_classification,
+      };
+    } catch(e) {
+      console.warn('[KoData] Fear & Greed fetch error:', e.message);
+      return null;
+    }
   },
 
   // ── SEKTOR ETF ───────────────────────────────────────────────
