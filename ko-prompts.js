@@ -408,6 +408,41 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
       }
     },
 
+    vcp: {
+      hint:  '📐 VCP: Volatility Contraction Pattern · Minervini · Direktinvestment',
+      color: '#a855f7',
+      prompt: function(ctx) {
+        return KI_ANTI_HALLUZINATION
+          + 'Du bist ein erfahrener technischer Analyst mit Spezialisierung auf das '
+          + 'Volatility Contraction Pattern (VCP) nach Mark Minervini. '
+          + 'VCP-Setups kennzeichnen sich durch sukzessive enger werdende Korrekturen '
+          + '(Contractions) in einem übergeordneten Stage-2-Aufwärtstrend. '
+          + 'Das Setup ist reif wenn Volumen und Volatilität auf ein Minimum komprimiert wurden '
+          + 'und ein Ausbruch mit Volumen unmittelbar bevorsteht.\n\n'
+          + ctx.marktkontext
+          + '\n\nVCP-SCANDATEN: Die Scandaten enthalten für VCP-Kandidaten: '
+          + 'vcpContractions (Anzahl Contractions), vcpLastPct (letzte Korrektur-%), '
+          + 'Score (VCP-Reife 0-100), Kurs:$, 52W-H:, RSI, MACD, OBV.\n\n'
+          + 'AUFGABE:\n'
+          + '1. MARKTUMFELD FÜR VCP: Ist das aktuelle Marktumfeld (Regime, VIX, Marktbreite) '
+          + 'günstig für VCP-Ausbrüche? VCP-Setups versagen häufig in schwachen oder '
+          + 'volatilen Märkten. (2-3 Sätze)\n'
+          + '2. TOP 3 VCP-KANDIDATEN: Für jeden Titel aus den Scandaten:\n'
+          + '   - Anzahl Contractions (vcpContractions) + letzte Korrektur-% (vcpLastPct)\n'
+          + '   - Setup-Reife: Nimmt die Korrekturgröße ab? Volumen fallend während Contraction?\n'
+          + '   - Pivot-Punkt: Aus 52W-H und aktuellem Kurs ableiten — NUR aus Scandaten\n'
+          + '   - Stage-2-Kontext: RSI > 50, MACD positiv, OBV steigend?\n'
+          + '   - Stop-Loss: knapp unter letztem Contraction-Tief\n'
+          + '   - KEIN Kursziel erfinden\n'
+          + '3. SETUPS IN ENTWICKLUNG: Titel die ein VCP aufbauen aber noch nicht reif sind — '
+          + 'wie viele Contractions fehlen noch, was fehlt bis zum Kaufpunkt?\n'
+          + '4. RISIKEN: Was gefährdet VCP-Ausbrüche aktuell? '
+          + '(Marktbreite, Makro, Sektor, False Breakout Risiko)\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter. '
+          + 'Keine erfundenen Kursziele. Nur Daten aus den Scandaten verwenden.';
+      }
+    },
+
   };
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
