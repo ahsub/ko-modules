@@ -219,6 +219,29 @@ const Strategies = {
     completeEachPoint: true,
   },
 
+  collar: {
+    label: '🛡️ Collar / Protective Put',
+    hint: '🛡️ Collar: Absicherung Bestandsposition · BULL_FRAGILE · Proxy-Strikes (ATR/HVP)',
+    color: '#0ea5e9',
+    category: 'options',
+    intro: 'Du bist ein erfahrener Options-Stratege mit Fokus auf Absicherungsstrategien (Collar / Protective Put) für bereits gehaltene Aktienpositionen in einem fragilen Bull-Regime (Trend intakt, aber erhöhtes Air-Pocket-Risiko).\n\n⚠️ WICHTIG: UIQ hat keinen Zugriff auf echte Optionsketten (Strikes/Prämien) oder deine Bestandspositionen. Alle Strike-Vorschläge sind ATR/HVP-basierte Näherungen — echte Strikes und Prämien IMMER in IBKR/CapTrader verifizieren, bevor eine Position eröffnet wird.',
+    disclaimer: '⚠️ Diese Analyse dient ausschliesslich zu Informationszwecken gem. §1 WpHG. Keine Optionsketten-Daten verfügbar — reine Näherung auf Basis von ATR und historischer Volatilität.',
+    focus: [
+      '1. Absicherungsbedarf: Ist der Titel in einer Position die Air-Pocket-Risiko rechtfertigt (hohe Gewichtung, Gewinn, Trend fragil)?',
+      '2. Put-Strike-Näherung: ATR-basierter Abstand für den Protective-Put-Strike (typisch 1-1.5x ATR unter aktuellem Kurs).',
+      '3. Call-Strike-Näherung (für vollen Collar): oberhalb des Kurses, typisch 1-2x ATR über aktuellem Kurs, zur Finanzierung des Puts.',
+      '4. Kosten-Charakter: Protective Put allein kostet Prämie (Netto-Debit). Voller Collar (Put kaufen + Call verkaufen) kann kostenneutral oder sogar Credit sein.',
+    ],
+    task: [
+      { title: 'EINSCHRÄNKUNG', body: 'Erkläre kurz: keine echten Optionsketten verfügbar, alle Strikes sind ATR/HVP-Näherungen, IMMER in IBKR/CapTrader mit echten Daten verifizieren.' },
+      { title: 'ABSICHERUNGS-KANDIDATEN', body: 'Für Titel aus der Watchlist mit hohem RSI/Momentum (Gewinnmitnahme-Kandidaten in fragilem Umfeld): Protective-Put-Strike-Näherung (ATR-basiert), optional Call-Strike-Näherung für vollen Collar. Kein echter Prämien-Betrag erfinden — nur Strike-Abstand in % und $ nennen.' },
+      { title: 'PROTECTIVE PUT vs. VOLLER COLLAR', body: 'Wann reicht ein einfacher Protective Put (Kosten in Kauf nehmen), wann lohnt sich der volle Collar (Kosten senken, aber Aufwärtspotenzial gedeckelt)?' },
+      { title: 'NÄCHSTE SCHRITTE', body: 'Echte Strikes und Prämien für die genannten Titel in IBKR/CapTrader Optionskette nachschlagen, bevor eine Position eröffnet wird.' },
+    ],
+    maxWords: 350,
+    completeEachPoint: true,
+  },
+
   options: {
     label: '🎯 Options-Wheel',
     hint: '🎯 Options-Wheel: CSP / Covered Call · CapTrader/IBKR · Theta-Strategie',
