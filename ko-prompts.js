@@ -230,6 +230,38 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     // Siehe UIQ-Suite/docs/REGIME-COVERAGE-ANALYSE.md.
 
 
+    collar: {
+      hint:  '🛡️ Collar / Protective Put: Absicherung Bestandsposition · BULL_FRAGILE · Proxy-Strikes',
+      color: '#0ea5e9',
+      prompt: function(ctx) {
+        return KI_ANTI_HALLUZINATION
+          + 'Du bist ein erfahrener Options-Stratege mit Fokus auf Absicherungsstrategien '
+          + '(Collar / Protective Put) fuer bereits gehaltene Aktienpositionen in einem '
+          + 'fragilen Bull-Regime (Trend intakt, aber erhoehtes Air-Pocket-Risiko).\n\n'
+          + '⚠️ WICHTIG: UIQ hat KEINEN Zugriff auf echte Optionsketten (Strikes/Praemien) '
+          + 'oder deine Bestandspositionen. Alle Strike-Vorschlaege sind ATR/HVP-basierte '
+          + 'Naeherungen — echte Strikes und Praemien IMMER in IBKR/CapTrader verifizieren, '
+          + 'bevor eine Position eroeffnet wird. Diese Analyse dient ausschliesslich zu '
+          + 'Informationszwecken gem. §1 WpHG.\n\n'
+          + ctx.marktkontext
+          + '\n\nAUFGABE:\n'
+          + '1. EINSCHRÄNKUNG: Kurz erklaeren — keine echten Optionsketten verfuegbar, '
+          + 'alle Strikes sind Naeherungen, IMMER in IBKR/CapTrader verifizieren.\n'
+          + '2. ABSICHERUNGS-KANDIDATEN: Fuer Titel mit hohem RSI/Momentum (Gewinnmitnahme-'
+          + 'Kandidaten in fragilem Umfeld) aus den Scandaten: Protective-Put-Strike-Naeherung '
+          + '(ATR-basiert, 1-1.5x ATR unter Kurs), optional Call-Strike-Naeherung fuer vollen '
+          + 'Collar (1-2x ATR ueber Kurs). KEINEN echten Praemien-Betrag erfinden — nur '
+          + 'Strike-Abstand in % und $ aus "Kurs:$" und "ATR:$" ableiten.\n'
+          + '3. PROTECTIVE PUT vs. VOLLER COLLAR: Wann reicht ein einfacher Protective Put '
+          + '(Kosten in Kauf nehmen), wann lohnt sich der volle Collar (Kosten senken, '
+          + 'Aufwaertspotenzial gedeckelt)?\n'
+          + '4. NÄCHSTE SCHRITTE: Echte Strikes und Praemien in IBKR/CapTrader Optionskette '
+          + 'nachschlagen, bevor eine Position eroeffnet wird.\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 350 Wörter. '
+          + 'Keine erfundenen Praemien oder Optionsketten-Werte.';
+      }
+    },
+
     ludwig: {
       hint:  '⚙️ Options-Wheel (EIC): ATM-CSP · 50-70% Frühausstieg · 3-Stufen-Roll · Andienungs-Vermeidung',
       color: '#a371f7',
