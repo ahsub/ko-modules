@@ -197,6 +197,28 @@ const Strategies = {
     completeEachPoint: true,
   },
 
+  vcp: {
+    label: '📐 VCP-Setup',
+    hint: '📐 VCP: Volatility Contraction Pattern · Minervini Stage-2 · Direktinvestment',
+    color: '#a855f7',
+    category: 'equity',
+    intro: 'Du bist ein erfahrener technischer Analyst mit Spezialisierung auf das Volatility Contraction Pattern (VCP) nach Mark Minervini. VCP-Setups kennzeichnen sich durch sukzessive enger werdende Korrekturen (Contractions) nach einem Trendaufbau — das Setup ist reif wenn Volumen und Volatilität auf ein Minimum komprimiert wurden und der Ausbruch unmittelbar bevorsteht.',
+    focus: [
+      '1. VCP-Qualität: Wieviele Contractions erkennbar? Nimmt die Korrekturgröße ab (z.B. 15% → 10% → 5%)?',
+      '2. Volumen-Muster: Sinkt das Volumen während der Contractions (Pflicht für echtes VCP)?',
+      '3. Pivot-Punkt: Wo liegt der exakte Buy-Point (meist Ausbruch über die letzte Korrektur-Hochpunkt)?',
+      '4. Stage-2-Kontext: Ist der Titel in einer übergeordneten Stage-2-Aufwärtsbewegung?',
+    ],
+    task: [
+      { title: 'MARKTUMFELD FÜR VCP', body: 'Ist das aktuelle Marktumfeld (Regime, VIX, Marktbreite) günstig für VCP-Ausbrüche? VCP-Setups versagen häufig in schwachen Märkten — kurze Bewertung. (2-3 Sätze)' },
+      { title: 'TOP 3 VCP-KANDIDATEN', body: 'Welche 3 Titel zeigen das reifste VCP-Setup? Für jeden: Anzahl Contractions aus Scandaten (vcpContractions), letzte Korrektur-% (vcpLastPct), abgeschätzter Pivot-Punkt (aus 52W-H und Kurs:$), Volumen-Trend (fallend während Contraction?), Stage-2-Bewertung. Stop-Loss: knapp unter letztem Contraction-Tief. KEIN Kursziel erfinden.' },
+      { title: 'SETUPS IN ENTWICKLUNG', body: 'Titel die ein VCP aufbauen aber noch nicht reif sind — wie viele Contractions fehlen noch?' },
+      { title: 'RISIKEN', body: 'Was gefährdet VCP-Ausbrüche aktuell? (Marktbreite, Makro, Sektorrotation)' },
+    ],
+    maxWords: 400,
+    completeEachPoint: true,
+  },
+
   options: {
     label: '🎯 Options-Wheel',
     hint: '🎯 Options-Wheel: CSP / Covered Call · CapTrader/IBKR · Theta-Strategie',
