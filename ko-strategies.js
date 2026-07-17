@@ -154,8 +154,8 @@ const buildPrompt = (strat, ctx = {}) => {
 const Strategies = {
 
   ko: {
-    label: '⚡ KO-Trading',
-    hint: '⚡ KO-Trading: Hebel 3–8x · KO-Abstand · Positionsgröße max. €2.000',
+    label: '⚡ KO-Zertifikat',
+    hint: '⚡ KO-Zertifikat: Hebel 3–8x · KO-Abstand · Positionsgröße max. €2.000',
     color: '#818cf8',
     category: 'leverage',
     intro: 'Du bist ein erfahrener Knock-out-Trading-Experte (Hebelprodukte auf Aktien, EUR-basiert).',
