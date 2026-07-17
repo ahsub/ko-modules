@@ -221,106 +221,14 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
       }
     },
 
-    dividend: {
-      hint:  '💰 Dividend Growth: Steigende Ausschüttungen · Qualitäts-Momentum',
-      color: 'var(--green)',
-      prompt: function(ctx) {
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Dividend-Growth-Investor (Fokus: steigende Dividenden + technische Stärke).\n\n'
-          + '⚠️ WICHTIG: Dividendenrendite und Ausschüttungsquote sind NICHT im Scanner. '
-          + 'Nur technische Stärke und Trend aus Scandaten verwenden. Dividendendaten NIEMALS erfinden.\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTUMFELD: Günstig für Dividend-Growth-Titel? (2-3 Sätze)\n'
-          + '2. TOP 3 KANDIDATEN: Technisch starke Titel mit stabilem Aufwärtstrend (Proxy für Dividendenstärke). '
-          + 'Für jeden: EMA-Stack, Stage, RSI, Trend-Qualität. KEINE Dividendenrendite erfinden.\n'
-          + '3. WATCHLIST: Titel mit gutem Fundament aber technisch noch nicht bereit.\n'
-          + '4. HINWEIS: Dividendenzahlung und Yield IMMER in Seeking Alpha/IBKR verifizieren.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter.';
-      }
-    },
+    // Dividend Growth + Value entfernt (17.07.2026, Regime-Coverage-Analyse):
+    // beide hatten in KEINEM der 5 MSE-Regime Prioritaet-1-Status. Value-Prompt
+    // (Carlin/Graham-Methodik mit PE/PB/ROIC/FCF-Yield aus UIQ FIN-Archiv,
+    // Russell3000) war strukturell umfangreich, aber konzeptionell eine
+    // Buy-and-Hold-Bewertung, kein Timing-Signal. Fuer spaeteres DepotIQ-Modul
+    // vorgesehen — dort ist Fundamentalbewertung der richtige Rahmen.
+    // Siehe UIQ-Suite/docs/REGIME-COVERAGE-ANALYSE.md.
 
-    value: {
-      hint:  '🔍 Value (Carlin/Graham): Fundamental-Score · PE · ROIC · FCF-Yield · Momentum',
-      color: '#10b981',
-      prompt: function(ctx) {
-        var isEic   = !!(ctx.isEic);
-        var isWheel = ctx.mode === 'wheel';
-        var tickers = ctx.tickers || [];
-
-        var tickerBlock = tickers.map(function(t, i) {
-          return (i+1) + '. ' + t.sym
-            + (t.sector      ? ' [' + t.sector + ']'          : '')
-            + (t.finalScore != null ? ' Score:' + t.finalScore : '')
-            + (t.pe         != null ? ' PE:'    + t.pe         : '')
-            + (t.pb         != null ? ' PB:'    + t.pb         : '')
-            + (t.roicProxy  != null ? ' ROIC:'  + t.roicProxy  + '%' : '')
-            + (t.revGrowth  != null ? ' RG:'    + (t.revGrowth > 0 ? '+' : '') + t.revGrowth + '%' : '')
-            + (t.fcfYield   != null ? ' FCF-Y:' + t.fcfYield   + '%' : '')
-            + (t.grossMargin!= null ? ' GM:'    + t.grossMargin + '%' : '')
-            + (t.rsRating   != null ? ' RS:'    + t.rsRating    : ' RS:N/A')
-            + (t.aboveEma200 != null ? ' EMA200:' + (t.aboveEma200 ? '▲über' : '▼unter') : '')
-            + (t.rsi        != null ? ' RSI:'   + Math.round(t.rsi) : '')
-            + (t.hvp        != null ? ' HVP:'   + t.hvp + '%'  : '')
-            + (t.ivAtm      != null ? ' IV:'    + Math.round(t.ivAtm) + '%' : '')
-            + (isEic && t.wheelCandidate ? ' ★WHEEL' : '');
-        }).join('\n');
-
-        var base = KI_ANTI_HALLUZINATION
-          + '⛔ DATENBINDUNG VALUE: Alle Kennzahlen aus UIQ FIN-Archiv (Russell3000, wöchentlich). '
-          + 'Fehlende Felder (N/A): ABSOLUTES SCHWEIGEN — niemals schätzen oder ergänzen. '
-          + 'Kursziele, Dividenden, Analystenmeinungen: ERFINDUNGSVERBOT.\n\n';
-
-        if (isEic) {
-          // ── EIC-Modus: Carlin/Graham + konkrete Handlungsebene ─────────────
-          var eicTask = isWheel
-            ? '⚙️ VALUE + WHEEL-EINSTIEG (EIC-Modus):\n'
-              + '1. MARKTKONTEXT: Günstig für Value-Käufe / CSP-Eröffnungen? VIX, Regime. (2 Sätze)\n'
-              + '2. WHEEL-KANDIDATEN (★WHEEL markiert): Für jeden Kandidaten:\n'
-              + '   a) Fundamental-Urteil: PE/PB im Sektorkontext, ROIC vs. ~8-12% Kapitalkosten, FCF-Yield\n'
-              + '   b) Momentum-Bestätigung: RS-Rating, EMA200-Lage, IV-Niveau\n'
-              + '   c) CSP-Empfehlung: Strike-Bereich (EMA200 oder 15-20% OTM), Laufzeit ~30 DTE\n'
-              + '   d) Value-Trap-Check: Neg. Wachstum? Hohe Schulden? Säkulartrend?\n'
-              + '3. DIREKT-KAUFKANDIDATEN: RS≥70 + EMA200▲ + PE<20 — ohne CSP\n'
-              + '4. RISIKEN: Value Trap, Zyklizität, fehlender Katalysator\n'
-            : '📊 VALUE FUNDAMENTAL-ANALYSE (EIC-Modus):\n'
-              + '1. MARKTKONTEXT für Value-Investing: Rotation in Value begünstigt? (2 Sätze)\n'
-              + '2. TOP 3 QUALITÄTSTITEL (nach PE+ROIC+FCF-Yield):\n'
-              + '   a) Bewertung: PE/PB im Sektorkontext (günstig: PE<15 nicht-Tech, PE<25 Tech)\n'
-              + '   b) Kapitaleffizienz (Carlin #7): ROIC>10%=kapitalvermehrend, <Kapitalkosten=destruktiv\n'
-              + '   c) Wachstum (Carlin #8): RG>0 Pflicht; >10%=Wachstums-Value; <-5%=Schrumpfung\n'
-              + '   d) Margin-of-Safety (Carlin #10): FCF-Yield>5%=ausreichend; >10%=stark\n'
-              + '   e) Momentum-Bestätigung: RS+EMA200 — ohne Momentum kein Einstieg\n'
-              + '3. VALUE TRAPS IDENTIFIZIEREN: Günstig aber fallend (neg. RG/ROIC/EMA200▼)\n'
-              + '4. NÄCHSTER SCHRITT je Titel: Direktkauf / CSP abwarten / Watchlist / Ausschluss\n';
-          return base
-            + 'Du bist ein erfahrener Value-Investor nach Carlin/Graham-Methodik.\n\n'
-            + '⚠️ EIC-Modus: Konkrete Einschätzungen für persönlichen Eigengebrauch. '
-            + 'Keine Anlageberatung gem. §1 WpHG.\n\n'
-            + 'VALUE-KANDIDATEN (' + tickers.length + ' Titel):\n' + tickerBlock
-            + '\n\n' + eicTask
-            + '\nAntworte auf Deutsch, strukturiert. Max. 500 Wörter. Jeden Punkt vollständig abschließen.';
-        } else {
-          // ── Public-Modus: BaFin-konform, rein deskriptiv ──────────────────
-          return base
-            + 'Du bist ein Finanzanalyse-Werkzeug. Statistische Kontext-Analyse gem. §34b WpHG — '
-            + 'keine Anlageberatung, keine persönliche Empfehlung, keine Kursziele.\n\n'
-            + '⚠️ ÖFFENTLICHER MODUS: Ausschließlich beschreibend.\n\n'
-            + 'VALUE-KANDIDATEN (' + tickers.length + ' Titel nach Carlin/Graham 3-Stufen-Sieve):\n'
-            + tickerBlock
-            + '\n\nAUFGABE (BaFin-konform, rein deskriptiv):\n'
-            + '1. FUNDAMENTALE EINORDNUNG: Beschreibe Bewertungscharakteristika der Gruppe '
-            + '(PE-Niveau, Sektorverteilung, ROIC-Qualitätsniveau). (3 Sätze, keine Empfehlungen)\n'
-            + '2. STATISTISCH ATTRAKTIVE KENNZAHLEN: Titel mit PE<15, PB<2, FCF-Yield>5%, ROIC>10%. '
-            + 'Rein deskriptiv — was zeigen die Zahlen, keine Wertung ob kaufenswert.\n'
-            + '3. STATISTISCH ERHÖHTE RISIKOKENNZAHLEN: Auffälligkeiten die auf erhöhtes Risiko hinweisen '
-            + '(neg. Umsatzwachstum, neg. ROIC, EMA200▼). Deskriptiv.\n'
-            + '4. DATENHINWEIS: Werte aus UIQ FIN-Archiv (wöchentlich). '
-            + 'Aktuelle Kennzahlen immer in Koyfin/IBKR/Bloomberg verifizieren.\n'
-            + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 350 Wörter. Keine Kauf- oder Verkaufsempfehlungen.';
-        }
-      }
-    },
 
     ludwig: {
       hint:  '⚙️ Options-Wheel (EIC): ATM-CSP · 50-70% Frühausstieg · 3-Stufen-Roll · Andienungs-Vermeidung',
