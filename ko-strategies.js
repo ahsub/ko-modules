@@ -339,56 +339,14 @@ const Strategies = {
     maxWords: 400,
   },
 
-  dividend: {
-    label: '💰 Dividend Growth',
-    hint: '💰 Dividend Growth: Steigende Ausschüttungen · Qualitäts-Momentum',
-    color: 'var(--green)',
-    category: 'equity',
-    intro: 'Du bist ein erfahrener Dividend-Growth-Investor (Fokus: steigende Dividenden + technische Stärke).',
-    disclaimer: '⚠️ WICHTIG: Dividendenrendite und Ausschüttungsquote sind NICHT im Scanner. Nur technische Stärke und Trend aus Scandaten verwenden. Dividendendaten NIEMALS erfinden.',
-    focus: [
-      '1. Technische Stärke als Proxy: EMA-Stack und Trendqualität (Dividendendaten NICHT im Scanner).',
-      '2. Stabilität: RSI/Volatilität als Hinweis auf ruhigen Qualitätstitel.',
-      '3. Einstiegstiming: aktuell in kaufbarer Konsolidierung oder überhitzt?',
-      '4. Hinweis: Dividendenrendite/Ausschüttungsquote zwingend extern (Seeking Alpha/IBKR) verifizieren.',
-    ],
-    task: [
-      { title: 'MARKTUMFELD', body: 'Günstig für Dividend-Growth-Titel? (2-3 Sätze)' },
-      { title: 'TOP 3 KANDIDATEN', body: 'Technisch starke Titel mit stabilem Aufwärtstrend (Proxy für Dividendenstärke). Für jeden: EMA-Stack, Stage, RSI, Trend-Qualität. KEINE Dividendenrendite erfinden.' },
-      { title: 'WATCHLIST', body: 'Titel mit gutem Fundament aber technisch noch nicht bereit.' },
-      { title: 'HINWEIS', body: 'Dividendenzahlung und Yield IMMER in Seeking Alpha/IBKR verifizieren.' },
-    ],
-    maxWords: 400,
-  },
-
-  // 'value' bewusst NICHT im Scanner-Dropdown (index.html) — siehe Kommentar
-  // dort. Bleibt hier im Regelwerk verfügbar (DeepDive "Alle Strategien").
-  value: {
-    label: '🔍 Value (Proxy)',
-    hint: '🔍 Value: Fundamentaldaten (KGV, FCF, ROIC) noch nicht im Scanner — Koyfin-Integration geplant',
-    color: 'var(--text3)',
-    category: 'equity',
-    intro: 'HINWEIS: Der Scanner enthält noch keine Fundamentaldaten (KGV, FCF, ROIC, Verschuldung). Value-Analyse auf Basis technischer Daten allein ist unvollständig.',
-    focus: [
-      '1. Einschränkung explizit benennen: keine Fundamentaldaten (KGV/FCF/ROIC) im Scanner.',
-      '2. Technischer Proxy A — Überverkauft: RSI < 40 + Kurs nahe EMA200?',
-      '3. Technischer Proxy B — Konsolidierung: RSI 40-55 + Unterstützung EMA200 ±5%?',
-      '4. Nächste Schritte: Fundamentaldaten zwingend extern (Koyfin/IBKR) vor Entscheidung prüfen.',
-    ],
-    task: [
-      { title: 'EINSCHRÄNKUNG', body: 'Erkläre dass echte Value-Analyse Fundamentaldaten erfordert die noch nicht verfügbar sind.' },
-      {
-        title: 'TECHNISCHER PROXY', body: '(zwei getrennte Suchkriterien — KEIN Widerspruch beabsichtigt):',
-        subitems: [
-          'a) ÜBERVERKAUFT: RSI < 40 + Kurs nahe EMA200 (möglicher Boden, Value-Einstieg)',
-          'b) KONSOLIDIERUNG: RSI 40-55 + Kurs an langfristiger Unterstützung (EMA200 ± 5%)',
-          '→ Titel müssen NUR EINES der beiden Kriterien erfüllen, nicht beide gleichzeitig.',
-        ],
-      },
-      { title: 'NÄCHSTE SCHRITTE', body: 'KGV/FCF/Verschuldung für diese Titel in Koyfin/IBKR prüfen.' },
-    ],
-    maxWords: 300,
-  },
+  // Dividend Growth + Value entfernt (17.07.2026, Regime-Coverage-Analyse):
+  // beide hatten in KEINEM der 5 MSE-Regime Prioritaet-1-Status — objektiver
+  // Beleg dass es keine Timing-Strategien sind, sondern Buy-and-Hold-Konzepte.
+  // Value-Prompt gab selbst zu "noch keine Fundamentaldaten im Scanner" —
+  // strukturell unvollstaendig von Anfang an. Vorgesehen fuer spaeteres
+  // DepotIQ-Modul (dort ist Buy-and-Hold-Bewertung der richtige Rahmen).
+  // Siehe UIQ-Suite/docs/REGIME-COVERAGE-ANALYSE.md fuer die vollstaendige
+  // Begruendung.
 
   atmna: {
     label: '⚙️ Options ATM/NA',
