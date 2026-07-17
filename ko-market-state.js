@@ -360,19 +360,23 @@ var KoMarketState = {
    */
   CONTEXT_DOWNGRADE_RULES: [
     // Faktor-ID            betroffene Strategien (Long-Trend/Hebel zuerst)
-    { factor: 'treasury_stress',   strategies: ['ko','momentum','breakout','swing','csp_wheel','atmna','weekly_income','cc'] },
-    { factor: 'ndx_breadth',       strategies: ['ko','momentum','breakout','swing'] },
-    { factor: 'intermarket_score', strategies: ['ko','momentum','breakout','swing','value'] },
-    { factor: 'vix',               strategies: ['ko','breakout','atmna'] },
-    { factor: 'vvix',              strategies: ['ko','breakout','csp_wheel','weekly_income'] },
+    // VCP ergaenzt (17.07.2026): teilt Long-Trend-Charakteristik mit momentum/
+    // breakout — reagiert auf dieselben Risikofaktoren. Collar bewusst NICHT
+    // in Downgrade-Regeln: eine Absicherungsstrategie soll bei Stress NICHT
+    // gesperrt werden, sie wird dort ja gerade gebraucht (siehe Regime-Gates).
+    { factor: 'treasury_stress',   strategies: ['ko','momentum','breakout','vcp','swing','csp_wheel','atmna','weekly_income','cc'] },
+    { factor: 'ndx_breadth',       strategies: ['ko','momentum','breakout','vcp','swing'] },
+    { factor: 'intermarket_score', strategies: ['ko','momentum','breakout','vcp','swing'] },
+    { factor: 'vix',               strategies: ['ko','breakout','vcp','atmna'] },
+    { factor: 'vvix',              strategies: ['ko','breakout','vcp','csp_wheel','weekly_income'] },
     { factor: 'skew',              strategies: ['csp_wheel','atmna','weekly_income'] },
-    { factor: 'pcr',               strategies: ['momentum','breakout'] },
-    { factor: 'fear_greed',        strategies: ['momentum','breakout','ko'] },
-    { factor: 'bull_indicator',    strategies: ['ko','momentum','breakout','swing'] },
+    { factor: 'pcr',               strategies: ['momentum','breakout','vcp'] },
+    { factor: 'fear_greed',        strategies: ['momentum','breakout','vcp','ko'] },
+    { factor: 'bull_indicator',    strategies: ['ko','momentum','breakout','vcp','swing'] },
     // Calendar-Fenster: alle Neupositions-Strategien vorsichtiger
-    { factor: 'fed_window',        strategies: ['ko','momentum','breakout','swing','csp_wheel','atmna','weekly_income'] },
-    { factor: 'nfp_window',        strategies: ['ko','breakout'] },
-    { factor: 'cpi_window',        strategies: ['ko','breakout','csp_wheel'] },
+    { factor: 'fed_window',        strategies: ['ko','momentum','breakout','vcp','swing','csp_wheel','atmna','weekly_income'] },
+    { factor: 'nfp_window',        strategies: ['ko','breakout','vcp'] },
+    { factor: 'cpi_window',        strategies: ['ko','breakout','vcp','csp_wheel'] },
   ],
 
   /**
