@@ -1,12 +1,12 @@
 {
   "_meta": {
-    "version": "2.1.1",
+    "version": "2.2.0",
     "created": "2026-07-09",
     "description": "UIQ Indikator-Registry — zentrale Quelle aller Makro-Indikatoren",
     "repository": "ahsub/ko-modules",
     "note": "Neue Indikatoren = neues Objekt. Kein Code-Eingriff nötig.",
-    "updated": "2026-07-15",
-    "changelog": "v2.1.1: BUGFIX — pcr.aggregatorKey war \"pcr.value\" (Feld existiert nicht im master_market_data-Schema), korrigiert auf \"pcr.pcr\" (bestaetigt gegen echte Aggregator-Daten, Run #106 14.07.2026: market.pcr = {pcr: 0.78, signal, source, components}). Ursache fuer PCR-Kachel im Home-Panel, die staendig \"—\" zeigte, obwohl PCR-Daten im Aggregator vorlagen. | v2.1.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc-Zeitstempel umgestellt (Loader v1.2.0) — FOMC nutzt jetzt Zweitage-Fenster (meeting_start_utc), bufferMinutes fuer Karenzzeit um Decision-Zeitpunkt (Spread-Normalisierung). FOMC/CPI-Termine gegen federalreserve.gov/bls.gov verifiziert (Axel, 14.07.2026). | v2.0.0: MCM Grundgeruest (enabled/weight/signalRules/Calendar)."
+    "updated": "2026-07-20",
+    "changelog": "v2.2.0: 5 neue Indikatoren (20.07.2026) — hy_spread, net_liquidity, move_index, skew_vvix_div, qqq_markov. Alle bisher im ZUSATZ-KONTEXT des MB-Prompts hardcodiert, jetzt Registry-basiert. aggregatorKey-Pfade gegen echte Aggregator-Datenstruktur verifiziert. signalRules fuer z-Score-basierte Signale (zgte) und Signal-String-Vergleich (signal_eq) erweitert — Loader v1.3.0 erforderlich. | v2.1.1: BUGFIX — pcr.aggregatorKey war \"pcr.value\" (Feld existiert nicht im master_market_data-Schema), korrigiert auf \"pcr.pcr\" (bestaetigt gegen echte Aggregator-Daten, Run #106 14.07.2026: market.pcr = {pcr: 0.78, signal, source, components}). Ursache fuer PCR-Kachel im Home-Panel, die staendig \"—\" zeigte, obwohl PCR-Daten im Aggregator vorlagen. | v2.1.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc-Zeitstempel umgestellt (Loader v1.2.0) — FOMC nutzt jetzt Zweitage-Fenster (meeting_start_utc), bufferMinutes fuer Karenzzeit um Decision-Zeitpunkt (Spread-Normalisierung). FOMC/CPI-Termine gegen federalreserve.gov/bls.gov verifiziert (Axel, 14.07.2026). | v2.0.0: MCM Grundgeruest (enabled/weight/signalRules/Calendar)."
   },
   "indicators": {
     "vix": {
@@ -383,6 +383,109 @@
       "promptHint": "BULL_QUIET/BULL_FRAGILE/STRESS_UNSTABLE/POST_PANIC_REVERSION",
       "enabled": true,
       "weight": 1.0
+    },
+    "hy_spread": {
+      "label": "HY Credit Spread",
+      "category": "macro",
+      "source": "aggregator",
+      "aggregatorKey": "market.fredMacro.hy_spread",
+      "unit": "%",
+      "promptKey": "HY Credit Spread",
+      "promptWeight": "hoch",
+      "promptHint": "Z<-1=sehr eng/keine Stress, >0=normal, Z>+1.5=Kreditstress",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "risk",
+          "zgte": 1.5
+        },
+        {
+          "signal": "caution",
+          "zgte": 0.5
+        },
+        {
+          "signal": "ok"
+        }
+      ]
+    },
+    "net_liquidity": {
+      "label": "US Net Liquidity (Fed)",
+      "category": "macro",
+      "source": "aggregator",
+      "aggregatorKey": "market.fredMacro.net_liquidity",
+      "unit": "Mrd USD",
+      "promptKey": "US Net Liquidity",
+      "promptWeight": "hoch",
+      "promptHint": "4W-Trend: expandierend=Rückenwind Risk-Assets, schrumpfend=Gegenwind",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "caution",
+          "trend4w_lte": 0
+        },
+        {
+          "signal": "ok"
+        }
+      ]
+    },
+    "move_index": {
+      "label": "MOVE Index (Treasury-Vol)",
+      "category": "macro",
+      "source": "aggregator",
+      "aggregatorKey": "market.zscores.move",
+      "unit": "",
+      "promptKey": "MOVE Index",
+      "promptWeight": "mittel",
+      "promptHint": "Treasury-Volatilität — Z>+1=Bond-Stress, Gegenwind für Aktien",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "risk",
+          "zgte": 1.5
+        },
+        {
+          "signal": "caution",
+          "zgte": 0.8
+        },
+        {
+          "signal": "ok"
+        }
+      ]
+    },
+    "skew_vvix_div": {
+      "label": "SKEW/VVIX-Divergenz",
+      "category": "volatility",
+      "source": "aggregator",
+      "aggregatorKey": "market.zscores.skew_vvix_divergence",
+      "unit": "",
+      "promptKey": "SKEW/VVIX-Divergenz",
+      "promptWeight": "mittel",
+      "promptHint": "WARNUNG=Tail-Hedging ohne Vol-Stress (Smart-Money positioniert sich); normal=kein Signal",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "caution",
+          "signal_eq": "WARNUNG"
+        },
+        {
+          "signal": "ok"
+        }
+      ]
+    },
+    "qqq_markov": {
+      "label": "QQQ Markov-Regime",
+      "category": "regime",
+      "source": "computed",
+      "windowVar": "_lastQqqRegime",
+      "promptKey": "QQQ Markov",
+      "promptWeight": "mittel",
+      "promptHint": "Aggregator-seitige Markov-Klassifikation (bull/neutral/bear) — unabhängig vom client-seitigen MSE",
+      "enabled": true,
+      "weight": 0.8
     },
     "aud_usd": {
       "label": "AUD/USD",
