@@ -6,7 +6,7 @@
  *   - buildPromptSection()    → generischer Prompt-Aufbau
  *   - getIndicatorValue()     → einheitlicher DOM/Window/Aggregator-Read
  *
- * Version: 1.2.1 (14.07.2026) — Calendar-Fetch von raw.githubusercontent statt same-origin — MCM: buildMarketContext, signalRules, Makro-Kalender
+ * Version: 1.3.0 (20.07.2026) — Calendar-Fetch von raw.githubusercontent statt same-origin — MCM: buildMarketContext, signalRules, Makro-Kalender
  *   v1.2.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc
  *   umgestellt (kein Timezone-String-Parsing mehr), bufferMinutes fuer
  *   Karenzzeit, FOMC-Zweitage-Fenster.
@@ -210,15 +210,29 @@ function buildPromptSection(category, alphaData) {
  * @param {number} val  - numerischer Wert
  * @returns {string|null} 'ok'|'caution'|'risk' oder null wenn keine Regel passt
  */
-function _evalSignalRules(rules, val) {
-  if (!rules || val == null || isNaN(val)) return null;
+function _evalSignalRules(rules, val, zscore, signalStr) {
+  // val     = Rohwert (numerisch)
+  // zscore  = optionaler Z-Score für zgte/zlte-Regeln
+  // signalStr = optionaler Signal-String für signal_eq-Regeln (z.B. "WARNUNG")
+  if (!rules) return null;
   for (var i = 0; i < rules.length; i++) {
     var r = rules[i];
     var match = true;
-    if (r.gte != null && !(val >= r.gte)) match = false;
-    if (r.gt  != null && !(val >  r.gt))  match = false;
-    if (r.lte != null && !(val <= r.lte)) match = false;
-    if (r.lt  != null && !(val <  r.lt))  match = false;
+    // Numerische Regeln (Rohwert)
+    if (r.gte != null && (val == null || isNaN(val) || !(val >= r.gte))) match = false;
+    if (r.gt  != null && (val == null || isNaN(val) || !(val >  r.gt)))  match = false;
+    if (r.lte != null && (val == null || isNaN(val) || !(val <= r.lte))) match = false;
+    if (r.lt  != null && (val == null || isNaN(val) || !(val <  r.lt)))  match = false;
+    // Z-Score-Regeln (für FRED-Indikatoren wie HY-Spread, MOVE)
+    if (r.zgte != null && (zscore == null || isNaN(zscore) || !(zscore >= r.zgte))) match = false;
+    if (r.zlte != null && (zscore == null || isNaN(zscore) || !(zscore <= r.zlte))) match = false;
+    // Signal-String-Vergleich (für SKEW/VVIX-Divergenz)
+    if (r.signal_eq != null && signalStr !== r.signal_eq) match = false;
+    // Trend-Regeln (für Net Liquidity)
+    if (r.trend4w_lte != null) {
+      // wird in buildMarketContext gesondert ausgewertet
+      match = false; // Platzhalter — echte Auswertung in buildMarketContext
+    }
     if (match) return r.signal;
   }
   return null;
@@ -363,6 +377,72 @@ async function buildMarketContext(alphaData, regime) {
     if (signal === 'risk')    ctx.summary.risk_flags.push(id);
   });
 
+  // ── Spezial-Auswertung FRED/Derived-Indikatoren (v1.3.0) ─────────
+  // Diese können nicht über getIndicatorValue() gelesen werden da sie
+  // strukturierte Objekte zurückgeben (nicht einzelne Zahlen).
+  var _mkt = (alphaData && alphaData.market) ? alphaData.market : null;
+
+  // HY Credit Spread (Z-Score basiert)
+  if (reg.hy_spread && reg.hy_spread.enabled !== false && _mkt && _mkt.fredMacro && _mkt.fredMacro.hy_spread && _mkt.fredMacro.hy_spread.ok) {
+    var _hy = _mkt.fredMacro.hy_spread;
+    var _hySignal = _evalSignalRules(reg.hy_spread.signalRules, _hy.current, _hy.zscore, null);
+    ctx.factors.hy_spread = {
+      value: _hy.current, zscore: _hy.zscore, percentile: _hy.percentile,
+      signal: _hySignal,
+      label: 'HY Credit Spread: ' + _hy.current + '% (Z=' + (_hy.zscore>=0?'+':'') + _hy.zscore + ', P' + _hy.percentile + ') → ' + (_hy.signal||''),
+    };
+    if (_hySignal === 'caution') ctx.summary.caution_flags.push('hy_spread');
+    if (_hySignal === 'risk')    ctx.summary.risk_flags.push('hy_spread');
+  }
+
+  // US Net Liquidity (Trend-basiert)
+  if (reg.net_liquidity && reg.net_liquidity.enabled !== false && _mkt && _mkt.fredMacro && _mkt.fredMacro.net_liquidity && _mkt.fredMacro.net_liquidity.ok) {
+    var _nl = _mkt.fredMacro.net_liquidity;
+    var _nlSignal = (_nl.trend_4w != null && _nl.trend_4w <= 0) ? 'caution' : 'ok';
+    ctx.factors.net_liquidity = {
+      value: _nl.current, trend_4w: _nl.trend_4w,
+      signal: _nlSignal,
+      label: 'US Net Liquidity: ' + _nl.current + ' Mrd USD (4W-Trend: ' + (_nl.trend_4w>=0?'+':'') + _nl.trend_4w + ') → ' + (_nl.signal||''),
+    };
+    if (_nlSignal === 'caution') ctx.summary.caution_flags.push('net_liquidity');
+  }
+
+  // MOVE Index (Z-Score basiert)
+  if (reg.move_index && reg.move_index.enabled !== false && _mkt && _mkt.zscores && _mkt.zscores.move && _mkt.zscores.move.ok) {
+    var _move = _mkt.zscores.move;
+    var _moveSignal = _evalSignalRules(reg.move_index.signalRules, _move.current, _move.zscore, null);
+    ctx.factors.move_index = {
+      value: _move.current, zscore: _move.zscore, percentile: _move.percentile,
+      signal: _moveSignal,
+      label: 'MOVE Index: ' + _move.current + ' (Z=' + (_move.zscore>=0?'+':'') + _move.zscore + ', P' + _move.percentile + ')',
+    };
+    if (_moveSignal === 'caution') ctx.summary.caution_flags.push('move_index');
+    if (_moveSignal === 'risk')    ctx.summary.risk_flags.push('move_index');
+  }
+
+  // SKEW/VVIX-Divergenz (Signal-String basiert)
+  if (reg.skew_vvix_div && reg.skew_vvix_div.enabled !== false && _mkt && _mkt.zscores && _mkt.zscores.skew_vvix_divergence && _mkt.zscores.skew_vvix_divergence.ok) {
+    var _div = _mkt.zscores.skew_vvix_divergence;
+    var _divSignal = _evalSignalRules(reg.skew_vvix_div.signalRules, null, null, _div.signal);
+    ctx.factors.skew_vvix_div = {
+      value: _div.value, signalStr: _div.signal,
+      signal: _divSignal,
+      label: 'SKEW/VVIX-Divergenz: ' + _div.value + ' → ' + _div.signal,
+    };
+    if (_divSignal === 'caution') ctx.summary.caution_flags.push('skew_vvix_div');
+  }
+
+  // QQQ Markov-Regime (Window-Variable)
+  if (reg.qqq_markov && reg.qqq_markov.enabled !== false) {
+    var _qqq = (typeof window !== 'undefined' && window._lastQqqRegime) ? window._lastQqqRegime : null;
+    if (_qqq) {
+      ctx.factors.qqq_markov = {
+        value: _qqq, signal: null,
+        label: 'QQQ Markov: ' + _qqq,
+      };
+    }
+  }
+
   // Aggregiertes Risk-Level: risk-Flag → 'high' | ≥2 caution → 'elevated' | sonst 'low'
   if (ctx.summary.risk_flags.length > 0)          ctx.summary.risk_level = 'high';
   else if (ctx.summary.caution_flags.length >= 2) ctx.summary.risk_level = 'elevated';
@@ -412,4 +492,4 @@ function listIndicators() {
   }));
 }
 
-console.log('[ko-indicators-loader] v1.2.1 geladen — Indikator-Registry + Market Context Module (MCM)');
+console.log('[ko-indicators-loader] v1.3.0 geladen — Indikator-Registry + Market Context Module (MCM) + erweiterte signalRules (zgte/signal_eq) + 5 neue FRED/Derived-Indikatoren');
