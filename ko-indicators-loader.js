@@ -177,6 +177,9 @@ function buildPromptSection(category, alphaData) {
     macro:      '--- MAKRO-INDIKATOREN ---',
     commodity:  '--- ROHSTOFFE & WÄHRUNGEN ---',
     fx:         '--- WÄHRUNGEN ---',
+    fred:       '--- KREDIT & LIQUIDITÄT (FRED) ---',
+    derived:    '--- ABGELEITETE INDIKATOREN ---',
+    calendar:   '--- KALENDER-EVENTS ---',
   };
 
   var lines = [];
@@ -193,9 +196,25 @@ function buildPromptSection(category, alphaData) {
   inds.forEach(function(entry) {
     var id = entry[0];
     var ind = entry[1];
+
+    // FRED/derived/calendar: Werte kommen aus market_context (buildMarketContext),
+    // nicht aus getIndicatorValue (liefert nur einfache DOM/Aggregator-Werte).
+    // market_context ist via window._lastMseResult._marketCtx erreichbar.
+    if (ind.category === 'fred' || ind.source === 'calendar') {
+      var _ctx = (window._lastMseResult && window._lastMseResult._marketCtx)
+        ? window._lastMseResult._marketCtx : null;
+      if (_ctx && _ctx.factors && _ctx.factors[id]) {
+        var _f = _ctx.factors[id];
+        var _sig = _f.signal ? ' [' + _f.signal.toUpperCase() + ']' : '';
+        lines.push(_f.label + _sig);
+      }
+      return;
+    }
+
     var val = getIndicatorValue(id, alphaData);
-    if (val === '—' && ind.promptWeight === 'niedrig') return; // niedrig-Prio überspringen wenn leer
+    if (val === '—' && ind.promptWeight === 'niedrig') return;
     var unit = ind.unit ? ' ' + ind.unit : '';
+    var _hint = ind.promptHint ? ' (' + ind.promptHint + ')' : '';
     lines.push(ind.promptKey + ': ' + val + unit);
   });
 
@@ -447,6 +466,11 @@ async function buildMarketContext(alphaData, regime) {
   if (ctx.summary.risk_flags.length > 0)          ctx.summary.risk_level = 'high';
   else if (ctx.summary.caution_flags.length >= 2) ctx.summary.risk_level = 'elevated';
 
+  // v1.3.0: market_context in _lastMseResult._marketCtx speichern für buildPromptSection
+  if (typeof window !== 'undefined' && window._lastMseResult) {
+    window._lastMseResult._marketCtx = ctx;
+  }
+
   console.log('[MCM] market_context gebaut — ' + Object.keys(ctx.factors).length +
     ' Faktoren | risk_level: ' + ctx.summary.risk_level +
     (ctx.summary.caution_flags.length ? ' | caution: ' + ctx.summary.caution_flags.join(',') : '') +
@@ -492,4 +516,4 @@ function listIndicators() {
   }));
 }
 
-console.log('[ko-indicators-loader] v1.3.0 geladen — Indikator-Registry + Market Context Module (MCM) + erweiterte signalRules (zgte/signal_eq) + 5 neue FRED/Derived-Indikatoren');
+console.log('[ko-indicators-loader] v1.3.1 geladen — Indikator-Registry + Market Context Module (MCM) + erweiterte signalRules (zgte/signal_eq) + 5 neue FRED/Derived-Indikatoren');
