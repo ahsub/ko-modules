@@ -1,28 +1,44 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
- * Version: 1.0.0
+ * Version: 2.1.0 (21.07.2026)
  * Repository: ahsub/ko-modules
  *
  * Enthält:
  *   - KI_ANTI_HALLUZINATION  → globale Schutzregel für alle KI-Calls
- *   - KoPrompts.STRATEGIES   → vollständige Strategie-Konfiguration
- *     (hint, color, prompt-Funktion) für alle 9 Strategien
+ *   - KoPrompts.SYSTEM       → getSystemPrompt(eic) — Public/EIC-Split
+ *   - KoPrompts.MORNING      → getMorningPrompt(messwerteLines, eic, dixReal) — MB-Prompt
+ *   - KoPrompts.STRATEGIES   → vollständige Strategie-Konfiguration (12 Strategien)
  *   - KoPrompts.get(strat, ctx) → prompt für eine Strategie holen
  *   - KoPrompts.getConfig(strat) → hint + color holen
  *
+ * Kanonische Strategie-Liste (STRATEGY_ORDER aus ko-market-state.js):
+ *   ko, momentum, breakout, vcp, swing, meanrev,
+ *   csp_wheel, atmna, weekly_income, cc, collar, fading_short
+ *
  * Hinweis Sicherheit:
- *   Dieses Modul enthält die BaFin-konformen PUBLIC-Prompt-Varianten.
- *   EIC/Expert-Prompts (unleashed, direkte Empfehlungen) verbleiben
- *   im ko-ai Cloudflare Worker (serverside, nicht öffentlich einsehbar).
+ *   PUBLIC-Prompts (BaFin §1 WpHG) sind hier vollständig enthalten.
+ *   EIC/Expert-Modus: getSystemPrompt(true) + getMorningPrompt(..., true)
+ *   liefern die EIC-Varianten — kein separater Server-Prompt mehr nötig
+ *   für die Standard-Strategien (ko-ai Worker behält EIC-Sonderfunktionen).
  *
- * Verwendung (Browser via CDN):
- *   <script src="https://cdn.jsdelivr.net/gh/ahsub/ko-modules@{HASH}/ko-prompts.js"></script>
- *   const prompt = KoPrompts.get('ko', ctx);
- *   const cfg    = KoPrompts.getConfig('momentum'); // { hint, color }
- *
- * Verwendung (Node.js / Python via vm):
- *   const KoPrompts = require('./ko-prompts.js');
+ * Changelog:
+ *   v2.1.0 (21.07.2026): ko-prompts-registry Sprint
+ *     - getSystemPrompt(eic) neu: Public/EIC-Split aus index.html externalisiert
+ *     - getMorningPrompt(lines, eic, dixReal) neu: Morning-Briefing-Prompt inkl.
+ *       STRATEGIE_MATRIX aus index.html externalisiert
+ *     - STRATEGIE_MATRIX auf kanonische 12 UIQ-Strategien bereinigt:
+ *       Breakout + VCP ergänzt, Breakdown Short + Tail-Risk-Hedge entfernt
+ *       (nicht in UIQ), CC ergänzt
+ *     - 'options' → 'csp_wheel' umbenannt (Konsistenz STRATEGY_ORDER)
+ *     - 'ludwig' → 'atmna' umbenannt (P1-Rename, war überfällig)
+ *     - 'cc' (Covered Call) neu hinzugefügt
+ *     - Collar: bleibt als Prompt (KI kann es in BULL_FRAGILE erwähnen),
+ *       kein STRATEGIE_MATRIX-Eintrag (Positions-Kontext fehlt in UIQ;
+ *       vollständige Behandlung → Options-Doktor-Modul)
+ *     - fading_short: STRATEGIE_MATRIX-Eintrag vorhanden, kein eigener
+ *       Analyse-Prompt (Leaderboard hat keine Metriken für KI-Analyse)
+ *   v1.0.0: Initialer Release
  */
 
 (function(global) {
@@ -81,11 +97,136 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
 
 `;
 
-  // ── STRATEGIE-KONFIGURATIONEN ──────────────────────────────────────────────
+  // ── SYSTEM-PROMPTS (Public / EIC-Split) ───────────────────────────────────
+  // Vorher inline in index.html getKiSystemPrompt() — jetzt Single Source of Truth.
+  // eic = true: Expert/EIC-Modus (direkte Empfehlungen, kein BaFin-Disclaimer)
+  // eic = false: Public-Modus (BaFin §1 WpHG, deskriptiv)
+
+  function _getSystemPrompt(context, eic) {
+    if (eic) {
+      return 'Du bist ein erfahrener quantitativer Portfolio-Manager, Options-Trader und '
+        + 'Knock-out-Produkt-Spezialist. Analysiere die gegebenen Messwerte und gib '
+        + 'KONKRETE, DIREKTE Handlungsempfehlungen.\n\n'
+        + 'STRICT NO-HALLUCINATION — ABSOLUTE PFLICHT:\n'
+        + '- ALLE Aussagen NUR aus den explizit gegebenen Messwerten ableiten.\n'
+        + '- KEINE Kurse, News, Bewertungen oder externe Daten erfinden oder schätzen.\n'
+        + '- Fehlende Werte mit n/v kennzeichnen — niemals interpolieren.\n'
+        + '- ATR ist deine Berechnungseinheit für alle Abstände, Strikes und Stops.\n\n'
+        + 'EMPFEHLUNGS-FORMAT:\n'
+        + '• AKTIEN/ETF: Richtung (Long/Short) + Einstiegsbereich ($-Wert oder ATR-Abstand vom EMA) '
+        + '+ Stop-Loss (1.5–2× ATR unter Entry) + Ziel (3–5× ATR) + Haltezeit in Tagen.\n'
+        + '• OPTIONS (CSP/CC/Spread): Delta 0.20–0.30 · DTE 21–45 Tage · '
+        + 'Strike = EMA200 − n×ATR (konkreten Wert berechnen und nennen) · '
+        + 'Prämien-Erwartung: HVP-basiert (HVP>60=attraktiv, HVP<30=mager).\n'
+        + '• KO-PRODUKTE/TURBOS: Knock-out-Abstand ≥ 2×ATR vom aktuellen Kurs · '
+        + 'Hebelbereich = Kurs÷KO-Abstand (konkreten Bereich nennen, z.B. Hebel 4–6×) · '
+        + 'Basispreis-Logik basierend auf EMA50/EMA200 als Orientierung.\n'
+        + '• HVP-REGEL (zwingend): HVP < 30 → KEIN Prämienverkauf (CSP/CC/Short-Vola) — '
+        + 'stattdessen Debit Calls/Puts oder Debit-Spreads empfehlen. '
+        + 'HVP > 70 → Prämienverkauf (CSP / Credit Spread) weit OTM, Delta 0.15–0.20.\n\n'
+        + 'STIL: Direkt. Professionell. Kein Disclaimer. Keine BaFin-Formulierungen. Kein Markdown.\n'
+        + (context ? '\nKONTEXT: ' + context : '');
+    } else {
+      return 'Du bist ein quantitativer Marktanalyst. '
+        + 'Erstelle eine sachliche, deskriptive Daten-Synthese auf Deutsch. '
+        + 'ABSOLUTE REGELN:\n'
+        + '- Basiere die Analyse AUSSCHLIESSLICH auf den gegebenen Messwerten.\n'
+        + '- Erfinde KEINE Kurse, Nachrichten oder Ereignisse.\n'
+        + '- Gib KEINE direkten Kauf- oder Verkaufsempfehlungen (BaFin §1 WpHG).\n'
+        + '- Formuliere deskriptiv: "Die Datenlage zeigt..." nicht "Kaufen Sie...".\n'
+        + '- Kein Markdown, kein "Ich".\n'
+        + (context ? '\nKONTEXT: ' + context : '');
+    }
+  }
+
+  // ── MORNING BRIEFING PROMPT ────────────────────────────────────────────────
+  // Vorher inline in index.html getMorningBriefingPrompt() — jetzt hier.
+  // STRATEGIE_MATRIX auf kanonische 12 UIQ-Strategien bereinigt (21.07.2026):
+  //   + Breakout ergänzt (war vergessen), VCP ergänzt, CC ergänzt
+  //   - Breakdown Short entfernt (nicht in UIQ)
+  //   - Tail-Risk-Hedge entfernt (nicht in UIQ)
+  //   Collar: kein STRATEGIE_MATRIX-Eintrag (kein Positions-Kontext in UIQ)
+
+  function _getMorningPrompt(messwerteLines, eic, dixReal) {
+    var basis = 'MESSWERTE:\n' + messwerteLines.join('\n');
+    var _dixReal = dixReal || false;
+
+    var STRATEGIE_MATRIX =
+      '\n\nPFLICHT-ABSCHNITT STRATEGIE-AMPEL (immer als letzter Abschnitt, keine Ausnahmen):\n'
+      + 'Bewerte JEDE der folgenden Strategien mit genau einer Ampelfarbe — ausschließlich aus den oben stehenden Messwerten abgeleitet.\n'
+      + 'KEINE Ampelfarbe erfinden oder schätzen. Fehlt ein Datenpunkt für eine Regel → diese Teilregel ignorieren, nicht durch Trainingswissen ersetzen.\n'
+      + 'Format: [Ampel] STRATEGIE-NAME — 1 Satz Begründung mit konkretem Messwert (Zahl nennen, keine vagen Worte).\n\n'
+      + '🟢 = heute bevorzugt | 🟡 = situativ möglich | 🔴 = heute pausieren | ⬜ = Daten fehlen\n\n'
+      + 'PRIORITÄTSREGEL (bindend, vor allem anderen): Wenn im Abschnitt "STRATEGIE-AMPEL (bereits berechnet, regelbasiert)" Context-Downgrades aufgeführt sind, MUSST du diese zwingend übernehmen — sie haben absolute Priorität vor der Drei-Stufen-Logik unten. Beispiel: "momentum amber→red (Breadth-Weak)" bedeutet Momentum ist HEUTE 🔴, unabhängig vom Regime. Begründe mit dem Downgrade-Grund (z.B. NDX-Breadth 40%).\n'
+      + 'DREI-STUFEN-LOGIK (immer in dieser Reihenfolge denken, bevor du die Ampel setzt):\n'
+      + 'STUFE 1 — Regime & Trend (Wo handeln wir?): MSE-Regime, SPY/QQQ SMA200-Status, Breadth (RSP/SPY), Rotation (QQQ/SPY, SMH/SPY).\n'
+      + '  → Bullish/Risk-On: Delta-positive Strategien bevorzugen. Bearish/Risk-Off: Delta-neutral/absichernd.\n'
+      + 'STUFE 2 — Volatilität & Sentiment (Wie handeln wir?): VIX-Z/Perzentil, VIX-Termstruktur (Contango/Backwardation), SKEW-Z, VVIX-Z, SKEW/VVIX-Divergenz, MOVE Index, HY-Spread, PCR.\n'
+      + '  → Hohe IV/Angst im Markt (VIX-Z hoch, Contango steil): CSP/Wheel und Bull-Put-Spreads bevorzugen (Prämie übertrieben).\n'
+      + '  → Sehr niedrige IV + SKEW hoch/Divergenz-Warnung (Sorglosigkeit + verstecktes Tail-Hedging): Short-Options-Neuaufbau zurückhaltend, bestehende Positionen eng führen.\n'
+      + 'STUFE 3 — Marktbreite & Sektor-Stärke (Was handeln wir?): Sektor-RS-Tabelle, Net Liquidity Trend.\n'
+      + '  → Schwache Sektoren (RS negativ) meiden, relative Stärke bevorzugen. Schrumpfende Net Liquidity = Gegenwind für alle Short-Vol-Strategien, im Text erwähnen.\n\n'
+      + 'LONG-STRATEGIEN:\n'
+      + '• Momentum/SEPA: 🟢 wenn Regime=BULL_QUIET/BULL_FRAGILE + Breadth(RSP/SPY)=True + IOS-Market-Score>65. 🔴 wenn Regime=STRESS_UNSTABLE oder SPY unter SMA200.\n'
+      + '• Breakout: 🟢 wenn Regime=BULL_QUIET + Titel nahe 52W-Hoch + Volumen überdurchschnittlich. 🔴 wenn Regime=STRESS_UNSTABLE oder NDX-Breadth<40%.\n'
+      + '• VCP-Setup: 🟢 wenn Regime=BULL_QUIET + VIX komprimiert (Perzentil<50) + Stage-2-Trend intakt. 🔴 wenn Regime=STRESS_UNSTABLE oder Breadth schwach.\n'
+      + '• Swing-Trading: 🟢 wenn VIX-Perzentil 20-60 (moderat) + Rotation nicht klar negativ. 🔴 wenn VIX-Z>+1.5 oder VIX-Perzentil>85.\n'
+      + '• Mean Reversion Long: 🟢 wenn VIX-Z>+1.5 UND Fear&Greed<30 (echtes Überverkauft-Signal, nicht nur ein Kriterium). 🔴 wenn Regime=BULL_QUIET mit klarem Aufwärtstrend.\n'
+      + '• KO-Long: 🟢 wenn Regime bullisch + VVIX-Z<+1 (kein Volatilitätsstress) + Net-Liquidity-Trend nicht stark schrumpfend. 🔴 wenn VVIX-Z>+2 oder SKEW/VVIX-Divergenz "WARNUNG".\n'
+      + '\nOPTIONS-INCOME-STRATEGIEN:\n'
+      + '• CSP/Wheel: 🟢 wenn VIX-Perzentil>50 (überdurchschnittliche Prämie) + kein akuter Stress (Regime≠STRESS_UNSTABLE). 🔴 wenn VIX-Perzentil<15 (Prämie zu mager) oder HY-Spread-Signal="STRESS".\n'
+      + '• CSP (ATM/NA): 🟢 wenn VIX-Perzentil 30-75 + Regime nicht STRESS_UNSTABLE. 🔴 wenn VIX-Perzentil>90 (Prämie riskant hoch, große Bewegung erwartet).\n'
+      + '• CSP (Weekly): 🟢 wenn VIX-Termstruktur CONTANGO (gesundes Theta-Umfeld) + MOVE-Signal≠STRESS. 🔴 wenn VIX-Termstruktur BACKWARDATION (Absicherungsnotstand).\n'
+      + '• Covered Call: 🟢 wenn bestehende Long-Positionen vorhanden + VIX moderat (15-25) + Regime nicht STRESS_UNSTABLE. 🟡 wenn VIX<15 (Prämie mager, aber CC auf starke Positionen sinnvoll). 🔴 wenn Regime=POST_PANIC_REVERSION (Upside nicht deckeln).\n'
+      + '\nSHORT-STRATEGIEN:\n'
+      + '• Fading Short (KO-Short): 🟢 wenn Regime=BULL_FRAGILE/STRESS_UNSTABLE + Fear&Greed>70 (Überhitzung) + SKEW/VVIX-Divergenz vorhanden. 🔴 wenn Fear&Greed<40 oder Regime=BULL_QUIET.\n'
+      + '\nWICHTIG: Gib ausschließlich Ampelfarben und 1-Satz-Begründungen mit konkretem Messwert aus den obigen Daten. '
+      + (_dixReal
+          ? 'DIX (ETF-Korb) darf nur mit dieser Kennzeichnung erwähnt werden, niemals als "DIX" pur — es ist kein 1:1-Ersatz für den klassischen S&P-500-DIX. '
+          : 'DIX darf in KEINER Begründung erwähnt werden (kein Datenfeed vorhanden). ')
+      + 'Keine Strategie-Beschreibung, keine allgemeinen Marktkommentare in diesem Abschnitt.';
+
+    if (eic) {
+      return _getSystemPrompt(null, true) + '\n\n'
+        + 'AUFGABE: Morning Briefing Tearsheet für heute. Strukturiere deine Antwort in diese Abschnitte (jeweils 2-4 Sätze):\n'
+        + '1. MARKT-REGIME: Charakter des aktuellen Regimes (MSE) und was Breadth/Rotation dafür bedeuten.\n'
+        + '2. VOLATILITÄT & FLOW: VIX/VVIX/SKEW als Z-Score/Perzentil interpretieren (nicht nur Rohwert). SKEW/VVIX-Divergenz explizit bewerten falls vorhanden. GEX nur als AAPL-Einzeltitel-Proxy nennen, NIE als Markt-Level SPY/QQQ ausgeben. '
+        + (_dixReal
+            ? 'DIX (ETF-Korb) als echten Messwert einordnen, aber explizit als ETF-Korb-Proxy kennzeichnen — nicht mit dem klassischen S&P-500-DIX gleichsetzen.\n'
+            : 'DIX ist n/v — niemals erwähnen oder schätzen.\n')
+        + '3. MAKRO-RISIKEN: MOVE Index (Treasury-Vol), HY Credit Spread, US Net Liquidity (Trend!) einordnen. Systemische Risiken oder Entwarnung?\n'
+        + '4. SEKTOR-ROTATION: Welche Sektoren zeigen relative Stärke, welche Schwäche (aus Sektor-RS-Tabelle)?\n'
+        + '5. SENTIMENT: Fear & Greed und PCR (als Proxy kennzeichnen falls source=vix_proxy) einordnen — kontraindikatorisch oder trendbestätigend?\n'
+        + '6. STRATEGIE-AMPEL: Alle Strategien mit Ampelfarbe + 1-Satz-Begründung inkl. konkretem Messwert (Pflichtabschnitt).\n\n'
+        + basis + '\n\n'
+        + 'Nur Messwerte verwenden. Fehlende Werte als "n/v" kennzeichnen — niemals interpretieren oder schätzen. Direkt und konkret, Zahlen nennen statt vager Worte.'
+        + STRATEGIE_MATRIX;
+    } else {
+      return _getSystemPrompt(null, false) + '\n\n'
+        + 'AUFGABE: Morning Briefing Tearsheet — vollständige Marktbeurteilung für den heutigen Handelstag.\n'
+        + 'Strukturiere die Analyse in 5 Abschnitte (jeweils 2-4 Sätze, deskriptiv, BaFin-konform gem. §1 WpHG):\n\n'
+        + basis + '\n\n'
+        + 'ABSCHNITTE:\n'
+        + '1. MARKTLAGE: Regime und Bedeutung des aktuellen Marktumfelds auf Basis der Messwerte.\n'
+        + '2. SENTIMENT: Fear & Greed, PCR (als Proxy kennzeichnen falls source=vix_proxy), IOS-Market-Score deskriptiv einordnen.\n'
+        + '3. MAKRO-KONDENSAT: HY Credit Spread, US Net Liquidity (Trend!), MOVE Index einordnen.\n'
+        + '4. STRATEGIE-AMPEL: Alle Strategien mit Ampelfarbe + 1-Satz-Begründung inkl. konkretem Messwert.\n'
+        + '5. TOP-KANDIDATEN: Aus den Shortlist-Daten — welche 3-5 Titel passen heute am besten zum Marktumfeld?\n'
+        + '\nSTRIKTE BaFin-REGEL: Keine Empfehlungen zum Kauf, Verkauf oder Halten von Wertpapieren, Derivaten oder Hebelprodukten, auch nicht implizit durch Ampel-Priorisierungen. Ausschließlich neutrale Beschreibung. Fehlende Werte als "nicht verfügbar" benennen — niemals schätzen. '
+        + (_dixReal
+            ? 'DIX (ETF-Korb) deskriptiv einordnen, explizit als ETF-Korb-Proxy kennzeichnen.\n'
+            : 'DIX ist grundsätzlich nicht verfügbar — niemals erwähnen.\n')
+        + STRATEGIE_MATRIX;
+    }
+  }
+
+  // ── STRATEGIE-KONFIGURATIONEN (12 kanonische UIQ-Strategien) ──────────────
   const STRATEGIES = {
 
+    // ── LONG-TREND-STRATEGIEN ──────────────────────────────────────────────
+
     ko: {
-      hint:  '⚡ KO-Trading: Hebel 3–8x · KO-Abstand · Positionsgröße max. €2.000',
+      hint:  '⚡ KO-Zertifikat: Hebel 3–8x · KO-Abstand · Positionsgröße max. €2.000',
       color: '#818cf8',
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
@@ -121,8 +262,98 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
       }
     },
 
-    options: {
-      hint:  '🎯 Options-Wheel: CSP / Covered Call · CapTrader/IBKR · Theta-Strategie',
+    breakout: {
+      hint:  '🚀 Breakout: 52W-Hoch · Volumenbestätigung · OBV-Akkumulation',
+      color: 'var(--green)',
+      prompt: function(ctx) {
+        return KI_ANTI_HALLUZINATION
+          + 'Du bist ein erfahrener Breakout-Trader (Fokus: Volumen-bestätigte Ausbrüche über Pivot-Punkte).\n\n'
+          + ctx.marktkontext
+          + '\n\nAUFGABE:\n'
+          + '1. MARKTSTRUKTUR: Unterstützt das aktuelle Marktumfeld Breakout-Trades? '
+          + 'VIX-Niveau, Marktbreite und Regime einordnen. (2-3 Sätze)\n'
+          + '2. TOP 3 BREAKOUT-KANDIDATEN: Titel nahe 52W-Hoch mit OBV-Bestätigung. '
+          + 'Für jeden: Abstand zum 52W-Hoch aus Scandaten (52W-H:-Feld), Volumen-Signal (OBV), '
+          + 'Entry nur aus "Kurs:$", Stop knapp unter Breakout-Level. Kein Kursziel erfinden.\n'
+          + '3. WATCHLIST: Titel die sich noch am Breakout-Level konsolidieren — wie viele Tage/Wochen?\n'
+          + '4. RISIKEN: False Breakouts, dünnes Volumen, überdehntes Marktumfeld, schwacher Sektor.\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter. Jeden Punkt vollständig abschließen.';
+      }
+    },
+
+    vcp: {
+      hint:  '📐 VCP-Setup: Volatility Contraction Pattern · Minervini · Direktinvestment',
+      color: '#a855f7',
+      prompt: function(ctx) {
+        return KI_ANTI_HALLUZINATION
+          + 'Du bist ein erfahrener technischer Analyst mit Spezialisierung auf das '
+          + 'Volatility Contraction Pattern (VCP) nach Mark Minervini. '
+          + 'VCP-Setups kennzeichnen sich durch sukzessive enger werdende Korrekturen '
+          + '(Contractions) in einem übergeordneten Stage-2-Aufwärtstrend. '
+          + 'Das Setup ist reif wenn Volumen und Volatilität auf ein Minimum komprimiert wurden '
+          + 'und ein Ausbruch mit Volumen unmittelbar bevorsteht.\n\n'
+          + ctx.marktkontext
+          + '\n\nVCP-SCANDATEN: Die Scandaten enthalten für VCP-Kandidaten: '
+          + 'vcpContractions (Anzahl Contractions), vcpLastPct (letzte Korrektur-%), '
+          + 'Score (VCP-Reife 0-100), Kurs:$, 52W-H:, RSI, MACD, OBV.\n\n'
+          + 'AUFGABE:\n'
+          + '1. MARKTUMFELD FÜR VCP: Ist das aktuelle Marktumfeld (Regime, VIX, Marktbreite) '
+          + 'günstig für VCP-Ausbrüche? VCP-Setups versagen häufig in schwachen oder '
+          + 'volatilen Märkten. (2-3 Sätze)\n'
+          + '2. TOP 3 VCP-KANDIDATEN: Für jeden Titel aus den Scandaten:\n'
+          + '   - Anzahl Contractions (vcpContractions) + letzte Korrektur-% (vcpLastPct)\n'
+          + '   - Setup-Reife: Nimmt die Korrekturgröße ab? Volumen fallend während Contraction?\n'
+          + '   - Pivot-Punkt: Aus 52W-H und aktuellem Kurs ableiten — NUR aus Scandaten\n'
+          + '   - Stage-2-Kontext: RSI > 50, MACD positiv, OBV steigend?\n'
+          + '   - Stop-Loss: knapp unter letztem Contraction-Tief\n'
+          + '   - KEIN Kursziel erfinden\n'
+          + '3. SETUPS IN ENTWICKLUNG: Titel die ein VCP aufbauen aber noch nicht reif sind.\n'
+          + '4. RISIKEN: Was gefährdet VCP-Ausbrüche aktuell? '
+          + '(Marktbreite, Makro, Sektor, False Breakout Risiko)\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter. '
+          + 'Keine erfundenen Kursziele. Nur Daten aus den Scandaten verwenden.';
+      }
+    },
+
+    swing: {
+      hint:  '🔄 Swing-Trading: 5–20 Tage Haltedauer · Technische Muster',
+      color: '#06b6d4',
+      prompt: function(ctx) {
+        return KI_ANTI_HALLUZINATION
+          + 'Du bist ein erfahrener Swing-Trader mit Fokus auf 5-20 Tage Haltedauer.\n\n'
+          + ctx.marktkontext
+          + '\n\nAUFGABE:\n'
+          + '1. MARKTSTRUKTUR: Kurzfristige Trend-Richtung und Swing-Potenzial? (2-3 Sätze)\n'
+          + '2. TOP 3 SWING-SETUPS: Für jeden Titel: technisches Muster (Pullback/Breakout/Reversal), '
+          + 'Entry-Zone NUR aus "Kurs:$"-Feld ableiten, Stop-Loss in ATR-Einheiten, '
+          + 'Haltedauer-Schätzung (5-20 Tage). Kursziel NICHT erfinden.\n'
+          + '3. WATCHLIST: Setups die sich noch entwickeln müssen.\n'
+          + '4. RISIKEN: Was könnte die Swing-Ideen invalidieren?\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter.';
+      }
+    },
+
+    meanrev: {
+      hint:  '↩️ Mean Reversion: Rückkehr zum Mittelwert · Überverkauft/Überhitzt · ATR-Abstand',
+      color: 'var(--yellow)',
+      prompt: function(ctx) {
+        return KI_ANTI_HALLUZINATION
+          + 'Du bist ein quantitativer Analyst mit Fokus auf Mean-Reversion-Strategien.\n\n'
+          + ctx.marktkontext
+          + '\n\nAUFGABE:\n'
+          + '1. MARKTSTRUKTUR: Gibt es aktuell extreme Über-/Unterverkauft-Situationen? (2-3 Sätze)\n'
+          + '2. TOP 3 MEAN-REVERSION-KANDIDATEN: Titel mit extremem RSI (<30 oder >70) + BB-Abstand. '
+          + 'Entry NUR aus "Kurs:$"-Feld, Ziel = EMA200 aus "EMA200-Kurs:$"-Feld. ATR-Abstand berechnen.\n'
+          + '3. WATCHLIST: Titel die sich noch weiter ausdehnen könnten.\n'
+          + '4. RISIKEN: Momentum-Falle, trendgetriebene Märkte wo MR gefährlich ist.\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter.';
+      }
+    },
+
+    // ── OPTIONS-INCOME-STRATEGIEN ──────────────────────────────────────────
+
+    csp_wheel: {
+      hint:  '⚙️ CSP/Wheel: Cash Secured Put + Covered Call · CapTrader/IBKR · Theta-Strategie',
       color: 'var(--amber)',
       prompt: function(ctx) {
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 30 };
@@ -147,7 +378,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
           + ctx.marktkontext
           + '\n\nAUFGABE:\n'
           + '1. MARKTUMFELD: Günstig für neue CSPs? VIX-Niveau und Implikation für Prämien. (2-3 Sätze)\n'
-          + '2. TOP 3 OPTIONS-KANDIDATEN: Für jeden Titel:\n'
+          + '2. TOP 3 CSP/WHEEL-KANDIDATEN: Für jeden Titel:\n'
           + '   a) EMA200-Abstand: Strike-Empfehlung nahe/unter EMA200 in $\n'
           + '   b) Strike-Bereich in $ und % OTM vom aktuellen Kurs\n'
           + '   c) Laufzeit (bevorzugt ' + cfg.dte + '-45 DTE)\n'
@@ -160,8 +391,58 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
       }
     },
 
+    atmna: {
+      hint:  '🎯 CSP (ATM/NA): ATM-CSP · 50-70% Frühausstieg · 3-Stufen-Roll · Andienungs-Vermeidung',
+      color: '#a371f7',
+      prompt: function(ctx) {
+        var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 30 };
+        return '⛔⛔⛔ EIC-MODUS — ABSOLUTES HALLUZINATIONS-VERBOT ⛔⛔⛔\n'
+          + 'Verwende AUSSCHLIESSLICH Daten aus dem Prompt. Fehlende Werte: "N/A — in IBKR prüfen".\n\n'
+          + 'Du bist ein erfahrener Options-Trader der eine systematische ATM-CSP-Wheel-Strategie anwendet.\n\n'
+          + '## STRATEGIE-GRUNDLAGEN (CSP ATM/NA — At-The-Money-System):\n'
+          + '- CSP wird AT-THE-MONEY verkauft — maximaler Zeitwert\n'
+          + '- Laufzeit: ~30 Tage, bevorzugt 3. Freitag des Monats\n'
+          + '- Frühausstieg (Profit-Taking):\n'
+          + '  • 50% Gewinn: Schliessen wenn noch >50% Laufzeit verbleiben\n'
+          + '  • 60% Gewinn: Standard-Regel bei 30-50% verbleibender Laufzeit\n'
+          + '  • 70% Gewinn: Mindest-Ziel bei <30% Laufzeit\n'
+          + '- Andienung vermeiden durch 3-Stufen-Rollen:\n'
+          + '  Stufe 1: Niedrigerer Strike, 30-60 DTE, prämienneutral\n'
+          + '  Stufe 2: Gleicher Strike, neue Laufzeit, prämienneutral\n'
+          + '  Stufe 3: Niedrigerer Strike, doppelte Kontrakte\n'
+          + '- Maximale Roll-Laufzeit: 90 Tage\n\n'
+          + '## AKTIEN-CHECKLISTE:\n'
+          + '- Kurs $' + cfg.minPrice + '–$' + cfg.maxPrice + '\n'
+          + '- HVP ≥ ' + cfg.minHvp + '% (sonst Prämien zu niedrig)\n'
+          + '- Strike-Staffelung ≤2.5% des Kurses\n'
+          + '- OI/Volumen mindestens dreistellig\n'
+          + '- Weekly Options verfügbar\n\n'
+          + ctx.marktkontext
+          + '\n\nAUFGABE:\n'
+          + '1. MARKTUMFELD: ATM-CSPs sinnvoll? VIX-Level und Implikation. (2-3 Sätze)\n'
+          + '2. TOP 3 ATM/NA-KANDIDATEN:\n'
+          + '   HARTES AUSSCHLUSS-KRITERIUM:\n'
+          + '   • HVP < ' + cfg.minHvp + '%: IGNORIEREN\n'
+          + '   • Kurs < $' + cfg.minPrice + ' oder > $' + cfg.maxPrice + ': IGNORIEREN\n'
+          + '   • ER innerhalb ' + cfg.erDays + ' Tage: IGNORIEREN\n'
+          + '   Für jeden verbleibenden Kandidaten:\n'
+          + '   a) HVP-Bewertung: ≥' + cfg.idealHvp + '% ⭐ · ' + cfg.goodHvp + '-' + (cfg.idealHvp-1) + '% ✅ · ' + cfg.minHvp + '-' + (cfg.goodHvp-1) + '% ⚠️\n'
+          + '   b) ATM-Strike Empfehlung in $\n'
+          + '   c) Laufzeit: nächster 3. Freitag (~' + cfg.dte + ' DTE)\n'
+          + '   d) Prämien-SCHÄTZUNG aus HVP (⚠️ nur Näherung!) + 50/60/70%-Gewinn-Ziele in $\n'
+          + '   e) Roll-Szenario Stufe 1: Strike ≈ Kurs − 2.5%\n'
+          + '   f) PFLICHT-CHECKS: Strike-Staffelung · OI · Weekly Options · ER-Datum\n'
+          + '3. NICHT GEEIGNET: Titel + Grund\n'
+          + '4. ROLLSTRATEGIE-HINWEIS: 3 Roll-Stufen in Erinnerung rufen\n'
+          + '\n⚠️ ATM/NA-Strategie vermeidet Andienung durch systematisches Rollen.\n'
+          + KI_ANTI_HALLUZINATION
+          + '⛔ ABSCHLUSS-ERINNERUNG: Nur Daten aus dem Prompt. Keine Kurse erfinden.\n'
+          + 'Antworte auf Deutsch, strukturiert 1-4. Max. 550 Wörter.';
+      }
+    },
+
     weekly_income: {
-      hint:  '📅 Options Weekly: Diagonal Put-Spread · ATM-Short (7 DTE) + Long-Versicherung (120 DTE) · 4×/Monat · Definiertes Risiko',
+      hint:  '💰 CSP (Weekly): Diagonal Put-Spread · ATM-Short 7 DTE + Long-Versicherung 120 DTE · 4×/Monat',
       color: '#34d399',
       prompt: function(ctx) {
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, erDays: 30 };
@@ -170,7 +451,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
           + '   Kurse, Strikes, Prämien NUR aus Scandaten — NIEMALS schätzen oder erfinden.\n'
           + '   Fehlende Werte: explizit "N/A — in IBKR prüfen" schreiben.\n\n'
           + 'Du bist ein erfahrener Optionstrader spezialisiert auf wöchentliche Einkommensstrategien.\n\n'
-          + '## STRATEGIE-GRUNDLAGEN (Options Weekly — Diagonal Put-Spread):\n'
+          + '## STRATEGIE-GRUNDLAGEN (CSP Weekly — Diagonal Put-Spread):\n'
           + '- SCHRITT 1 — VERSICHERUNG (einmalig): Long-Put kaufen, ~120 DTE, Strike ~4-5$ unter aktuellem Kurs, PAST nächsten Earnings\n'
           + '- SCHRITT 2 — WÖCHENTLICHES INCOME: ATM Short-Put verkaufen, 7 DTE (nächster Freitag)\n'
           + '- SCHRITT 3 — ROLLEN: Jeden Freitag neuen ATM-Put verkaufen — 4× pro Monat\n'
@@ -203,183 +484,100 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
       }
     },
 
-    swing: {
-      hint:  '🔄 Swing-Trading: 5–20 Tage Haltedauer · Technische Muster',
-      color: '#06b6d4',
+    cc: {
+      hint:  '📝 Covered Call: Call-Writing auf Bestandspositionen · Buy-Write · Prämieneinnahme',
+      color: '#f59e0b',
       prompt: function(ctx) {
+        var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 300, minHvp: 30, goodHvp: 45, idealHvp: 60, erDays: 30, dte: 30 };
         return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Swing-Trader mit Fokus auf 5-20 Tage Haltedauer.\n\n'
+          + 'Du bist ein erfahrener Options-Trader mit Fokus auf Covered Call Writing (Call-Verkauf auf bestehende oder neu erworbene Aktienpositionen).\n\n'
+          + '⚠️ Diese Analyse dient ausschliesslich zu Informationszwecken gem. §1 WpHG.\n\n'
+          + '## STRATEGIE-GRUNDLAGEN (Covered Call):\n'
+          + '- Call wird OTM verkauft auf 100 Aktien die der Trader bereits hält oder kauft (Buy-Write)\n'
+          + '- Ziel: Prämieneinnahme + Risikoreduktion auf die Long-Position\n'
+          + '- Strike-Wahl: Kompromiss zwischen Prämie und Upside-Potenzial\n'
+          + '  • Aggressiv (mehr Prämie): Strike nahe Kurs (5-8% OTM)\n'
+          + '  • Konservativ (mehr Upside): Strike weit OTM (10-15%)\n'
+          + '- Laufzeit: bevorzugt 21-45 DTE, Frühausstieg bei 50% Prämiengewinn\n'
+          + '- Rollstrategie: Call rollen wenn Kurs an Strike heranläuft (Aufwärts-Roll)\n'
+          + '- WICHTIG: CC deckt Upside — bei stark steigenden Titeln kann Gewinnpotenzial gekappt werden\n\n'
+          + '🚫 AUSSCHLUSS-KRITERIEN:\n'
+          + '   • HVP < ' + cfg.minHvp + '%: Prämien zu mager für sinnvollen CC\n'
+          + '   • ER innerhalb ' + cfg.erDays + ' Tage: erhöhtes Assignment-Risiko durch Kurssprung\n'
+          + '   • Stark trendende Titel (RSI>75, Momentum hoch): CC kappt Gewinne im besten Moment\n\n'
           + ctx.marktkontext
           + '\n\nAUFGABE:\n'
-          + '1. MARKTSTRUKTUR: Kurzfristige Trend-Richtung und Swing-Potenzial? (2-3 Sätze)\n'
-          + '2. TOP 3 SWING-SETUPS: Für jeden Titel: technisches Muster (Pullback/Breakout/Reversal), '
-          + 'Entry-Zone NUR aus "Kurs:$"-Feld ableiten, Stop-Loss in ATR-Einheiten, '
-          + 'Haltedauer-Schätzung (5-20 Tage). Kursziel NICHT erfinden.\n'
-          + '3. WATCHLIST: Setups die sich noch entwickeln müssen.\n'
-          + '4. RISIKEN: Was könnte die Swing-Ideen invalidieren?\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter.';
+          + '1. MARKTUMFELD: Günstig für Covered Calls? VIX-Niveau, Trendstärke, Prämienqualität. (2-3 Sätze)\n'
+          + '2. TOP 3 CC-KANDIDATEN: Titel mit stabiler Kursbasis, moderatem Momentum und ausreichend HVP.\n'
+          + '   Für jeden Titel:\n'
+          + '   a) HVP-Bewertung: ≥' + cfg.idealHvp + '% ⭐ · ' + cfg.goodHvp + '-' + (cfg.idealHvp-1) + '% ✅ · ' + cfg.minHvp + '-' + (cfg.goodHvp-1) + '% ⚠️\n'
+          + '   b) Strike-Empfehlung: OTM-Abstand in % und $ vom Kurs (aus "Kurs:$"-Feld)\n'
+          + '   c) Laufzeit: ~' + cfg.dte + ' DTE, bevorzugt 3. Freitag des Monats\n'
+          + '   d) Prämien-SCHÄTZUNG aus HVP (⚠️ Schätzung — exakt in IBKR prüfen)\n'
+          + '   e) Upside-Risiko: Wie viel Kursgewinn wird bis zum Strike gedeckelt?\n'
+          + '   f) PFLICHT-CHECKS: OI > 300 · Bid-Ask < 10% · kein ER in Laufzeit\n'
+          + '3. WATCHLIST: Titel die nach ER oder Kurskorrektur interessant werden für CC.\n'
+          + '4. RISIKEN: Assignment-Risiko, Upside-Cap in starkem Trend, niedrige Prämien bei niedrigem VIX.\n'
+          + '\n⚠️ ABSCHLUSS: Strikes und Prämien immer in IBKR/CapTrader Optionskette verifizieren.\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 450 Wörter.';
       }
     },
 
-    // Dividend Growth + Value entfernt (17.07.2026, Regime-Coverage-Analyse):
-    // beide hatten in KEINEM der 5 MSE-Regime Prioritaet-1-Status. Value-Prompt
-    // (Carlin/Graham-Methodik mit PE/PB/ROIC/FCF-Yield aus UIQ FIN-Archiv,
-    // Russell3000) war strukturell umfangreich, aber konzeptionell eine
-    // Buy-and-Hold-Bewertung, kein Timing-Signal. Fuer spaeteres DepotIQ-Modul
-    // vorgesehen — dort ist Fundamentalbewertung der richtige Rahmen.
-    // Siehe UIQ-Suite/docs/REGIME-COVERAGE-ANALYSE.md.
-
+    // ── ABSICHERUNG (kein STRATEGIE_MATRIX-Eintrag — Positions-Kontext fehlt in UIQ)
+    // Vollständige Behandlung → Options-Doktor-Modul (Suite Phase 3)
 
     collar: {
-      hint:  '🛡️ Collar / Protective Put: Absicherung Bestandsposition · BULL_FRAGILE · Proxy-Strikes',
+      hint:  '🛡️ Collar/Protective Put: Absicherung Bestandsposition · BULL_FRAGILE · Proxy-Strikes',
       color: '#0ea5e9',
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Options-Stratege mit Fokus auf Absicherungsstrategien '
-          + '(Collar / Protective Put) fuer bereits gehaltene Aktienpositionen in einem '
-          + 'fragilen Bull-Regime (Trend intakt, aber erhoehtes Air-Pocket-Risiko).\n\n'
-          + '⚠️ WICHTIG: UIQ hat KEINEN Zugriff auf echte Optionsketten (Strikes/Praemien) '
-          + 'oder deine Bestandspositionen. Alle Strike-Vorschlaege sind ATR/HVP-basierte '
-          + 'Naeherungen — echte Strikes und Praemien IMMER in IBKR/CapTrader verifizieren, '
-          + 'bevor eine Position eroeffnet wird. Diese Analyse dient ausschliesslich zu '
-          + 'Informationszwecken gem. §1 WpHG.\n\n'
+          + '(Collar / Protective Put) für bereits gehaltene Aktienpositionen in einem '
+          + 'fragilen Bull-Regime (Trend intakt, aber erhöhtes Air-Pocket-Risiko).\n\n'
+          + '⚠️ WICHTIG: UIQ hat KEINEN Zugriff auf echte Optionsketten (Strikes/Prämien) '
+          + 'oder deine Bestandspositionen. Alle Strike-Vorschläge sind ATR/HVP-basierte '
+          + 'Näherungen — echte Strikes und Prämien IMMER in IBKR/CapTrader verifizieren. '
+          + 'Diese Analyse dient ausschliesslich zu Informationszwecken gem. §1 WpHG.\n\n'
           + ctx.marktkontext
           + '\n\nAUFGABE:\n'
-          + '1. EINSCHRÄNKUNG: Kurz erklaeren — keine echten Optionsketten verfuegbar, '
-          + 'alle Strikes sind Naeherungen, IMMER in IBKR/CapTrader verifizieren.\n'
-          + '2. ABSICHERUNGS-KANDIDATEN: Fuer Titel mit hohem RSI/Momentum (Gewinnmitnahme-'
-          + 'Kandidaten in fragilem Umfeld) aus den Scandaten: Protective-Put-Strike-Naeherung '
-          + '(ATR-basiert, 1-1.5x ATR unter Kurs), optional Call-Strike-Naeherung fuer vollen '
-          + 'Collar (1-2x ATR ueber Kurs). KEINEN echten Praemien-Betrag erfinden — nur '
+          + '1. EINSCHRÄNKUNG: Kurz erklären — keine echten Optionsketten verfügbar, '
+          + 'alle Strikes sind Näherungen, IMMER in IBKR/CapTrader verifizieren.\n'
+          + '2. ABSICHERUNGS-KANDIDATEN: Für Titel mit hohem RSI/Momentum (Gewinnmitnahme-'
+          + 'Kandidaten in fragilem Umfeld): Protective-Put-Strike-Näherung '
+          + '(ATR-basiert, 1-1.5x ATR unter Kurs), optional Call-Strike-Näherung für vollen '
+          + 'Collar (1-2x ATR über Kurs). KEINEN echten Prämien-Betrag erfinden — nur '
           + 'Strike-Abstand in % und $ aus "Kurs:$" und "ATR:$" ableiten.\n'
           + '3. PROTECTIVE PUT vs. VOLLER COLLAR: Wann reicht ein einfacher Protective Put '
           + '(Kosten in Kauf nehmen), wann lohnt sich der volle Collar (Kosten senken, '
-          + 'Aufwaertspotenzial gedeckelt)?\n'
-          + '4. NÄCHSTE SCHRITTE: Echte Strikes und Praemien in IBKR/CapTrader Optionskette '
-          + 'nachschlagen, bevor eine Position eroeffnet wird.\n'
+          + 'Aufwärtspotenzial gedeckelt)?\n'
+          + '4. NÄCHSTE SCHRITTE: Echte Strikes und Prämien in IBKR/CapTrader Optionskette '
+          + 'nachschlagen, bevor eine Position eröffnet wird.\n'
           + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 350 Wörter. '
-          + 'Keine erfundenen Praemien oder Optionsketten-Werte.';
+          + 'Keine erfundenen Prämien oder Optionsketten-Werte.';
       }
     },
 
-    ludwig: {
-      hint:  '⚙️ Options-Wheel (EIC): ATM-CSP · 50-70% Frühausstieg · 3-Stufen-Roll · Andienungs-Vermeidung',
-      color: '#a371f7',
-      prompt: function(ctx) {
-        var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 30 };
-        // Primacy/Recency optimiert: Wichtigste Regel am Anfang UND am Ende
-        return '⛔⛔⛔ EIC-MODUS — ABSOLUTES HALLUZINATIONS-VERBOT ⛔⛔⛔\n'
-          + 'Verwende AUSSCHLIESSLICH Daten aus dem Prompt. Fehlende Werte: "N/A — in IBKR prüfen".\n\n'
-          + 'Du bist ein erfahrener Options-Trader der eine systematische ATM-CSP-Wheel-Strategie anwendet.\n\n'
-          + '## STRATEGIE-GRUNDLAGEN (Options-Wheel/CSP-System):\n'
-          + '- CSP wird AT-THE-MONEY verkauft — maximaler Zeitwert\n'
-          + '- Laufzeit: ~30 Tage, bevorzugt 3. Freitag des Monats\n'
-          + '- Frühausstieg (Profit-Taking):\n'
-          + '  • 50% Gewinn: Schliessen wenn noch >50% Laufzeit verbleiben\n'
-          + '  • 60% Gewinn: Standard-Regel bei 30-50% verbleibender Laufzeit\n'
-          + '  • 70% Gewinn: Mindest-Ziel bei <30% Laufzeit\n'
-          + '- Andienung vermeiden durch 3-Stufen-Rollen:\n'
-          + '  Stufe 1: Niedrigerer Strike, 30-60 DTE, prämienneutral\n'
-          + '  Stufe 2: Gleicher Strike, neue Laufzeit, prämienneutral\n'
-          + '  Stufe 3: Niedrigerer Strike, doppelte Kontrakte\n'
-          + '- Maximale Roll-Laufzeit: 90 Tage\n\n'
-          + '## AKTIEN-CHECKLISTE:\n'
-          + '- Kurs $' + cfg.minPrice + '–$' + cfg.maxPrice + '\n'
-          + '- HVP ≥ ' + cfg.minHvp + '% (sonst Prämien zu niedrig)\n'
-          + '- Strike-Staffelung ≤2.5% des Kurses\n'
-          + '- OI/Volumen mindestens dreistellig\n'
-          + '- Weekly Options verfügbar\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTUMFELD: ATM-CSPs sinnvoll? VIX-Level und Implikation. (2-3 Sätze)\n'
-          + '2. TOP 3 EIC-KANDIDATEN:\n'
-          + '   HARTES AUSSCHLUSS-KRITERIUM:\n'
-          + '   • HVP < ' + cfg.minHvp + '%: IGNORIEREN\n'
-          + '   • Kurs < $' + cfg.minPrice + ' oder > $' + cfg.maxPrice + ': IGNORIEREN\n'
-          + '   • ER innerhalb ' + cfg.erDays + ' Tage: IGNORIEREN\n'
-          + '   Für jeden verbleibenden Kandidaten:\n'
-          + '   a) HVP-Bewertung: ≥' + cfg.idealHvp + '% ⭐ · ' + cfg.goodHvp + '-' + (cfg.idealHvp-1) + '% ✅ · ' + cfg.minHvp + '-' + (cfg.goodHvp-1) + '% ⚠️\n'
-          + '   b) ATM-Strike Empfehlung in $\n'
-          + '   c) Laufzeit: nächster 3. Freitag (~' + cfg.dte + ' DTE)\n'
-          + '   d) Prämien-SCHÄTZUNG aus HVP (⚠️ nur Näherung!) + 50/60/70%-Gewinn-Ziele in $\n'
-          + '   e) Roll-Szenario Stufe 1: Strike ≈ Kurs − 2.5%\n'
-          + '   f) PFLICHT-CHECKS: Strike-Staffelung · OI · Weekly Options · ER-Datum\n'
-          + '3. NICHT GEEIGNET: Titel + Grund\n'
-          + '4. ROLLSTRATEGIE-HINWEIS: 3 Roll-Stufen in Erinnerung rufen\n'
-          + '\n⚠️ Options-Wheel-Strategie vermeidet Andienung durch systematisches Rollen.\n'
-          + KI_ANTI_HALLUZINATION
-          + '⛔ ABSCHLUSS-ERINNERUNG: Nur Daten aus dem Prompt. Keine Kurse erfinden.\n'
-          + 'Antworte auf Deutsch, strukturiert 1-4. Max. 550 Wörter.';
-      }
-    },
+    // ── SHORT-STRATEGIEN ───────────────────────────────────────────────────
 
-    meanrev: {
-      hint:  '↩️ Mean Reversion: Rückkehr zum Mittelwert · Überverkauft/Überhitzt · ATR-Abstand',
-      color: 'var(--yellow)',
+    fading_short: {
+      hint:  '🔻 Fading Short (experimentell): KO-Short · Gegentrend · BULL_FRAGILE/STRESS',
+      color: 'var(--red)',
+      // Kein eigener Analyse-Prompt: Fading-Short-Leaderboard hat keine
+      // Bewertungsmetriken (kein score_fading_short() im Aggregator).
+      // KI-Analyse-Button ist daher deaktiviert (runAlphaLbKI gibt Hinweis).
+      // Eintrag hier für getConfig() + STRATEGIE_MATRIX.
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
-          + 'Du bist ein quantitativer Analyst mit Fokus auf Mean-Reversion-Strategien.\n\n'
+          + 'Du bist ein erfahrener Trader mit Fokus auf Fading-Strategien (KO-Short auf überhitzte Titel).\n\n'
+          + '⚠️ Fading Short ist experimentell — nur bei klarem BULL_FRAGILE oder STRESS_UNSTABLE Regime.\n\n'
           + ctx.marktkontext
           + '\n\nAUFGABE:\n'
-          + '1. MARKTSTRUKTUR: Gibt es aktuell extreme Über-/Unterverkauft-Situationen? (2-3 Sätze)\n'
-          + '2. TOP 3 MEAN-REVERSION-KANDIDATEN: Titel mit extremem RSI (<30 oder >70) + BB-Abstand. '
-          + 'Entry NUR aus "Kurs:$"-Feld, Ziel = EMA200 aus "EMA200-Kurs:$"-Feld. ATR-Abstand berechnen.\n'
-          + '3. WATCHLIST: Titel die sich noch weiter ausdehnen könnten.\n'
-          + '4. RISIKEN: Momentum-Falle, trendgetriebene Märkte wo MR gefährlich ist.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter.';
-      }
-    },
-
-    breakout: {
-      hint:  '🚀 Breakout: 52W-Hoch · Volumenbestätigung · OBV-Akkumulation',
-      color: 'var(--green)',
-      prompt: function(ctx) {
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Breakout-Trader (Fokus: Volumen-bestätigte Ausbrüche).\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTSTRUKTUR: Unterstützt das aktuelle Marktumfeld Breakout-Trades? (2-3 Sätze)\n'
-          + '2. TOP 3 BREAKOUT-KANDIDATEN: Titel nahe 52W-Hoch mit OBV-Bestätigung. '
-          + 'Für jeden: Abstand zum 52W-Hoch aus Scandaten, Volumen-Signal, Entry nur aus "Kurs:$". '
-          + 'Stop: unter Breakout-Level (aus 52W-H-Feld ableiten). Kein Kursziel erfinden.\n'
-          + '3. WATCHLIST: Titel die sich noch am Breakout-Level konsolidieren.\n'
-          + '4. RISIKEN: False Breakouts, dünnes Volumen, überdehntes Marktumfeld.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter.';
-      }
-    },
-
-    vcp: {
-      hint:  '📐 VCP: Volatility Contraction Pattern · Minervini · Direktinvestment',
-      color: '#a855f7',
-      prompt: function(ctx) {
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener technischer Analyst mit Spezialisierung auf das '
-          + 'Volatility Contraction Pattern (VCP) nach Mark Minervini. '
-          + 'VCP-Setups kennzeichnen sich durch sukzessive enger werdende Korrekturen '
-          + '(Contractions) in einem übergeordneten Stage-2-Aufwärtstrend. '
-          + 'Das Setup ist reif wenn Volumen und Volatilität auf ein Minimum komprimiert wurden '
-          + 'und ein Ausbruch mit Volumen unmittelbar bevorsteht.\n\n'
-          + ctx.marktkontext
-          + '\n\nVCP-SCANDATEN: Die Scandaten enthalten für VCP-Kandidaten: '
-          + 'vcpContractions (Anzahl Contractions), vcpLastPct (letzte Korrektur-%), '
-          + 'Score (VCP-Reife 0-100), Kurs:$, 52W-H:, RSI, MACD, OBV.\n\n'
-          + 'AUFGABE:\n'
-          + '1. MARKTUMFELD FÜR VCP: Ist das aktuelle Marktumfeld (Regime, VIX, Marktbreite) '
-          + 'günstig für VCP-Ausbrüche? VCP-Setups versagen häufig in schwachen oder '
-          + 'volatilen Märkten. (2-3 Sätze)\n'
-          + '2. TOP 3 VCP-KANDIDATEN: Für jeden Titel aus den Scandaten:\n'
-          + '   - Anzahl Contractions (vcpContractions) + letzte Korrektur-% (vcpLastPct)\n'
-          + '   - Setup-Reife: Nimmt die Korrekturgröße ab? Volumen fallend während Contraction?\n'
-          + '   - Pivot-Punkt: Aus 52W-H und aktuellem Kurs ableiten — NUR aus Scandaten\n'
-          + '   - Stage-2-Kontext: RSI > 50, MACD positiv, OBV steigend?\n'
-          + '   - Stop-Loss: knapp unter letztem Contraction-Tief\n'
-          + '   - KEIN Kursziel erfinden\n'
-          + '3. SETUPS IN ENTWICKLUNG: Titel die ein VCP aufbauen aber noch nicht reif sind — '
-          + 'wie viele Contractions fehlen noch, was fehlt bis zum Kaufpunkt?\n'
-          + '4. RISIKEN: Was gefährdet VCP-Ausbrüche aktuell? '
-          + '(Marktbreite, Makro, Sektor, False Breakout Risiko)\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter. '
-          + 'Keine erfundenen Kursziele. Nur Daten aus den Scandaten verwenden.';
+          + '1. MARKTUMFELD: Gibt es aktuell überhitzte Titel die für Fading Short geeignet sind? '
+          + 'Regime, Fear&Greed und SKEW/VVIX-Divergenz einordnen. (2-3 Sätze)\n'
+          + '2. KANDIDATEN: Titel mit RSI>75, hohem Score und möglichem Momentum-Bruch. '
+          + 'Für jeden: Überhitzungs-Signal, Stop-Level (knapp über 52W-Hoch), Timing-Überlegung.\n'
+          + '3. RISIKEN: Gegentrend-Short im Bullmarkt ist das größte Risiko — explizit benennen.\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-3. Max. 300 Wörter.';
       }
     },
 
@@ -387,10 +585,31 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '1.0.0',
+    VERSION: '2.1.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
+
+    /**
+     * System-Prompt für allgemeine KI-Aufrufe (Public/EIC-Split).
+     * Ersetzt getKiSystemPrompt() in index.html.
+     * @param {string|null} context - Optionaler Kontext-String (z.B. "Leaderboard: Momentum")
+     * @param {boolean} eic - true = EIC/Expert-Modus
+     */
+    getSystemPrompt(context, eic) {
+      return _getSystemPrompt(context, eic);
+    },
+
+    /**
+     * Morning-Briefing-Prompt (Public/EIC-Split, inkl. STRATEGIE_MATRIX).
+     * Ersetzt getMorningBriefingPrompt() in index.html.
+     * @param {string[]} messwerteLines - Array der Messwert-Zeilen
+     * @param {boolean} eic - true = EIC/Expert-Modus
+     * @param {boolean} dixReal - true = echte DIX-Daten vorhanden
+     */
+    getMorningPrompt(messwerteLines, eic, dixReal) {
+      return _getMorningPrompt(messwerteLines, eic, dixReal);
+    },
 
     /** Strategie-IDs die verfügbar sind */
     ids() { return Object.keys(STRATEGIES); },
@@ -424,10 +643,9 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = KoPrompts;
   } else {
-    global.KoPrompts      = KoPrompts;
-    // Rückwärtskompatibilität: KI_STRAT_CONFIG + KI_ANTI_HALLUZINATION global verfügbar
+    global.KoPrompts           = KoPrompts;
     global.KI_ANTI_HALLUZINATION = KI_ANTI_HALLUZINATION;
-    global.KoPromptsLoaded = true;
+    global.KoPromptsLoaded     = true;
   }
 
 })(typeof window !== 'undefined' ? window : this);
