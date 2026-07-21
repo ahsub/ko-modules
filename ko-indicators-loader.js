@@ -6,7 +6,7 @@
  *   - buildPromptSection()    → generischer Prompt-Aufbau
  *   - getIndicatorValue()     → einheitlicher DOM/Window/Aggregator-Read
  *
- * Version: 1.3.0 (20.07.2026) — Calendar-Fetch von raw.githubusercontent statt same-origin — MCM: buildMarketContext, signalRules, Makro-Kalender
+ * Version: 1.3.2 (21.07.2026) — Calendar-Fetch von raw.githubusercontent statt same-origin — MCM: buildMarketContext, signalRules, Makro-Kalender
  *   v1.2.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc
  *   umgestellt (kein Timezone-String-Parsing mehr), bufferMinutes fuer
  *   Karenzzeit, FOMC-Zweitage-Fenster.
@@ -383,7 +383,11 @@ async function buildMarketContext(alphaData, regime) {
     var raw = getIndicatorValue(id, alphaData);
     if (raw === '—' || raw === 'n/v' || raw === '') return;
 
-    var num = parseFloat(String(raw).replace(/[^0-9.\-]/g, ''));
+    // BUGFIX (v1.3.2, 21.07.2026): DOM-Elemente wie #intermarket-score und #bull-score
+    // schreiben "55/100" als textContent. Das Regex /[^0-9.\-]/g entfernt "/" und
+    // produziert "55100" statt 55 — falsche RISK-Klassifizierung.
+    // Fix: vor dem Regex-Strip am "/" splitten, nur ersten Teil nehmen.
+    var num = parseFloat(String(raw).split('/')[0].replace(/[^0-9.\-]/g, ''));
     var signal = _evalSignalRules(ind.signalRules, num);
 
     ctx.factors[id] = {
@@ -516,4 +520,4 @@ function listIndicators() {
   }));
 }
 
-console.log('[ko-indicators-loader] v1.3.1 geladen — Indikator-Registry + Market Context Module (MCM) + erweiterte signalRules (zgte/signal_eq) + 5 neue FRED/Derived-Indikatoren');
+console.log('[ko-indicators-loader] v1.3.2 geladen — Indikator-Registry + Market Context Module (MCM) + erweiterte signalRules (zgte/signal_eq) + 5 neue FRED/Derived-Indikatoren');
