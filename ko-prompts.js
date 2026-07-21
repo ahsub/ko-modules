@@ -23,7 +23,7 @@
  *   für die Standard-Strategien (ko-ai Worker behält EIC-Sonderfunktionen).
  *
  * Changelog:
- *   v2.1.0 (21.07.2026): ko-prompts-registry Sprint
+ *   v2.1.1 (21.07.2026): ko-prompts-registry Sprint
  *     - getSystemPrompt(eic) neu: Public/EIC-Split aus index.html externalisiert
  *     - getMorningPrompt(lines, eic, dixReal) neu: Morning-Briefing-Prompt inkl.
  *       STRATEGIE_MATRIX aus index.html externalisiert
@@ -263,21 +263,47 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     },
 
     breakout: {
-      hint:  '🚀 Breakout: 52W-Hoch · Volumenbestätigung · OBV-Akkumulation',
+      hint:  '🚀 Breakout: Pivot/52W-Hoch · Volumen-Bestätigung · OBV-Akkumulation · Stage-2',
       color: 'var(--green)',
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Breakout-Trader (Fokus: Volumen-bestätigte Ausbrüche über Pivot-Punkte).\n\n'
+          + 'Du bist ein erfahrener Breakout-Trader mit Fokus auf technische Ausbrüche über '
+          + 'Pivot-Punkte und 52-Wochen-Hochs im übergeordneten Stage-2-Aufwärtstrend '
+          + '(Methodik: Minervini/O\'Neil/IBD).\n\n'
+          + '⚠️ WICHTIGER SCOPE-HINWEIS: UIQ analysiert technische Swing-Breakouts auf Basis '
+          + 'von Tagesschluss-Daten (52W-Hoch-Nähe, Volumen vs. 20-Tage-Durchschnitt, '
+          + 'OBV-Akkumulation). UIQ ist KEIN Intraday-Scanner — Gap & Go, ORB (Opening Range '
+          + 'Breakout), Pre-Market-Gaps, RVOL 5x oder Float-Screening sind NICHT verfügbar. '
+          + 'Diese Analyse zeigt strukturell reife Breakout-Setups, die am nächsten Handelstag '
+          + 'als Kandidaten beobachtet werden — kein Einstiegssignal für heute.\n\n'
           + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTSTRUKTUR: Unterstützt das aktuelle Marktumfeld Breakout-Trades? '
-          + 'VIX-Niveau, Marktbreite und Regime einordnen. (2-3 Sätze)\n'
-          + '2. TOP 3 BREAKOUT-KANDIDATEN: Titel nahe 52W-Hoch mit OBV-Bestätigung. '
-          + 'Für jeden: Abstand zum 52W-Hoch aus Scandaten (52W-H:-Feld), Volumen-Signal (OBV), '
-          + 'Entry nur aus "Kurs:$", Stop knapp unter Breakout-Level. Kein Kursziel erfinden.\n'
-          + '3. WATCHLIST: Titel die sich noch am Breakout-Level konsolidieren — wie viele Tage/Wochen?\n'
-          + '4. RISIKEN: False Breakouts, dünnes Volumen, überdehntes Marktumfeld, schwacher Sektor.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter. Jeden Punkt vollständig abschließen.';
+          + '\n\nSCANDATEN BREAKOUT-RELEVANTE FELDER:\n'
+          + '- pctFromHigh52: Abstand zum 52W-Hoch in % (negativ = unter Hoch)\n'
+          + '- volRatio: Volumen heute vs. 20-Tage-Durchschnitt (>1.5 = erhöht)\n'
+          + '- obvTrend: OBV-Trend (positiv = Akkumulation, negativ = Distribution)\n'
+          + '- macdHist: MACD-Histogramm (positiv = bullisches Momentum)\n'
+          + '- high52: 52-Wochen-Hoch in $\n'
+          + '- rsRating: Relative Stärke vs. Universum (0-99)\n\n'
+          + 'AUFGABE:\n'
+          + '1. MARKTSTRUKTUR: Unterstützt das aktuelle Regime technische Breakouts? '
+          + 'Marktbreite und VIX-Niveau einordnen — in schwachen/volatilen Märkten '
+          + 'scheitern Breakouts häufig. (2-3 Sätze)\n'
+          + '2. TOP 3 BREAKOUT-KANDIDATEN: Titel mit pctFromHigh52 ≥ -10% '
+          + 'UND volRatio ≥ 1.2 UND obvTrend > 0. Für jeden:\n'
+          + '   - Abstand zum 52W-Hoch (pctFromHigh52-Feld, als % und $ aus high52)\n'
+          + '   - Volumen-Signal (volRatio-Wert nennen, >1.5 = bestätigt)\n'
+          + '   - OBV-Trend (obvTrend-Wert: positiv = Akkumulation)\n'
+          + '   - Entry-Überlegung: Breakout-Level = 52W-Hoch (high52-Feld), '
+          + 'Stop knapp darunter. KEINEN Kurs erfinden.\n'
+          + '   - RS-Rating einordnen (rsRating ≥ 85 = ideale Breakout-Qualität)\n'
+          + '3. WATCHLIST — SETUPS IN VORBEREITUNG: Titel die konsolidieren aber noch '
+          + 'nicht am Pivot sind (pctFromHigh52 -10% bis -20%, aber OBV positiv).\n'
+          + '4. RISIKEN: False Breakouts (Volumen fehlt), breiter Markt schwächer als '
+          + 'Einzeltitel, überdehnter RSI, schwache Sektorzugehörigkeit.\n'
+          + '\n⚠️ Alle Entry-Level sind Tagesschluss-basiert — Intraday-Bestätigung '
+          + '(Gap, ORB, RVOL) muss der Trader selbst in seinem Echtzeit-Scanner prüfen.\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 450 Wörter. '
+          + 'Nur Felder aus den Scandaten verwenden, keine Kurse erfinden.';
       }
     },
 
@@ -585,7 +611,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.1.0',
+    VERSION: '2.1.1',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
