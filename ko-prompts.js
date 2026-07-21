@@ -23,7 +23,7 @@
  *   für die Standard-Strategien (ko-ai Worker behält EIC-Sonderfunktionen).
  *
  * Changelog:
- *   v2.1.1 (21.07.2026): ko-prompts-registry Sprint
+ *   v2.1.2 (21.07.2026): ko-prompts-registry Sprint
  *     - getSystemPrompt(eic) neu: Public/EIC-Split aus index.html externalisiert
  *     - getMorningPrompt(lines, eic, dixReal) neu: Morning-Briefing-Prompt inkl.
  *       STRATEGIE_MATRIX aus index.html externalisiert
@@ -255,7 +255,9 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
           + '2. TOP 3 MOMENTUM-KANDIDATEN: Welche 3 Titel zeigen das stärkste Stage-2-Setup? '
           + 'Für jeden: SEPA-Bewertung aus Scandaten, Buy-Point NUR aus "Kurs:$" und "52W-H:"-Feldern ableiten. '
           + 'Stop-Loss als % unter Kurs. HVP aus Scandaten: bei HVP>50% erhöhte Vola → engerer Stop empfohlen. '
-          + 'Kein Kursziel erfinden.\n'
+          + 'TIMING-HINWEIS: Der erste Ausbruch ist oft nicht der beste Einstieg — der erste Rücksetzer '
+          + 'zum EMA50 (dist50-Feld: nahe 0% = am EMA50) bei steigendem OBV ist meist profitabler '
+          + 'und fühlt sich nicht "zu spät" an. Kein Kursziel erfinden.\n'
           + '3. WATCHLIST: Titel mit Potenzial aber noch nicht kaufbar.\n'
           + '4. RISIKEN: Sektoren oder Makro-Faktoren die Momentum gefährden.\n'
           + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter. Jeden Punkt vollständig abschließen.';
@@ -611,7 +613,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.1.1',
+    VERSION: '2.1.2',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
