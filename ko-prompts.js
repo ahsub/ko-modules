@@ -282,6 +282,8 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
           + '\n\nSCANDATEN BREAKOUT-RELEVANTE FELDER:\n'
           + '- pctFromHigh52: Abstand zum 52W-Hoch in % (negativ = unter Hoch)\n'
           + '- volRatio: Volumen heute vs. 20-Tage-Durchschnitt (>1.5 = erhöht)\n'
+          + '- vcpVolContraction: Volumen während Konsolidierung vs. 20T-Schnitt (<0.6 = ausgetrocknet = Tightness-Signal)\n'
+          + '- vcpBreakoutVol: Volumen letzter Bar als Ratio (≥2.0 = Ausbruchs-Bestätigung)\n'
           + '- obvTrend: OBV-Trend (positiv = Akkumulation, negativ = Distribution)\n'
           + '- macdHist: MACD-Histogramm (positiv = bullisches Momentum)\n'
           + '- high52: 52-Wochen-Hoch in $\n'
@@ -294,6 +296,8 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
           + 'UND volRatio ≥ 1.2 UND obvTrend > 0. Für jeden:\n'
           + '   - Abstand zum 52W-Hoch (pctFromHigh52-Feld, als % und $ aus high52)\n'
           + '   - Volumen-Signal (volRatio-Wert nennen, >1.5 = bestätigt)\n'
+          + '   - Tightness-Check: vcpVolContraction < 0.6 = Volumen ausgetrocknet (Minervini "Tight"). '
+          + 'vcpBreakoutVol ≥ 2.0 = Ausbruch mit Volumen bestätigt.\n'
           + '   - OBV-Trend (obvTrend-Wert: positiv = Akkumulation)\n'
           + '   - Entry-Überlegung: Breakout-Level = 52W-Hoch (high52-Feld), '
           + 'Stop knapp darunter. KEINEN Kurs erfinden.\n'
@@ -321,21 +325,27 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
           + 'Das Setup ist reif wenn Volumen und Volatilität auf ein Minimum komprimiert wurden '
           + 'und ein Ausbruch mit Volumen unmittelbar bevorsteht.\n\n'
           + ctx.marktkontext
-          + '\n\nVCP-SCANDATEN: Die Scandaten enthalten für VCP-Kandidaten: '
-          + 'vcpContractions (Anzahl Contractions), vcpLastPct (letzte Korrektur-%), '
-          + 'Score (VCP-Reife 0-100), Kurs:$, 52W-H:, RSI, MACD, OBV.\n\n'
+          + '\n\nVCP-SCANDATEN: Die Scandaten enthalten für VCP-Kandidaten:\n'
+          + '- vcpContractions: Anzahl sukzessiver Contractions (≥3 = klassisches VCP)\n'
+          + '- vcpLastPct: Tiefe der letzten Korrektur in % (gut: <10%, ideal: <5%)\n'
+          + '- vcpVolContraction: Volumen während Contraction vs. 20T-Schnitt (<0.6 = stark ausgetrocknet, Minervini-Ideal)\n'
+          + '- vcpBreakoutVol: Volumen des letzten Bars als Ratio (≥2.0 = Ausbruchsvolumen bestätigt)\n'
+          + '- Score: VCP-Reife 0-100 · Kurs:$ · 52W-H · RSI · MACD · OBV\n\n'
           + 'AUFGABE:\n'
           + '1. MARKTUMFELD FÜR VCP: Ist das aktuelle Marktumfeld (Regime, VIX, Marktbreite) '
           + 'günstig für VCP-Ausbrüche? VCP-Setups versagen häufig in schwachen oder '
           + 'volatilen Märkten. (2-3 Sätze)\n'
           + '2. TOP 3 VCP-KANDIDATEN: Für jeden Titel aus den Scandaten:\n'
           + '   - Anzahl Contractions (vcpContractions) + letzte Korrektur-% (vcpLastPct)\n'
-          + '   - Setup-Reife: Nimmt die Korrekturgröße ab? Volumen fallend während Contraction?\n'
+          + '   - Volumen-Analyse: Ist Volumen während Contraction ausgetrocknet? '
+          + '(vcpVolContraction < 0.6 = ideal). Gibt es Ausbruchs-Volumen? '
+          + '(vcpBreakoutVol ≥ 2.0 = bestätigt)\n'
           + '   - Pivot-Punkt: Aus 52W-H und aktuellem Kurs ableiten — NUR aus Scandaten\n'
           + '   - Stage-2-Kontext: RSI > 50, MACD positiv, OBV steigend?\n'
           + '   - Stop-Loss: knapp unter letztem Contraction-Tief\n'
           + '   - KEIN Kursziel erfinden\n'
-          + '3. SETUPS IN ENTWICKLUNG: Titel die ein VCP aufbauen aber noch nicht reif sind.\n'
+          + '3. SETUPS IN ENTWICKLUNG: Titel die ein VCP aufbauen aber noch nicht reif sind '
+          + '(vcpVolContraction noch >0.6 oder vcpBreakoutVol fehlt).\n'
           + '4. RISIKEN: Was gefährdet VCP-Ausbrüche aktuell? '
           + '(Marktbreite, Makro, Sektor, False Breakout Risiko)\n'
           + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter. '
@@ -613,7 +623,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.1.2',
+    VERSION: '2.2.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
