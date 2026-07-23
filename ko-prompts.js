@@ -282,6 +282,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
           + '\n\nSCANDATEN BREAKOUT-RELEVANTE FELDER:\n'
           + '- pctFromHigh52: Abstand zum 52W-Hoch in % (negativ = unter Hoch)\n'
           + '- volRatio: Volumen heute vs. 20-Tage-Durchschnitt (>1.5 = erhöht)\n'
+          + '- tightnessPct: 5-Tage-Kursrange / Kurs in % (<3% = "Tight" nach Minervini, <5% = akzeptabel)\n'
           + '- vcpVolContraction: Volumen während Konsolidierung vs. 20T-Schnitt (<0.6 = ausgetrocknet = Tightness-Signal)\n'
           + '- vcpBreakoutVol: Volumen letzter Bar als Ratio (≥2.0 = Ausbruchs-Bestätigung)\n'
           + '- obvTrend: OBV-Trend (positiv = Akkumulation, negativ = Distribution)\n'
@@ -296,7 +297,8 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
           + 'UND volRatio ≥ 1.2 UND obvTrend > 0. Für jeden:\n'
           + '   - Abstand zum 52W-Hoch (pctFromHigh52-Feld, als % und $ aus high52)\n'
           + '   - Volumen-Signal (volRatio-Wert nennen, >1.5 = bestätigt)\n'
-          + '   - Tightness-Check: vcpVolContraction < 0.6 = Volumen ausgetrocknet (Minervini "Tight"). '
+          + '   - Tightness-Check: tightnessPct < 3% = enge Konsolidierung (Minervini "Tight"); '
+          + 'vcpVolContraction < 0.6 = Volumen ausgetrocknet; '
           + 'vcpBreakoutVol ≥ 2.0 = Ausbruch mit Volumen bestätigt.\n'
           + '   - OBV-Trend (obvTrend-Wert: positiv = Akkumulation)\n'
           + '   - Entry-Überlegung: Breakout-Level = 52W-Hoch (high52-Feld), '
@@ -623,7 +625,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.2.0',
+    VERSION: '2.2.1',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
