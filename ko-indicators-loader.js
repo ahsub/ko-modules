@@ -6,7 +6,8 @@
  *   - buildPromptSection()    → generischer Prompt-Aufbau
  *   - getIndicatorValue()     → einheitlicher DOM/Window/Aggregator-Read
  *
- * Version: 1.3.2 (21.07.2026) — Calendar-Fetch von raw.githubusercontent statt same-origin — MCM: buildMarketContext, signalRules, Makro-Kalender
+ * Version: 1.4.0 (25.07.2026) — dataQuality-Flag in buildMarketContext (Backlog #20): 'full'|'partial'|'minimal' nach Kern-Faktor-Befüllungsgrad (promptWeight hoch/sehr_hoch), _dataQualityDetail mit filled/total/pct/missing. Console-Log erweitert.
+ *   v1.3.2 (21.07.2026) — Calendar-Fetch von raw.githubusercontent statt same-origin — MCM: buildMarketContext, signalRules, Makro-Kalender
  *   v1.2.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc
  *   umgestellt (kein Timezone-String-Parsing mehr), bufferMinutes fuer
  *   Karenzzeit, FOMC-Zweitage-Fenster.
@@ -470,13 +471,34 @@ async function buildMarketContext(alphaData, regime) {
   if (ctx.summary.risk_flags.length > 0)          ctx.summary.risk_level = 'high';
   else if (ctx.summary.caution_flags.length >= 2) ctx.summary.risk_level = 'elevated';
 
+  // ── dataQuality-Flag (v1.4.0, 25.07.2026, Backlog #20) ───────────
+  // Zählt promptWeight='hoch'/'sehr_hoch' als Kern-Faktoren (Pflichtkorb).
+  // Stufen: full ≥80% befüllt | partial 40–79% | minimal <40%
+  (function() {
+    var coreIds = Object.keys(reg).filter(function(id) {
+      var w = reg[id].promptWeight;
+      return (w === 'hoch' || w === 'sehr_hoch') &&
+             reg[id].enabled !== false &&
+             reg[id].source !== 'unavailable' &&
+             reg[id].source !== 'calendar';
+    });
+    var filled = coreIds.filter(function(id) { return !!ctx.factors[id]; }).length;
+    var total  = coreIds.length;
+    var pct    = total > 0 ? filled / total : 0;
+    ctx.dataQuality        = pct >= 0.8 ? 'full' : pct >= 0.4 ? 'partial' : 'minimal';
+    ctx._dataQualityDetail = { filled: filled, total: total, pct: Math.round(pct * 100), missing: coreIds.filter(function(id) { return !ctx.factors[id]; }) };
+  })();
+
   // v1.3.0: market_context in _lastMseResult._marketCtx speichern für buildPromptSection
   if (typeof window !== 'undefined' && window._lastMseResult) {
     window._lastMseResult._marketCtx = ctx;
   }
 
   console.log('[MCM] market_context gebaut — ' + Object.keys(ctx.factors).length +
-    ' Faktoren | risk_level: ' + ctx.summary.risk_level +
+    ' Faktoren | dataQuality: ' + ctx.dataQuality +
+    ' (' + ctx._dataQualityDetail.filled + '/' + ctx._dataQualityDetail.total + ' Kern)' +
+    (ctx._dataQualityDetail.missing.length ? ' | fehlend: ' + ctx._dataQualityDetail.missing.join(',') : '') +
+    ' | risk_level: ' + ctx.summary.risk_level +
     (ctx.summary.caution_flags.length ? ' | caution: ' + ctx.summary.caution_flags.join(',') : '') +
     (ctx.summary.risk_flags.length ? ' | RISK: ' + ctx.summary.risk_flags.join(',') : ''));
   return ctx;
