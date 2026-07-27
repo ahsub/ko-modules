@@ -1,12 +1,12 @@
 {
   "_meta": {
-    "version": "2.2.0",
+    "version": "2.3.0",
     "created": "2026-07-09",
     "description": "UIQ Indikator-Registry — zentrale Quelle aller Makro-Indikatoren",
     "repository": "ahsub/ko-modules",
     "note": "Neue Indikatoren = neues Objekt. Kein Code-Eingriff nötig.",
-    "updated": "2026-07-20",
-    "changelog": "v2.2.0: 5 neue Indikatoren (20.07.2026) — hy_spread, net_liquidity, move_index, skew_vvix_div, qqq_markov. Alle bisher im ZUSATZ-KONTEXT des MB-Prompts hardcodiert, jetzt Registry-basiert. aggregatorKey-Pfade gegen echte Aggregator-Datenstruktur verifiziert. signalRules fuer z-Score-basierte Signale (zgte) und Signal-String-Vergleich (signal_eq) erweitert — Loader v1.3.0 erforderlich. | v2.1.1: BUGFIX — pcr.aggregatorKey war \"pcr.value\" (Feld existiert nicht im master_market_data-Schema), korrigiert auf \"pcr.pcr\" (bestaetigt gegen echte Aggregator-Daten, Run #106 14.07.2026: market.pcr = {pcr: 0.78, signal, source, components}). Ursache fuer PCR-Kachel im Home-Panel, die staendig \"—\" zeigte, obwohl PCR-Daten im Aggregator vorlagen. | v2.1.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc-Zeitstempel umgestellt (Loader v1.2.0) — FOMC nutzt jetzt Zweitage-Fenster (meeting_start_utc), bufferMinutes fuer Karenzzeit um Decision-Zeitpunkt (Spread-Normalisierung). FOMC/CPI-Termine gegen federalreserve.gov/bls.gov verifiziert (Axel, 14.07.2026). | v2.0.0: MCM Grundgeruest (enabled/weight/signalRules/Calendar)."
+    "updated": "2026-07-27",
+    "changelog": "v2.3.0: breadth_osc (27.07.2026) — UIQ McClellan Breadth-Oszillator aus Eigenbestand (~700 Ticker Advance/Decline, EMA19-EMA39 Net-Advance, SUITE.md Backlog #12). aggregatorKey: market.breadthOsc.oscillator. | v2.2.0: 5 neue Indikatoren (20.07.2026) — hy_spread, net_liquidity, move_index, skew_vvix_div, qqq_markov. Alle bisher im ZUSATZ-KONTEXT des MB-Prompts hardcodiert, jetzt Registry-basiert. aggregatorKey-Pfade gegen echte Aggregator-Datenstruktur verifiziert. signalRules fuer z-Score-basierte Signale (zgte) und Signal-String-Vergleich (signal_eq) erweitert — Loader v1.3.0 erforderlich. | v2.1.1: BUGFIX — pcr.aggregatorKey war \"pcr.value\" (Feld existiert nicht im master_market_data-Schema), korrigiert auf \"pcr.pcr\" (bestaetigt gegen echte Aggregator-Daten, Run #106 14.07.2026: market.pcr = {pcr: 0.78, signal, source, components}). Ursache fuer PCR-Kachel im Home-Panel, die staendig \"—\" zeigte, obwohl PCR-Daten im Aggregator vorlagen. | v2.1.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc-Zeitstempel umgestellt (Loader v1.2.0) — FOMC nutzt jetzt Zweitage-Fenster (meeting_start_utc), bufferMinutes fuer Karenzzeit um Decision-Zeitpunkt (Spread-Normalisierung). FOMC/CPI-Termine gegen federalreserve.gov/bls.gov verifiziert (Axel, 14.07.2026). | v2.0.0: MCM Grundgeruest (enabled/weight/signalRules/Calendar)."
   },
   "indicators": {
     "vix": {
@@ -555,6 +555,49 @@
       "enabled": true,
       "weight": 1.0,
       "bufferMinutes": 10
+    },
+    "breadth_osc": {
+      "label": "UIQ Breadth-Oszillator (McClellan)",
+      "category": "breadth",
+      "source": "aggregator",
+      "aggregatorKey": "market.breadthOsc.oscillator",
+      "promptWeight": "mittel",
+      "promptKey": "Breadth-Oszillator",
+      "promptHint": "McClellan-Oszillator aus UIQ-Universum (~700 Ticker): EMA19-EMA39 der Net-Advance-Reihe. >+10=BULLISH, <-10=BEARISH",
+      "enabled": true,
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "condition": "gt",
+          "threshold": 50,
+          "signal": "SEHR_BULLISH",
+          "label": "Breite Marktbeteiligung"
+        },
+        {
+          "condition": "gt",
+          "threshold": 10,
+          "signal": "BULLISH",
+          "label": "Mehrheit advances"
+        },
+        {
+          "condition": "gt",
+          "threshold": -10,
+          "signal": "NEUTRAL",
+          "label": "Ausgeglichen"
+        },
+        {
+          "condition": "gt",
+          "threshold": -50,
+          "signal": "BEARISH",
+          "label": "Mehrheit declines"
+        },
+        {
+          "condition": "lte",
+          "threshold": -50,
+          "signal": "SEHR_BEARISH",
+          "label": "Breite Kapitulation"
+        }
+      ]
     }
   }
 }
