@@ -597,6 +597,74 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
       }
     },
 
+
+    // ── INCOME / FUNDAMENTAL-STRATEGIEN ──────────────────────────────────────
+
+    dividend: {
+      hint:  '💰 Dividend Growth: Qualitäts-Dividendentitel · Income + optionale CSP-Unterlegung',
+      color: '#f59e42',
+      prompt: function(ctx) {
+        return KI_ANTI_HALLUZINATION
+          + 'Du bist ein erfahrener Income-Investor spezialisiert auf Qualitäts-Dividendentitel '
+          + 'mit nachhaltiger Ausschüttung und solidem Free Cashflow.\n'
+          + 'Ziel: stabile Erträge (Dividende + optionale CSP-Prämie als Unterlegung). '
+          + 'Kein spekulativer Dividendenjäger: Qualität muss die Rendite rechtfertigen.\n\n'
+          + (ctx.marktkontext || '')
+          + '\n\nFELDER-LEGENDE (Dividend-spezifisch):\n'
+          + '- divYield: Dividendenrendite in % (ideal: 1-6%; >6% = Nachhaltigkeitsprüfung)\n'
+          + '- payoutRatio: Ausschüttungsquote in % (<80% = nachhaltig; >100% = Warnsignal)\n'
+          + '- fcfYield: Free-Cashflow-Rendite in % (Puffer für Dividende; >3% = gesund)\n'
+          + '- roe: Return on Equity in % (>10% = Qualitätsindikator)\n'
+          + '- debtToEquity: Verschuldungsgrad (niedrig = stabiler)\n\n'
+          + 'AUFGABE:\n'
+          + '1. MARKTLAGE: Unterstützt das Regime Income-Strategien? '
+          + 'Zinsniveau (TNX), HY-Spread und Regime-Signal einordnen. (2 Sätze)\n'
+          + '2. TOP-3 DIVIDEND-KANDIDATEN: Für jeden Titel:\n'
+          + '   a) Dividendenqualität: divYield + payoutRatio + fcfYield\n'
+          + '   b) Fundamentalstärke: ROE + Verschuldung\n'
+          + '   c) Technisches Bild: EMA200-Position, RSI nicht überhitzt (≤70)\n'
+          + '   d) CSP-Eignung: Strike 5-10% unter Kurs sinnvoll platzierbar?\n'
+          + '   e) Hauptrisiko: Was könnte die Dividende gefährden?\n'
+          + '3. NICHT EMPFOHLEN: Ausgeschlossene Titel + Grund (payoutRatio >80%, divYield <1%, '
+          + 'technisch schwach oder fallendes Messer).\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-3. Max. 400 Wörter. '
+          + 'Keine erfundenen Dividendenzahlungen oder Strike-Werte.';
+      }
+    },
+
+    value: {
+      hint:  '📊 Value Investing: Günstig bewertete Qualitätstitel · peForward, P/B, FCF-Yield',
+      color: '#94a3b8',
+      prompt: function(ctx) {
+        return KI_ANTI_HALLUZINATION
+          + 'Du bist ein erfahrener Value-Investor nach Graham/Buffett-Prinzipien — '
+          + 'günstig bewertete Qualitätstitel mit Sicherheitsmarge.\n'
+          + 'Kein Value-Trap-Jäger: ein niedriger Kurs allein reicht nicht, '
+          + 'ROE und FCF müssen den niedrigen Preis rechtfertigen.\n\n'
+          + (ctx.marktkontext || '')
+          + '\n\nFELDER-LEGENDE (Value-spezifisch):\n'
+          + '- peForward: Forward Price/Earnings-Ratio (<20x bevorzugt; <15x = attraktiv)\n'
+          + '- pb: Price/Book-Ratio (<3x = günstig; <1x = tief unterbewertet)\n'
+          + '- fcfYield: Free-Cashflow-Rendite in % (>4% = solide Bewertung)\n'
+          + '- roe: Return on Equity in % (>10% = Qualitätsgate)\n'
+          + '- analystUpside: Analyst-Kursziel-Upside in % (>10% = Konsens sieht Potenzial)\n\n'
+          + 'AUFGABE:\n'
+          + '1. MARKTLAGE: Unterstützt das Regime Value-Rotation? '
+          + 'Growth vs. Value-Dynamik, Zinsniveau (TNX) und Sektor-Rotation einordnen. (2 Sätze)\n'
+          + '2. TOP-3 VALUE-KANDIDATEN: Für jeden Titel:\n'
+          + '   a) Bewertung: peForward + pb + fcfYield im Verhältnis zum Sektor\n'
+          + '   b) Qualitätscheck: ROE + fundamentale Stabilität\n'
+          + '   c) Analyst-Konsens: analystUpside-Potenzial bewerten\n'
+          + '   d) Technisches Bild: EMA200-Abstand, RSI — ist der Boden erreicht '
+          + 'oder noch kein Erholungszeichen?\n'
+          + '   e) Sicherheitsmarge: Wie groß ist der Puffer zwischen Kurs und geschätztem fairen Wert?\n'
+          + '3. VALUE-TRAPS: Welche Kandidaten sehen günstig aus, haben aber '
+          + 'strukturelle Risiken (schrumpfendes Geschäftsmodell, Schuldenlast, Sektor-Headwinds)?\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-3. Max. 400 Wörter. '
+          + 'Keine erfundenen Kursziele oder PE-Werte — nur aus den Messdaten.';
+      }
+    },
+
     // ── SHORT-STRATEGIEN ───────────────────────────────────────────────────
 
     fading_short: {
@@ -625,7 +693,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.2.1',
+    VERSION: '2.3.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
