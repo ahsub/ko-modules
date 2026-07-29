@@ -554,6 +554,89 @@ const Strategies = {
     completeEachPoint: true,
   },
 
+
+  dividend: {
+    label: '💰 Dividend Growth',
+    hint: '💰 Dividend: Qualitäts-Dividendentitel · Income-Strategie · CSP-Unterlegung möglich',
+    color: '#f59e42',
+    category: 'income',
+    intro:
+      'Du bist ein erfahrener Income-Investor spezialisiert auf Qualitäts-Dividendentitel ' +
+      'mit nachhaltiger Ausschüttung und solidem Free Cashflow.\n' +
+      'Ziel: stabile Erträge (Dividende + optionale CSP-Prämie als Unterlegung), ' +
+      'keine spekulativen Dividendenjäger.',
+    focus: [
+      '1. Dividendenqualität: divYield (1-6%), payoutRatio (<80%), fcfYield (Puffer).',
+      '2. Fundamentalqualität: ROE, Verschuldung (debtToEquity), Sektor-Stabilität.',
+      '3. Technisches Timing: EMA200-Position, RSI nicht überhitzt (≤70).',
+      '4. CSP-Eignung: IV ausreichend für Prämie? Strike unter aktuellem Kurs wählbar?',
+    ],
+    task: [
+      {
+        title: 'MARKTLAGE-CHECK',
+        body: 'Unterstützt das Regime Income-Strategien? (Zinsniveau, HY-Spread, Regime-Signal) (2 Sätze)',
+      },
+      {
+        title: 'TOP-3 DIVIDEND-KANDIDATEN',
+        body: 'Für jeden Kandidaten:',
+        subitems: [
+          'a) Dividenden-Score: divYield + payoutRatio + fcfYield-Bewertung',
+          'b) Fundamentalqualität: ROE + Verschuldungssituation',
+          'c) Technisches Bild: EMA200-Abstand, RSI, Trend',
+          'd) CSP-Eignung: Sinnvoller Strike 5-10% unter aktuellem Kurs?',
+          'e) Risiko: Was könnte die Dividende gefährden?',
+        ],
+      },
+      {
+        title: 'NICHT EMPFOHLEN',
+        body: 'Ausgeschlossene Titel + Grund (payoutRatio >80%, divYield <1%, technisch schwach)',
+      },
+    ],
+    maxWords: 400,
+    completeEachPoint: true,
+  },
+
+  value: {
+    label: '📊 Value Investing',
+    hint: '📊 Value: Günstig bewertete Qualitätstitel · peForward, P/B, FCF-Yield · Analyst-Upside',
+    color: '#94a3b8',
+    category: 'fundamental',
+    intro:
+      'Du bist ein erfahrener Value-Investor nach Graham/Buffett-Prinzipien — ' +
+      'günstig bewertete Qualitätstitel mit Sicherheitsmarge.\n' +
+      'Kein Value-Trap-Jäger: ein niedriger Kurs allein reicht nicht, ' +
+      'Qualität (ROE, FCF) muss den niedrigen Preis rechtfertigen.',
+    focus: [
+      '1. Bewertungsanker: peForward (<20x bevorzugt), pb (<3x), fcfYield (>4%).',
+      '2. Qualitätsgate: ROE >10%, kein fallendes Messer (EMA200-Nähe prüfen).',
+      '3. Katalysator: Analyst-Upside >10%? Sektor-Rotation-Signal?',
+      '4. Timing: RSI nicht überverkauft (<30) ohne Erholungszeichen — kein fallender Stein.',
+    ],
+    task: [
+      {
+        title: 'MARKTLAGE-CHECK',
+        body: 'Unterstützt das Regime Value-Rotation? (Zinsniveau, Growth vs. Value-Dynamik) (2 Sätze)',
+      },
+      {
+        title: 'TOP-3 VALUE-KANDIDATEN',
+        body: 'Für jeden Kandidaten:',
+        subitems: [
+          'a) Bewertung: peForward + pb + fcfYield im Verhältnis zum Sektor',
+          'b) Qualitätscheck: ROE + fundamentale Stabilität',
+          'c) Analyst-Konsens: Upside-Potenzial aus analystUpside-Feld',
+          'd) Technisches Bild: Kurs vs. EMA200, RSI — ist der Boden erreicht?',
+          'e) Sicherheitsmarge: Wo liegt der faire Wert? Wie groß der Puffer?',
+        ],
+      },
+      {
+        title: 'VALUE-TRAPS',
+        body: 'Welche Kandidaten sehen günstig aus, haben aber strukturelle Risiken?',
+      },
+    ],
+    maxWords: 400,
+    completeEachPoint: true,
+  },
+
   // Schablone für spätere Breakdown-Short-Variante (Bear-Put-Spread via IBKR)
   // Wird aktiviert wenn Phase 2 implementiert wird.
   // breakdown_short: { ... }
@@ -587,7 +670,7 @@ const listByCategory = (category) =>
   Object.entries(Strategies).filter(([, s]) => s.category === category).map(([id]) => id);
 
 const KoStrategies = {
-  VERSION: '2.1.0',
+  VERSION: '2.4.0',
   Strategies,
   STRATEGIES: Strategies, // Alias für Rückwärtskompatibilität (alte Schreibweise)
   KI_ANTI_HALLUZINATION,
