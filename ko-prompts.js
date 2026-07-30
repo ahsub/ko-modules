@@ -1,7 +1,7 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
- * Version: 2.4.0 (30.07.2026)
+ * Version: 2.5.0 (30.07.2026)
  * Repository: ahsub/ko-modules
  *
  * Enthält:
@@ -26,6 +26,12 @@
  *   für die Standard-Strategien (ko-ai Worker behält EIC-Sonderfunktionen).
  *
  * Changelog:
+ *   v2.5.0 (30.07.2026): ko-indicators-registry Sprint — Strategie↔Leaderboard-Mapping
+ *     - lbKey-Feld zu allen 14 Strategien in STRATEGIES ergänzt
+ *       (Single Source of Truth für Strategie→Leaderboard-Zuordnung)
+ *     - getLbKey(stratId) neu: gibt lbKey für eine Strategie zurück (null wenn kein LB-Tab)
+ *     - stratFromLb(lbKey) neu: gibt stratId für einen Leaderboard-Key zurück
+ *     - STRATEGY_TO_LB und _lbToStrat in index.html sind damit obsolet
  *   v2.4.0 (30.07.2026): ko-prompts-registry Sprint 2
  *     - getIntermarketPrompt(ctx) neu: Intermarket/Makro-Analyse-Prompt aus
  *       autoMakro()/generateDpKI()-Bereich externalisiert. ctx: {today, sp, nq,
@@ -241,6 +247,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     // ── LONG-TREND-STRATEGIEN ──────────────────────────────────────────────
 
     ko: {
+      lbKey: 'ko_long',
       hint:  '⚡ KO-Zertifikat: Hebel 3–8x · KO-Abstand · Positionsgröße max. €2.000',
       color: '#818cf8',
       prompt: function(ctx) {
@@ -259,6 +266,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     },
 
     momentum: {
+      lbKey: 'long_minervini',
       hint:  '📈 Momentum: SEPA/Minervini Stage-2 · Direktinvestment ohne Hebel',
       color: 'var(--green)',
       prompt: function(ctx) {
@@ -280,6 +288,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     },
 
     breakout: {
+      lbKey: 'long_breakout',
       hint:  '🚀 Breakout: Pivot/52W-Hoch · Volumen-Bestätigung · OBV-Akkumulation · Stage-2',
       color: 'var(--green)',
       prompt: function(ctx) {
@@ -331,6 +340,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     },
 
     vcp: {
+      lbKey: 'vcp_setups',
       hint:  '📐 VCP-Setup: Volatility Contraction Pattern · Minervini · Direktinvestment',
       color: '#a855f7',
       prompt: function(ctx) {
@@ -371,6 +381,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     },
 
     swing: {
+      lbKey: 'long_swing',
       hint:  '🔄 Swing-Trading: 5–20 Tage Haltedauer · Technische Muster',
       color: '#06b6d4',
       prompt: function(ctx) {
@@ -389,6 +400,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     },
 
     meanrev: {
+      lbKey: 'long_mr',
       hint:  '↩️ Mean Reversion: Rückkehr zum Mittelwert · Überverkauft/Überhitzt · ATR-Abstand',
       color: 'var(--yellow)',
       prompt: function(ctx) {
@@ -408,6 +420,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     // ── OPTIONS-INCOME-STRATEGIEN ──────────────────────────────────────────
 
     csp_wheel: {
+      lbKey: 'options_csp',
       hint:  '⚙️ CSP/Wheel: Cash Secured Put + Covered Call · CapTrader/IBKR · Theta-Strategie',
       color: 'var(--amber)',
       prompt: function(ctx) {
@@ -447,6 +460,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     },
 
     atmna: {
+      lbKey: null,
       hint:  '🎯 CSP (ATM/NA): ATM-CSP · 50-70% Frühausstieg · 3-Stufen-Roll · Andienungs-Vermeidung',
       color: '#a371f7',
       prompt: function(ctx) {
@@ -497,6 +511,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     },
 
     weekly_income: {
+      lbKey: null,
       hint:  '💰 CSP (Weekly): Diagonal Put-Spread · ATM-Short 7 DTE + Long-Versicherung 120 DTE · 4×/Monat',
       color: '#34d399',
       prompt: function(ctx) {
@@ -540,6 +555,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     },
 
     cc: {
+      lbKey: 'options_cc',
       hint:  '📝 Covered Call: Call-Writing auf Bestandspositionen · Buy-Write · Prämieneinnahme',
       color: '#f59e0b',
       prompt: function(ctx) {
@@ -582,6 +598,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     // Vollständige Behandlung → Options-Doktor-Modul (Suite Phase 3)
 
     collar: {
+      lbKey: null,
       hint:  '🛡️ Collar/Protective Put: Absicherung Bestandsposition · BULL_FRAGILE · Proxy-Strikes',
       color: '#0ea5e9',
       prompt: function(ctx) {
@@ -616,6 +633,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     // ── INCOME / FUNDAMENTAL-STRATEGIEN ──────────────────────────────────────
 
     dividend: {
+      lbKey: 'long_dividend',
       hint:  '💰 Dividend Growth: Qualitäts-Dividendentitel · Income + optionale CSP-Unterlegung',
       color: '#f59e42',
       prompt: function(ctx) {
@@ -648,6 +666,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     },
 
     value: {
+      lbKey: 'long_value',
       hint:  '📊 Value Investing: Günstig bewertete Qualitätstitel · peForward, P/B, FCF-Yield',
       color: '#94a3b8',
       prompt: function(ctx) {
@@ -683,6 +702,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
     // ── SHORT-STRATEGIEN ───────────────────────────────────────────────────
 
     fading_short: {
+      lbKey: 'short_fading_ko',
       hint:  '🔻 Fading Short (experimentell): KO-Short · Gegentrend · BULL_FRAGILE/STRESS',
       color: 'var(--red)',
       // Kein eigener Analyse-Prompt: Fading-Short-Leaderboard hat keine
@@ -840,7 +860,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.4.0',
+    VERSION: '2.5.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
@@ -921,6 +941,44 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
      */
     getMetaAnalysisPrompt(ctx) {
       return _getMetaAnalysisPrompt(ctx);
+    },
+
+    /**
+     * Leaderboard-Key für eine Strategie.
+     * Ersetzt STRATEGY_TO_LB[stratId] in index.html.
+     * @param {string} stratId - Strategie-ID (z.B. 'ko', 'momentum')
+     * @returns {string|null} lbKey (z.B. 'ko_long') oder null wenn kein eigener LB-Tab
+     */
+    getLbKey(stratId) {
+      var strat = STRATEGIES[stratId];
+      return strat ? (strat.lbKey || null) : null;
+    },
+
+    /**
+     * Strategie-ID für einen Leaderboard-Key.
+     * Ersetzt _lbToStrat[lbKey] in index.html.
+     * @param {string} lbKey - Leaderboard-Key (z.B. 'ko_long', 'long_minervini')
+     * @returns {string|null} stratId (z.B. 'ko', 'momentum') oder null wenn unbekannt
+     */
+    stratFromLb(lbKey) {
+      var entries = Object.entries(STRATEGIES);
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i][1].lbKey === lbKey) return entries[i][0];
+      }
+      return null;
+    },
+
+    /**
+     * Vollständige Strategie→Leaderboard-Map (für renderGateWidget).
+     * Ersetzt STRATEGY_TO_LB in index.html vollständig.
+     * @returns {object} { stratId: lbKey, ... } — nur Einträge mit lbKey !== null
+     */
+    getStratToLbMap() {
+      var map = {};
+      Object.entries(STRATEGIES).forEach(function(e) {
+        if (e[1].lbKey) map[e[0]] = e[1].lbKey;
+      });
+      return map;
     },
   };
 
