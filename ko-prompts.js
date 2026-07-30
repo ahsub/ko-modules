@@ -1,7 +1,7 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
- * Version: 2.1.0 (21.07.2026)
+ * Version: 2.4.0 (30.07.2026)
  * Repository: ahsub/ko-modules
  *
  * Enthält:
@@ -11,6 +11,9 @@
  *   - KoPrompts.STRATEGIES   → vollständige Strategie-Konfiguration (12 Strategien)
  *   - KoPrompts.get(strat, ctx) → prompt für eine Strategie holen
  *   - KoPrompts.getConfig(strat) → hint + color holen
+ *   - KoPrompts.getIntermarketPrompt(ctx) → Intermarket/Makro-Analyse-Prompt
+ *   - KoPrompts.getOversoldPrompt(ctx)    → Oversold-Rebound-Scan-Prompt
+ *   - KoPrompts.getMetaAnalysisPrompt(ctx) → Backtesting Meta-Analyse-Prompt
  *
  * Kanonische Strategie-Liste (STRATEGY_ORDER aus ko-market-state.js):
  *   ko, momentum, breakout, vcp, swing, meanrev,
@@ -23,6 +26,18 @@
  *   für die Standard-Strategien (ko-ai Worker behält EIC-Sonderfunktionen).
  *
  * Changelog:
+ *   v2.4.0 (30.07.2026): ko-prompts-registry Sprint 2
+ *     - getIntermarketPrompt(ctx) neu: Intermarket/Makro-Analyse-Prompt aus
+ *       autoMakro()/generateDpKI()-Bereich externalisiert. ctx: {today, sp, nq,
+ *       vix, gold, silver, copper, oil2, btc, eth, sol, imVvix, imAud, imJpy,
+ *       imTip, imItb, imVnq, imSpread, imScore, sektorContext, newsContext,
+ *       consistencyHint}. Gibt JSON-Prompt zurück (verdict/verdictText/factors).
+ *     - getOversoldPrompt(ctx) neu: Oversold-Rebound-Scan-Prompt aus
+ *       runOversoldScan() externalisiert. ctx: {vix, candidateStr}.
+ *       Gibt JSON-Prompt zurück (candidates[]).
+ *     - getMetaAnalysisPrompt(ctx) neu: Backtesting Meta-Analyse-Prompt aus
+ *       runMetaAnalysis() externalisiert. ctx: {backtestCtx, dp}.
+ *       Gibt strukturierten DE-Text-Prompt zurück (1-5 Punkte).
  *   v2.1.2 (21.07.2026): ko-prompts-registry Sprint
  *     - getSystemPrompt(eic) neu: Public/EIC-Split aus index.html externalisiert
  *     - getMorningPrompt(lines, eic, dixReal) neu: Morning-Briefing-Prompt inkl.
@@ -691,9 +706,141 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
 
   };
 
+  // ── INTERMARKET / MAKRO-ANALYSE PROMPT ────────────────────────────────────
+  /**
+   * Prompt für die tägliche Intermarket/Makro-Analyse (autoMakro).
+   * Gibt einen JSON-Output-Prompt zurück (verdict / verdictText / factors[]).
+   *
+   * @param {object} ctx
+   *   ctx.today         {string}  Datum-String (z.B. "30.07.2026")
+   *   ctx.sp            {string}  S&P 500 Wert
+   *   ctx.nq            {string}  Nasdaq 100 Wert
+   *   ctx.vix           {string}  VIX Wert
+   *   ctx.gold          {string}  Gold Wert
+   *   ctx.silver        {string}  Silber Wert
+   *   ctx.copper        {string}  Kupfer Wert
+   *   ctx.oil2          {string}  WTI Öl Wert
+   *   ctx.btc           {string}  Bitcoin Wert
+   *   ctx.eth           {string}  Ethereum Wert
+   *   ctx.sol           {string}  Solana Wert
+   *   ctx.imVvix        {string}  VVIX aus Intermarket-Panel
+   *   ctx.imAud         {string}  AUD/USD aus Intermarket-Panel
+   *   ctx.imJpy         {string}  JPY/USD aus Intermarket-Panel
+   *   ctx.imTip         {string}  TIPS ETF
+   *   ctx.imItb         {string}  Hausbauer ETF ITB
+   *   ctx.imVnq         {string}  REIT ETF VNQ
+   *   ctx.imSpread      {string}  10J-3M Spread (im-irx)
+   *   ctx.imScore       {string}  Intermarket Risk Score Label
+   *   ctx.sektorContext {string}  Sektor-RS-Block (vorformatiert)
+   *   ctx.newsContext   {string}  News-Block (vorformatiert, kann '')
+   *   ctx.consistencyHint {string} Konsistenz-Pflichthinweis (kann '')
+   */
+  function _getIntermarketPrompt(ctx) {
+    var c = ctx || {};
+    var d = c.today || new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'numeric'});
+    return 'Du bist ein professioneller Finanzmarktanalyst der täglich eine Marktlageeinschätzung für einen aktiven Retail-Investor erstellt, '
+      + 'der in deutschen und US-amerikanischen Märkten in KO-Turbo-Zertifikate und Aktienoptionen (Wheel-Strategie) investiert.\n\n'
+      + '== MARKTDATEN vom ' + d + ' ==\n'
+      + '\nINDIZES:\n'
+      + '- S&P 500: ' + (c.sp || '—') + '\n'
+      + '- Nasdaq 100: ' + (c.nq || '—') + '\n'
+      + '- VIX (Angstbarometer): ' + (c.vix || '—') + '\n'
+      + '\nINTERMARKET-SIGNALE:\n'
+      + '- VVIX (Vola der Vola, Frühwarnindikator): ' + (c.imVvix || '—') + '\n'
+      + '- AUD/USD (Risk-On Währung): ' + (c.imAud || '—') + '\n'
+      + '- JPY/USD (Safe-Haven Währung): ' + (c.imJpy || '—') + '\n'
+      + '- Intermarket Risk Score: ' + (c.imScore || '—') + '\n'
+      + '\nROHSTOFFE & SAFE HAVEN:\n'
+      + '- Gold: ' + (c.gold || '—') + '  |  Silber: ' + (c.silver || '—') + '  |  Kupfer: ' + (c.copper || '—') + '\n'
+      + '- WTI Öl: ' + (c.oil2 || '—') + '\n'
+      + '\nMAKRO: INFLATION & ZINSEN:\n'
+      + '- TIPS ETF (Inflationserwartungen): ' + (c.imTip || '—') + '\n'
+      + '- 10J-3M Spread (Yield Curve): ' + (c.imSpread || '—') + '\n'
+      + '\nMAKRO: HOUSING & IMMOBILIEN:\n'
+      + '- Hausbauer ETF ITB: ' + (c.imItb || '—') + '\n'
+      + '- REIT ETF VNQ: ' + (c.imVnq || '—') + '\n'
+      + '\nKRYPTO (Risikosentiment):\n'
+      + '- Bitcoin: ' + (c.btc || '—') + '  |  Ethereum: ' + (c.eth || '—') + '  |  Solana: ' + (c.sol || '—') + '\n'
+      + (c.sektorContext || '') + (c.newsContext || '') + (c.consistencyHint || '') + '\n\n'
+      + '== AUFGABE ==\n'
+      + 'Erstelle eine ausführliche, rein faktenbasierte Marktlageeinschätzung. '
+      + 'Verwende AUSSCHLIESSLICH die oben angegebenen Daten. Erfinde KEINE Kurse, Prozentzahlen oder Ereignisse.\n\n'
+      + 'Analysiere dabei folgende Themenbereiche soweit die Daten es erlauben:\n'
+      + '1. MARKTREGIME: Ist der Markt Risk-On oder Risk-Off? Begründe mit konkreten Intermarket-Signalen.\n'
+      + '2. SEKTORROTATION: Welche Sektoren führen, welche hinken nach? Konkrete Implikationen für Positionierung.\n'
+      + '3. TECHNOLOGIE & WACHSTUM: Lage der Hyperscaler (MSFT, AMZN, GOOGL, META), Halbleiter/Chip-Hersteller (NVDA, AMD, AVGO, AMAT), KI-Infrastruktur, Robotik. Nur wenn Sektor-Daten vorhanden.\n'
+      + '4. ZINSEN & INFLATION: Interpretation der Yield Curve, Inflationserwartungen, Implikationen für zinssensitive Sektoren (Versorger, REITs, Immobilien).\n'
+      + '5. ENERGIE & ROHSTOFFE: Öl, Kupfer, Gold — was signalisieren sie über globales Wachstum?\n'
+      + '6. HOUSING USA: Lage des Immobilienmarkts, Bauaktivität, Implikationen für Zinserwartungen.\n'
+      + '7. CONSUMER & DEFENSIVE: Stärke der Consumer-Aktien als Konjunkturindikator.\n'
+      + '8. KONKRETE HANDLUNGSEMPFEHLUNG: Für KO-Trader und Options-Wheel-Strategie — welche Sektoren bevorzugen, welche meiden, Positionsgröße, KO-Abstand.\n\n'
+      + 'Erstelle das Ergebnis als JSON mit dieser Struktur:\n'
+      + '{\n'
+      + '  "verdict": "bull" oder "neu" oder "bear",\n'
+      + '  "verdictText": "3-4 Sätze Gesamteinschätzung mit konkreter Handlungsempfehlung auf Deutsch",\n'
+      + '  "factors": [\n'
+      + '    {"icon":"bull","title":"Thema","desc":"Faktenbasierte Analyse 2-3 Sätze mit Implikation für Investor"},\n'
+      + '    ... (5-8 Faktoren, jeder Themenbereich der abgedeckt ist bekommt einen Eintrag)\n'
+      + '  ]\n'
+      + '}\n\n'
+      + 'Regeln:\n'
+      + '- icon: nur "bull", "neu" oder "bear"\n'
+      + '- Jeder factor.desc: 2-3 Sätze, faktenbasiert, mit konkreter Implikation\n'
+      + '- Wenn Daten für ein Thema fehlen: diesen Faktor weglassen\n'
+      + '- Kein Faktor ohne Datenbasis aus dem Prompt\n'
+      + '- Antworte NUR mit dem JSON, kein weiterer Text\n'
+      + '- Sprache: Deutsch, professionell aber verständlich';
+  }
+
+  // ── OVERSOLD-REBOUND SCAN PROMPT ───────────────────────────────────────────
+  /**
+   * Prompt für den Oversold-Rebound-Scan (runOversoldScan).
+   * Gibt einen JSON-Output-Prompt zurück (candidates[]).
+   *
+   * @param {object} ctx
+   *   ctx.vix          {string}  VIX-Level zum Scanzeitpunkt
+   *   ctx.candidateStr {string}  Vorformatierter Kandidaten-String (eine Zeile pro Ticker)
+   */
+  function _getOversoldPrompt(ctx) {
+    var c = ctx || {};
+    return 'Du bist ein erfahrener technischer Analyst spezialisiert auf Oversold-Rebounds.\n\n'
+      + 'VIX zum Scanzeitpunkt: ' + (c.vix || 'unbekannt') + '\n\n'
+      + 'Folgende Titel zeigen potenzielle Oversold-Signale (RSI niedrig, unter MA50 oder 52W-Hoch stark gefallen):\n\n'
+      + (c.candidateStr || '') + '\n\n'
+      + 'AUFGABE: Bewerte jeden Titel auf Oversold-Rebound-Potenzial. Antworte NUR mit JSON, kein anderer Text:\n'
+      + '{"candidates":[{"sym":"AAPL","oversold_score":75,"rebound_days":"3-7","rationale":"RSI 28, Volume-Spike, MACD dreht","risk":"BEAR-Markt, kein Boden bestätigt"}]}\n'
+      + 'oversold_score: 0-100 (100 = maximale Oversold-Wahrscheinlichkeit). '
+      + 'HVP aus Scandaten berücksichtigen: >50% = erhöhte Vola = Rebound-Chance höher aber auch Risiko. '
+      + 'Wenn kein HVP: NICHT erfinden.\n'
+      + 'Sortiere absteigend nach oversold_score. Nur Titel mit oversold_score >= 40 zurückgeben.';
+  }
+
+  // ── BACKTESTING META-ANALYSE PROMPT ───────────────────────────────────────
+  /**
+   * Prompt für die Backtesting Meta-Analyse (runMetaAnalysis).
+   * Gibt einen strukturierten DE-Text-Prompt zurück (5 Punkte).
+   *
+   * @param {object} ctx
+   *   ctx.backtestCtx {string}  Vorformatierter Kontext-Block mit Backtest-Daten/KI-Tracking
+   *   ctx.dp          {number}  Anzahl Datenpunkte (für Konfidenz-Aussage in Punkt 3)
+   */
+  function _getMetaAnalysisPrompt(ctx) {
+    var c = ctx || {};
+    var dp = c.dp || 0;
+    return 'Du bist ein quantitativer Analyst der Trading-Scanner-Systeme optimiert.\n\n'
+      + (c.backtestCtx || '') + '\n\n'
+      + 'AUFGABE: Meta-Analyse dieser Backtesting-Daten.\n'
+      + '1. STÄRKEN: Welche Gewichtungsvariante zeigt die robusteste Performance? Warum?\n'
+      + '2. SCHWÄCHEN: Was funktioniert nicht? Welche Signale sind wenig prädiktiv?\n'
+      + '3. KONFIDENZ: Wie belastbar sind die Aussagen bei ' + dp + ' Datenpunkten?\n'
+      + '4. EMPFEHLUNG: Konkrete Gewichtungsanpassung (Tech/SEPA/BP/Sticky/Vol, Summe=100) und Begründung.\n'
+      + '5. NÄCHSTE SCHRITTE: Was sollte gesammelt werden um die Datenbasis zu verbessern?\n\n'
+      + 'Antworte auf Deutsch, strukturiert 1-5. Max. 350 Wörter. Vollständig abschließen.';
+  }
+
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.3.0',
+    VERSION: '2.4.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
@@ -744,6 +891,36 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
       return Object.entries(STRATEGIES).map(function(e) {
         return { strat: e[0], label: e[1].hint.split(':')[0] };
       });
+    },
+
+    /**
+     * Intermarket/Makro-Analyse-Prompt (autoMakro).
+     * Ersetzt den inline-Prompt-Block in autoMakro() / generateDpKI()-Bereich.
+     * Gibt JSON-Output-Prompt zurück (verdict / verdictText / factors[]).
+     * @param {object} ctx - siehe _getIntermarketPrompt JSDoc
+     */
+    getIntermarketPrompt(ctx) {
+      return _getIntermarketPrompt(ctx);
+    },
+
+    /**
+     * Oversold-Rebound-Scan-Prompt (runOversoldScan).
+     * Ersetzt den inline-Prompt-Block in runOversoldScan().
+     * Gibt JSON-Output-Prompt zurück (candidates[]).
+     * @param {object} ctx - {vix, candidateStr}
+     */
+    getOversoldPrompt(ctx) {
+      return _getOversoldPrompt(ctx);
+    },
+
+    /**
+     * Backtesting Meta-Analyse-Prompt (runMetaAnalysis).
+     * Ersetzt den inline-Prompt-Block in runMetaAnalysis().
+     * Gibt strukturierten DE-Text-Prompt zurück (1-5 Punkte).
+     * @param {object} ctx - {backtestCtx, dp}
+     */
+    getMetaAnalysisPrompt(ctx) {
+      return _getMetaAnalysisPrompt(ctx);
     },
   };
 
