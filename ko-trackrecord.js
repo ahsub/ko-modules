@@ -381,10 +381,10 @@ const TrackRecord = {
   get error()   { return _error;  },
 };
 
-// ES-Module-Export + Browser-Fallback
+// Browser-Fallback: window.TrackRecord für klassische <script>-Einbindung.
+// Kein ES-Module-Export (kein type="module" im CDN-Script-Tag).
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { TrackRecord };
 } else if (typeof window !== 'undefined') {
   window.TrackRecord = TrackRecord;
 }
-export { TrackRecord };
