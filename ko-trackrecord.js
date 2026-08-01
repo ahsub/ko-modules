@@ -1,7 +1,7 @@
 /**
  * ko-trackrecord.js — UIQ Track-Record Modul (Phase C)
  * ══════════════════════════════════════════════════════════════════
- * Version: 1.0.1 (01.08.2026) | Spezifikation: docs/TRACK_RECORD_SPEC.md v1.2
+ * Version: 1.0.2 (01.08.2026) | Spezifikation: docs/TRACK_RECORD_SPEC.md v1.2
  *
  * Liest tr:stats aus Cloudflare KV (via ko-sync Worker) und rendert
  * die Strategie×Regime-Matrix mit hit30/hitFresh/alpha/avg-Metriken.
@@ -70,7 +70,9 @@ async function load(koSyncBase, token) {
   try {
     const base = (koSyncBase || 'https://ko-sync.ahildebrand.workers.dev').replace(/\/$/, '');
     // tr:stats ist auth-geschützt → /sync/-Endpunkt mit X-UIQ-Token-Header
-    const headers = { 'Cache-Control': 'no-store' };
+    // Cache-Control NICHT im Header setzen — ko-sync CORS-Policy erlaubt es nicht (Preflight-Fehler).
+    // cache: 'no-store' als fetch-Option reicht (kein CORS-Preflight nötig).
+    const headers = {};
     if (token) headers['X-UIQ-Token'] = token;
     const res  = await fetch(base + '/sync/tr%3Astats', { cache: 'no-store', headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
