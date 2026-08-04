@@ -269,5 +269,6 @@ function kvToScannerState(r) {
 
 // Global verfügbar machen für alle Script-Blöcke
 window.kvToScannerState = kvToScannerState;
+window._kvToScannerStateFn = kvToScannerState;
 
 console.log('[ko-kv-state] v1.0 geladen — kvToScannerState global verfügbar');
