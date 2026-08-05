@@ -26,6 +26,12 @@
  *   für die Standard-Strategien (ko-ai Worker behält EIC-Sonderfunktionen).
  *
  * Changelog:
+ *   v2.6.0 (05.08.2026): Morning Briefing Coaching-Ton
+ *   - _getMorningPrompt EIC: Coaching-Sprache (Mentor-Stil, Metrik-Erklärungen,
+ *     Handlungshaltung je Abschnitt) — ersetzt rein deskriptive Abschnitts-Anweisungen
+ *   - _getMorningPrompt Public: Erklär-Pflicht für jeden Messwert ("Zahl + Bedeutung"),
+ *     TOP-KANDIDATEN-Begründungspflicht ergänzt, BaFin-REGEL präzisiert
+ *   - Kein API-Änderung: getMorningPrompt(lines, eic, dixReal) unverändert
  *   v2.5.0 (30.07.2026): ko-indicators-registry Sprint — Strategie↔Leaderboard-Mapping
  *     - lbKey-Feld zu allen 14 Strategien in STRATEGIES ergänzt
  *       (Single Source of Truth für Strategie→Leaderboard-Zuordnung)
@@ -229,31 +235,49 @@ Das bedeutet konkret:
 
     if (eic) {
       return _getSystemPrompt(null, true) + '\n\n'
-        + 'AUFGABE: Morning Briefing Tearsheet für heute. Strukturiere deine Antwort in diese Abschnitte (jeweils 2-4 Sätze):\n'
-        + '1. MARKT-REGIME: Charakter des aktuellen Regimes (MSE) und was Breadth/Rotation dafür bedeuten.\n'
-        + '2. VOLATILITÄT & FLOW: VIX/VVIX/SKEW als Z-Score/Perzentil interpretieren (nicht nur Rohwert). SKEW/VVIX-Divergenz explizit bewerten falls vorhanden. GEX nur als AAPL-Einzeltitel-Proxy nennen, NIE als Markt-Level SPY/QQQ ausgeben. '
+        + 'AUFGABE: Morning Briefing — Tagesstart-Coaching für heute.\n'
+        + 'Sprich wie ein erfahrener Mentor, der kurz vor Handelsbeginn mit dem Investor spricht: '
+        + 'Was ist los im Markt, was bedeutet das konkret, und was ist heute die richtige Haltung?\n\n'
+        + 'STRUKTUR (6 Abschnitte, je 2-4 Sätze direkt und auf den Punkt):\n'
+        + '1. MARKT-REGIME: Was sagt das aktuelle Regime (MSE) — und was bedeutet das heute konkret für die Handelsbereitschaft? '
+        + 'Breadth und Rotation als Bestätigung oder Warnung einordnen (Zahlen nennen).\n'
+        + '2. VOLATILITÄT & FLOW: VIX/VVIX/SKEW als Z-Score/Perzentil interpretieren — nicht den Rohwert, sondern was er bedeutet. '
+        + 'SKEW/VVIX-Divergenz explizit bewerten falls vorhanden. GEX nur als AAPL-Einzeltitel-Proxy nennen, NIE als SPY/QQQ-Marktlevel. '
         + (_dixReal
-            ? 'DIX (ETF-Korb) als echten Messwert einordnen, aber explizit als ETF-Korb-Proxy kennzeichnen — nicht mit dem klassischen S&P-500-DIX gleichsetzen.\n'
+            ? 'DIX (ETF-Korb) als echten Messwert einordnen, aber explizit als ETF-Korb-Proxy kennzeichnen.\n'
             : 'DIX ist n/v — niemals erwähnen oder schätzen.\n')
-        + '3. MAKRO-RISIKEN: MOVE Index (Treasury-Vol), HY Credit Spread, US Net Liquidity (Trend!) einordnen. Systemische Risiken oder Entwarnung?\n'
-        + '4. SEKTOR-ROTATION: Welche Sektoren zeigen relative Stärke, welche Schwäche (aus Sektor-RS-Tabelle)?\n'
-        + '5. SENTIMENT: Fear & Greed und PCR (als Proxy kennzeichnen falls source=vix_proxy) einordnen — kontraindikatorisch oder trendbestätigend?\n'
+        + '3. MAKRO-RISIKEN: MOVE Index, HY Credit Spread, US Net Liquidity (Trend!) konkret einordnen — Entwarnung oder Warnsignal? '
+        + 'Keinen Messwert nennen ohne zu sagen was er bedeutet.\n'
+        + '4. SEKTOR-ROTATION: Welche Sektoren zeigen heute relative Stärke, welche Schwäche? '
+        + 'Direkte Konsequenz nennen: wo sucht man heute, wo nicht.\n'
+        + '5. SENTIMENT: Fear & Greed und PCR (als Proxy kennzeichnen falls source=vix_proxy) — '
+        + 'kontraindikatorisch lesen oder trendbestätigend? Eindeutige Einschätzung formulieren.\n'
         + '6. STRATEGIE-AMPEL: Alle Strategien mit Ampelfarbe + 1-Satz-Begründung inkl. konkretem Messwert (Pflichtabschnitt).\n\n'
+        + 'COACHING-STIL (bindend für alle 6 Abschnitte):\n'
+        + '- Jede Metrik in einem Halbsatz erklären: \"VIX-Z +1.8 — Volatilität erhöht, Optionsprämien attraktiv\" statt nur \"VIX-Z +1.8\".\n'
+        + '- Konkrete Handlungshaltung je Abschnitt: handeln, abwarten oder absichern — immer mit Begründung aus den Daten.\n'
+        + '- Kein akademischer Stil, keine Schachtelsätze. Direkt wie ein Gesprächspartner.\n'
+        + '- Zahlen nennen, nie vage bleiben. Fehlende Werte: \"n/v\".\n\n'
         + basis + '\n\n'
-        + 'Nur Messwerte verwenden. Fehlende Werte als "n/v" kennzeichnen — niemals interpretieren oder schätzen. Direkt und konkret, Zahlen nennen statt vager Worte.'
         + STRATEGIE_MATRIX;
     } else {
       return _getSystemPrompt(null, false) + '\n\n'
-        + 'AUFGABE: Morning Briefing Tearsheet — vollständige Marktbeurteilung für den heutigen Handelstag.\n'
-        + 'Strukturiere die Analyse in 5 Abschnitte (jeweils 2-4 Sätze, deskriptiv, BaFin-konform gem. §1 WpHG):\n\n'
+        + 'AUFGABE: Morning Briefing — Marktüberblick zum Tagesstart.\n'
+        + 'Erkläre klar und verständlich, was der Markt heute zeigt — und was das für einen Investor bedeutet. '
+        + 'Kein Fachjargon ohne Erklärung. Jede Zahl bekommt eine Bedeutung in einem Halbsatz.\n\n'
+        + 'STRUKTUR (5 Abschnitte, je 2-4 Sätze, BaFin-konform gem. §1 WpHG):\n\n'
         + basis + '\n\n'
         + 'ABSCHNITTE:\n'
-        + '1. MARKTLAGE: Regime und Bedeutung des aktuellen Marktumfelds auf Basis der Messwerte.\n'
-        + '2. SENTIMENT: Fear & Greed, PCR (als Proxy kennzeichnen falls source=vix_proxy), IOS-Market-Score deskriptiv einordnen.\n'
-        + '3. MAKRO-KONDENSAT: HY Credit Spread, US Net Liquidity (Trend!), MOVE Index einordnen.\n'
+        + '1. MARKTLAGE: Was ist das aktuelle Regime (MSE) — und was bedeutet das heute konkret? '
+        + 'Breadth und Rotation einordnen: bestätigen sie das Regime oder widersprechen sie ihm?\n'
+        + '2. SENTIMENT: Fear & Greed, PCR (als Proxy kennzeichnen falls source=vix_proxy), IOS-Market-Score — '
+        + 'einordnen und erklären was der Wert bedeutet, nicht nur nennen.\n'
+        + '3. MAKRO-KONDENSAT: HY Credit Spread, US Net Liquidity (Trend!), MOVE Index — '
+        + 'je Messwert in einem Halbsatz erklären was er heute signalisiert.\n'
         + '4. STRATEGIE-AMPEL: Alle Strategien mit Ampelfarbe + 1-Satz-Begründung inkl. konkretem Messwert.\n'
-        + '5. TOP-KANDIDATEN: Aus den Shortlist-Daten — welche 3-5 Titel passen heute am besten zum Marktumfeld?\n'
-        + '\nSTRIKTE BaFin-REGEL: Keine Empfehlungen zum Kauf, Verkauf oder Halten von Wertpapieren, Derivaten oder Hebelprodukten, auch nicht implizit durch Ampel-Priorisierungen. Ausschließlich neutrale Beschreibung. Fehlende Werte als "nicht verfügbar" benennen — niemals schätzen. '
+        + '5. TOP-KANDIDATEN: Aus den Shortlist-Daten — welche 3-5 Titel passen heute am besten zum Marktumfeld, und warum?\n'
+        + '\nSTRIKTE BaFin-REGEL: Keine Empfehlungen zum Kauf, Verkauf oder Halten von Wertpapieren, Derivaten oder Hebelprodukten, '
+        + 'auch nicht implizit. Ausschließlich deskriptive Einordnung. Fehlende Werte als \"nicht verfügbar\" benennen — niemals schätzen. '
         + (_dixReal
             ? 'DIX (ETF-Korb) deskriptiv einordnen, explizit als ETF-Korb-Proxy kennzeichnen.\n'
             : 'DIX ist grundsätzlich nicht verfügbar — niemals erwähnen.\n')
