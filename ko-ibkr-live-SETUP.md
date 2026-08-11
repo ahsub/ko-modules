@@ -31,9 +31,22 @@ selbst installiert (`curl -fsSL https://get.docker.com | sh`).
    selbst.** Sicher aufbewahren (Passwort-Manager), niemals im Klartext in
    ein Git-Repo committen.
 
-## Schritt 3 — IBeam + Gateway per Docker Compose starten
+## Schritt 3 — IBeam + Gateway per Docker Compose starten (mit `.env`)
 
-Auf dem VPS, in einem neuen Verzeichnis, folgende `compose.yaml` anlegen:
+Auf dem VPS, in einem neuen Verzeichnis, zwei Dateien anlegen — die
+Geheimnisse stehen NUR in der `.env`, die `compose.yaml` verweist nur
+darauf und kann bedenkenlos auch mal geteilt/eingesehen werden.
+
+**Datei 1: `.env`** (die eigentlichen Geheimnisse, bleibt lokal auf dem VPS)
+
+```env
+IBEAM_ACCOUNT=DEIN_IBKR_BENUTZERNAME
+IBEAM_PASSWORD=DEIN_IBKR_PASSWORT
+IBEAM_OTP_SECRET=DAS_BASE32_SECRET_AUS_SCHRITT_2
+```
+
+**Datei 2: `compose.yaml`** (verweist per `${VARIABLE}` auf die `.env`,
+keine Geheimnisse direkt drin)
 
 ```yaml
 services:
@@ -42,21 +55,41 @@ services:
     ports:
       - 5000:5000
     environment:
-      IBEAM_ACCOUNT: "DEIN_IBKR_BENUTZERNAME"
-      IBEAM_PASSWORD: "DEIN_IBKR_PASSWORT"
-      IBEAM_OTP_SECRET: "DAS_BASE32_SECRET_AUS_SCHRITT_2"
+      IBEAM_ACCOUNT: ${IBEAM_ACCOUNT}
+      IBEAM_PASSWORD: ${IBEAM_PASSWORD}
+      IBEAM_OTP_SECRET: ${IBEAM_OTP_SECRET}
     network_mode: bridge  # Pflicht laut IBeam-Doku (IP-Whitelist des Gateways)
     restart: unless-stopped
 ```
 
+Docker Compose liest die `.env`-Datei automatisch, solange sie im selben
+Verzeichnis wie `compose.yaml` liegt — kein zusätzlicher Parameter nötig,
+einfach `docker compose up -d` wie gewohnt.
+
+**Falls das Verzeichnis überhaupt unter Versionskontrolle steht** (z. B.
+weil du es testweise in einem privaten Repo ablegen willst): unbedingt
+zuerst
+
+```bash
+echo ".env" >> .gitignore
+```
+
+— **bevor** die `.env`-Datei angelegt wird, damit sie nie versehentlich
+committed wird. Rechte einschränken schadet auch nicht:
+
+```bash
+chmod 600 .env
+```
+
+(nur der Datei-Besitzer darf lesen/schreiben).
+
 **Wichtig zu Sicherheit (ehrliche Einordnung, nicht beschönigt):** Die
-Zugangsdaten liegen im laufenden Container im Klartext vor. Das ist ein
-bekanntes, von IBeam selbst offen benanntes Risiko (s. deren README) — bei
-einem kompromittierten Server oder einer Sicherheitslücke im Port-5000-API
+`.env`-Datei bzw. der laufende Container hält die Zugangsdaten weiterhin im
+Klartext — das `.env`-Muster schützt vor **versehentlichem Commit ins
+Git-Repo**, nicht vor Zugriff auf dem Server selbst. Das ist ein bekanntes,
+von IBeam selbst offen benanntes Restrisiko (s. deren README): bei einem
+kompromittierten Server oder einer Sicherheitslücke im Port-5000-API
 könnten die Daten offengelegt werden. Für den Anfang vertretbar, aber:
-- `compose.yaml` NIEMALS in ein Git-Repo committen (auch nicht privat) —
-  stattdessen `.env`-Datei mit `echo ".env" >> .gitignore` sichern, oder
-  die Werte direkt auf dem Server in einer nicht versionierten Datei halten.
 - Firewall auf dem VPS: Port 5000 NUR für die IP-Adressen freigeben, die
   tatsächlich zugreifen müssen (GitHub Actions hat leider keine festen
   IP-Ranges — hier ggf. stattdessen ein VPN oder einen Reverse-Proxy mit
