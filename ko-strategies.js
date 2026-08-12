@@ -689,7 +689,6 @@ const KoStrategies = {
 if (typeof window !== 'undefined') {
   // Rückwärtskompatibler Alias — bestehender Code in index.html ruft
   // weiterhin `KoPrompts.xxx` auf, ohne dass dort etwas angepasst werden musste.
-  window.KoPrompts = KoStrategies;
   window.KoStrategies = KoStrategies;
   window.KI_ANTI_HALLUZINATION = KI_ANTI_HALLUZINATION;
   window.KoPromptsLoaded = true;
