@@ -90,7 +90,7 @@ VOLLSTÄNDIGKEIT: Jede Analyse MUSS alle Punkte vollständig abschliessen.
 
 `;
 
-const DEFAULT_OPTS_CFG = { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 30 };
+const DEFAULT_OPTS_CFG = { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 21 };
 
 // ── TEMPLATE-RESOLVER (ES6) ───────────────────────────────────────────────
 // Ersetzt ${pfad.zu.wert} in Regelwerk-Strings gegen Werte aus dem optsCfg-
