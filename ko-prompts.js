@@ -246,9 +246,9 @@ Das bedeutet konkret:
         + '1. MARKT-REGIME: Was sagt das aktuelle Regime (MSE) — und was bedeutet das heute konkret für die Handelsbereitschaft? '
         + 'Breadth und Rotation als Bestätigung oder Warnung einordnen (Zahlen nennen).\n'
         + '2. VOLATILITÄT & FLOW: VIX/VVIX/SKEW als Z-Score/Perzentil interpretieren — nicht den Rohwert, sondern was er bedeutet. '
-        + 'SKEW/VVIX-Divergenz explizit bewerten falls vorhanden. GEX nur als AAPL-Einzeltitel-Proxy nennen, NIE als SPY/QQQ-Marktlevel. '
+        + 'SKEW/VVIX-Divergenz explizit bewerten falls vorhanden. GEX (SPY-Markt-Level, SqueezeMetrics — sofern verfügbar) als echten Gamma-Exposure-Indikator einordnen. '
         + (_dixReal
-            ? 'DIX (ETF-Korb) als echten Messwert einordnen, aber explizit als ETF-Korb-Proxy kennzeichnen.\n'
+            ? 'DIX (S&P-500-Basis UND ETF-Korb, beide getrennt kennzeichnen) als echte Messwerte einordnen.\n'
             : 'DIX ist n/v — niemals erwähnen oder schätzen.\n')
         + '3. MAKRO-RISIKEN: MOVE Index, HY Credit Spread, US Net Liquidity (Trend!) konkret einordnen — Entwarnung oder Warnsignal? '
         + 'Keinen Messwert nennen ohne zu sagen was er bedeutet.\n'
@@ -275,7 +275,9 @@ Das bedeutet konkret:
         + '1. MARKTLAGE: Was ist das aktuelle Regime (MSE) — und was bedeutet das heute konkret? '
         + 'Breadth und Rotation einordnen: bestätigen sie das Regime oder widersprechen sie ihm?\n'
         + '2. SENTIMENT: Fear & Greed, PCR (als Proxy kennzeichnen falls source=vix_proxy), IOS-Market-Score — '
-        + 'einordnen und erklären was der Wert bedeutet, nicht nur nennen.\n'
+        + 'einordnen und erklären was der Wert bedeutet, nicht nur nennen. '
+        + (_dixReal ? 'DIX (ETF-Korb, als solcher gekennzeichnet) UND ' : '')
+        + 'GEX (SPY-Markt-Level, falls verfügbar) als Dark-Pool-/Gamma-Indikatoren mit einbeziehen.\n'
         + '3. MAKRO-KONDENSAT: HY Credit Spread, US Net Liquidity (Trend!), MOVE Index — '
         + 'je Messwert in einem Halbsatz erklären was er heute signalisiert.\n'
         + '4. STRATEGIE-AMPEL: Alle Strategien mit Ampelfarbe + 1-Satz-Begründung inkl. konkretem Messwert.\n'
@@ -283,7 +285,7 @@ Das bedeutet konkret:
         + '\nSTRIKTE BaFin-REGEL: Keine Empfehlungen zum Kauf, Verkauf oder Halten von Wertpapieren, Derivaten oder Hebelprodukten, '
         + 'auch nicht implizit. Ausschließlich deskriptive Einordnung. Fehlende Werte als \"nicht verfügbar\" benennen — niemals schätzen. '
         + (_dixReal
-            ? 'DIX (ETF-Korb) deskriptiv einordnen, explizit als ETF-Korb-Proxy kennzeichnen.\n'
+            ? 'DIX (S&P-500-Basis UND ETF-Korb, beide getrennt kennzeichnen) deskriptiv einordnen.\n'
             : 'DIX ist grundsätzlich nicht verfügbar — niemals erwähnen.\n')
         + STRATEGIE_MATRIX;
     }
