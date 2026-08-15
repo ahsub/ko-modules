@@ -670,7 +670,7 @@ const listByCategory = (category) =>
   Object.entries(Strategies).filter(([, s]) => s.category === category).map(([id]) => id);
 
 const KoStrategies = {
-  VERSION: '2.4.0',
+  VERSION: '2.4.1',
   Strategies,
   STRATEGIES: Strategies, // Alias für Rückwärtskompatibilität (alte Schreibweise)
   KI_ANTI_HALLUZINATION,
