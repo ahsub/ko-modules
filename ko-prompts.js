@@ -494,7 +494,8 @@ Das bedeutet konkret:
       hint:  '⚙️ CSP/Wheel: Cash Secured Put + Covered Call · CapTrader/IBKR · Theta-Strategie',
       color: 'var(--amber)',
       prompt: function(ctx) {
-        var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 21 };
+        var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 30 };
+        var rules = getEffectiveRules('csp_wheel', cfg) || { deltaRange: [0.15, 0.30], dteRange: [cfg.dte, 45] };
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Options-Trader mit Fokus auf Wheel-Strategie (CSP + Covered Calls).\n\n'
           + '⚠️ Diese Analyse dient ausschliesslich zu Informationszwecken gem. §1 WpHG.\n\n'
@@ -519,9 +520,10 @@ Das bedeutet konkret:
           + '2. TOP 3 CSP/WHEEL-KANDIDATEN: Für jeden Titel:\n'
           + '   a) EMA200-Abstand: Strike-Empfehlung nahe/unter EMA200 in $\n'
           + '   b) Strike-Bereich in $ und % OTM vom aktuellen Kurs\n'
-          + '   c) Laufzeit (bevorzugt ' + cfg.dte + '-45 DTE)\n'
-          + '   d) Prämien-SCHÄTZUNG aus HVP — IMMER als Schätzung kennzeichnen\n'
-          + '   e) PFLICHT-CHECKS: IV Rank in IBKR · OI > 500 · Bid-Ask < 10%\n'
+          + '   c) Laufzeit (bevorzugt ' + rules.dteRange[0] + '-' + rules.dteRange[1] + ' DTE)\n'
+          + '   d) Delta-Bereich: ' + rules.deltaRange[0] + '-' + rules.deltaRange[1] + ' (≈' + Math.round((1-rules.deltaRange[1])*100) + '-' + Math.round((1-rules.deltaRange[0])*100) + '% rechnerische Gewinnwahrscheinlichkeit)\n'
+          + '   e) Prämien-SCHÄTZUNG aus HVP — IMMER als Schätzung kennzeichnen\n'
+          + '   f) PFLICHT-CHECKS: IV Rank in IBKR · OI > 500 · Bid-Ask < 10%\n'
           + '3. WATCHLIST: Titel die nach ER oder höherem IV interessant werden.\n'
           + '4. RISIKEN: IV-Crush, ER-Überraschungen, Titel unter 200d EMA.\n'
           + '\n⚠️ ABSCHLUSS: Immer mit Pflicht-Checks in IBKR/CapTrader abschliessen.\n'
