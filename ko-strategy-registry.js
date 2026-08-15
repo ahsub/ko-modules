@@ -51,8 +51,10 @@
       color: 'var(--amber)',
       memberOf: 'wheel',
       rules: {
-        deltaRange: [0.20, 0.30],       // aus EIC-System-Prompt (ko-prompts.js:158)
-        dteRange: [21, 45],             // FIX: war 30-45 (dte-Bug), jetzt korrekt
+        deltaRange: [0.15, 0.30],       // KORRIGIERT 15.08.2026: Marktstandard-Recherche
+                                        // (Theta-Decay/Gamma-Begründung), ersetzt EIC-Prompt-Wert
+        dteRange: [30, 45],             // KORRIGIERT 15.08.2026: war fälschlich [21,45] —
+                                        // s. UEBERGABE-2026-08-13.md §4, Marktstandard ist 30-45
         profitTaking: [
           { pct: 50, condition: null, action: 'close' }
         ],
@@ -74,8 +76,8 @@
       color: '#f59e0b',
       memberOf: 'wheel',
       rules: {
-        deltaRange: [0.20, 0.30],       // aus EIC-System-Prompt, konsistent zu CSP
-        dteRange: [21, 45],             // FIX: war 30-45 (dte-Bug), jetzt korrekt
+        deltaRange: [0.20, 0.30],       // unveraendert korrekt, deckt sich mit Marktstandard
+        dteRange: [30, 45],             // KORRIGIERT 15.08.2026: war fälschlich [21,45]
         profitTaking: [
           { pct: 50, condition: null, action: 'close' }
         ],
