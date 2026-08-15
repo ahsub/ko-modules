@@ -1,12 +1,12 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
-  * Version: 2.5.1 (15.08.2026) — getEffectiveRules() ergaenzt (liest Delta/DTE
-  *   aus KoStrategyRegistry statt hartcodierter Werte), csp_wheel/cc-Prompts
-  *   nutzen sie jetzt (neue Delta-Zeile, korrigierte DTE-Range 30-45 statt
-  *   fälschlich 21-45), statischer "21-45 DTE"-Text im CC-Grundlagentext
-  *   korrigiert auf "30-45 DTE". Fallback-Defaults (dte:21→30) an 2 Stellen.
- * Repository: ahsub/ko-modules
+ *  Version: 2.5.1 (15.08.2026) — getEffectiveRules() ergaenzt (liest Delta/DTE
+ *  aus KoStrategyRegistry statt hartcodierter Werte), csp_wheel/cc-Prompts
+ *  nutzen sie jetzt (neue Delta-Zeile, korrigierte DTE-Range 30-45 statt
+ *  fälschlich 21-45), statischer "21-45 DTE"-Text im CC-Grundlagentext
+ *  korrigiert auf "30-45 DTE". Fallback-Defaults (dte:21→30) an 2 Stellen.
+ *  Repository: ahsub/ko-modules
  *
  * Enthält:
  *   - KI_ANTI_HALLUZINATION  → globale Schutzregel für alle KI-Calls
