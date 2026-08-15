@@ -284,7 +284,33 @@ Das bedeutet konkret:
         + STRATEGIE_MATRIX;
     }
   }
-
+  // NEU (15.08.2026): Effektive Regeln pro Strategie — liest Basis-Werte aus
+  // KoStrategyRegistry (Single Source of Truth), ueberschreibt NUR die DTE-
+  // untere-Grenze mit dem nutzerseitig einstellbaren optsCfg.dte (ausser bei
+  // atmna, das strategie-intrinsisch fix bei 30 bleibt, s. getTargetDteForStrategy
+  // in axel-scanner/index.html). Delta bleibt IMMER aus der Registry — bewusst
+  // nicht nutzerkonfigurierbar (strategie-definierende Konstante, kein Markt-
+  // Setting). Fallback auf hartcodierte Werte falls Registry nicht geladen
+  // (Ladereihenfolge-Absicherung, KoStrategyRegistry ist normales <script>,
+  // muss vor ko-prompts.js laden, ist aber defensiv abgesichert falls nicht).
+  function getEffectiveRules(stratId, optsCfg) {
+    var FALLBACK = {
+      csp_wheel: { deltaRange: [0.15, 0.30], dteRange: [30, 45] },
+      cc:        { deltaRange: [0.20, 0.30], dteRange: [30, 45] },
+      atmna:     { deltaRange: null,         dteRange: [30, 30] }
+    };
+    var base = (typeof KoStrategyRegistry !== 'undefined')
+      ? KoStrategyRegistry.getRules(stratId)
+      : null;
+    if (!base) base = FALLBACK[stratId] || null;
+    if (!base) return null;
+    var effective = { deltaRange: base.deltaRange, dteRange: base.dteRange ? base.dteRange.slice() : null };
+    if (optsCfg && optsCfg.dte != null && stratId !== 'atmna' && effective.dteRange) {
+      effective.dteRange[0] = optsCfg.dte;
+    }
+    return effective;
+  }
+  
   // ── STRATEGIE-KONFIGURATIONEN (12 kanonische UIQ-Strategien) ──────────────
   const STRATEGIES = {
 
