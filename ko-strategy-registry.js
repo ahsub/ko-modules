@@ -60,9 +60,21 @@
         profitTaking: [
           { pct: 50, condition: null, action: 'close' }
         ],
+        stopLoss: { pct: -200, basis: 'Spina S.194 + Friedenheim S.37, zwei unabhaengige Quellen' },
         rollRules: {
-          trigger: 'strike_breach',      // Kurs unter Strike / Assignment droht
-          action: 'evaluate_assignment_or_roll_down_and_out'
+          maxRollDte: 90,  // wie ATMNA — Salibas Prinzip: proaktiv, nicht endlos
+          stages: [
+            { stage: 1, action: 'niedrigerer_strike', dteRange: [30, 45], premiumNeutral: true,
+              condition: 'strike_breach_but_original_intent_pure_income' },
+            { stage: 2, action: 'accept_assignment',
+              condition: 'original_intent_was_acquisition' }
+          ],
+          note: 'Vereint 5 Quellen: Saliba S.32 (proaktives, praemienneutrales Rollen ist legitim, ' +
+                'strukturell wie ATMNA), Jabbour/Budwick S.311-315 (reaktive Rettung eines bereits ' +
+                'bedraengten Short Put ist meist ein Netto-Verlustgeschaeft — daher premiumNeutral als ' +
+                'harte Bedingung, kein Rollen ohne Credit-Erhalt), Spina S.98 (CSP=undefiniertes Risiko, ' +
+                'kein automatisches Rollen als Standard), Thomsett (bei Nicht-Ausuebung eher neue Position ' +
+                'als bestehende rollen), Friedenheim S.37 (feste Regeln statt Improvisation im Trade)'
         },
         strikeGuidance: 'nahe/unter EMA200',
         minOiAtStrike: 500,
