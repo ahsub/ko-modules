@@ -631,7 +631,8 @@ Das bedeutet konkret:
       hint:  '📝 Covered Call: Call-Writing auf Bestandspositionen · Buy-Write · Prämieneinnahme',
       color: '#f59e0b',
       prompt: function(ctx) {
-        var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 300, minHvp: 30, goodHvp: 45, idealHvp: 60, erDays: 30, dte: 21 };
+        var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 300, minHvp: 30, goodHvp: 45, idealHvp: 60, erDays: 30, dte: 30 };
+        var rules = getEffectiveRules('cc', cfg) || { deltaRange: [0.20, 0.30], dteRange: [cfg.dte, 45] };
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Options-Trader mit Fokus auf Covered Call Writing (Call-Verkauf auf bestehende oder neu erworbene Aktienpositionen).\n\n'
           + '⚠️ Diese Analyse dient ausschliesslich zu Informationszwecken gem. §1 WpHG.\n\n'
@@ -641,7 +642,7 @@ Das bedeutet konkret:
           + '- Strike-Wahl: Kompromiss zwischen Prämie und Upside-Potenzial\n'
           + '  • Aggressiv (mehr Prämie): Strike nahe Kurs (5-8% OTM)\n'
           + '  • Konservativ (mehr Upside): Strike weit OTM (10-15%)\n'
-          + '- Laufzeit: bevorzugt 21-45 DTE, Frühausstieg bei 50% Prämiengewinn\n'
+          + '- Laufzeit: bevorzugt 30-45 DTE, Frühausstieg bei 50% Prämiengewinn\n'
           + '- Rollstrategie: Call rollen wenn Kurs an Strike heranläuft (Aufwärts-Roll)\n'
           + '- WICHTIG: CC deckt Upside — bei stark steigenden Titeln kann Gewinnpotenzial gekappt werden\n\n'
           + '🚫 AUSSCHLUSS-KRITERIEN:\n'
@@ -655,10 +656,11 @@ Das bedeutet konkret:
           + '   Für jeden Titel:\n'
           + '   a) HVP-Bewertung: ≥' + cfg.idealHvp + '% ⭐ · ' + cfg.goodHvp + '-' + (cfg.idealHvp-1) + '% ✅ · ' + cfg.minHvp + '-' + (cfg.goodHvp-1) + '% ⚠️\n'
           + '   b) Strike-Empfehlung: OTM-Abstand in % und $ vom Kurs (aus "Kurs:$"-Feld)\n'
-          + '   c) Laufzeit: ~' + cfg.dte + ' DTE, bevorzugt 3. Freitag des Monats\n'
-          + '   d) Prämien-SCHÄTZUNG aus HVP (⚠️ Schätzung — exakt in IBKR prüfen)\n'
-          + '   e) Upside-Risiko: Wie viel Kursgewinn wird bis zum Strike gedeckelt?\n'
-          + '   f) PFLICHT-CHECKS: OI > 300 · Bid-Ask < 10% · kein ER in Laufzeit\n'
+          + '   c) Laufzeit: ~' + rules.dteRange[0] + '-' + rules.dteRange[1] + ' DTE, bevorzugt 3. Freitag des Monats\n'
+          + '   d) Delta-Bereich: ' + rules.deltaRange[0] + '-' + rules.deltaRange[1] + '\n'
+          + '   e) Prämien-SCHÄTZUNG aus HVP (⚠️ Schätzung — exakt in IBKR prüfen)\n'
+          + '   f) Upside-Risiko: Wie viel Kursgewinn wird bis zum Strike gedeckelt?\n'
+          + '   g) PFLICHT-CHECKS: OI > 300 · Bid-Ask < 10% · kein ER in Laufzeit\n'
           + '3. WATCHLIST: Titel die nach ER oder Kurskorrektur interessant werden für CC.\n'
           + '4. RISIKEN: Assignment-Risiko, Upside-Cap in starkem Trend, niedrige Prämien bei niedrigem VIX.\n'
           + '\n⚠️ ABSCHLUSS: Strikes und Prämien immer in IBKR/CapTrader Optionskette verifizieren.\n'
