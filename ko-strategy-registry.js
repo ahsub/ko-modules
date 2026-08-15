@@ -30,7 +30,9 @@
  * wiederholen. Synchrones <script>, muss im HTML VOR ko-prompts.js und
  * VOR ko-strategies.js eingebunden werden.
  *
- * Version: 1.0 (Entwurf, 13.08.2026 — noch nicht deployed/verifiziert)
+ * Version: 1.1 (15.08.2026 — Werte korrigiert (DTE 30-45, CSP-Delta 0.15-0.30),
+ *   eingebunden in axel-scanner/index.html (Schritt 1 der Migration nachgeholt),
+ *   von ko-prompts.js/getEffectiveRules() live konsumiert. Deployed & verifiziert.)
  * ============================================================================
  */
 
