@@ -1,6 +1,16 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.5.2 (15.08.2026) — Morning-Briefing-Prompt (_getMorningPrompt)
+ *  korrigiert: DIX/GEX standen nur in einer nachgelagerten Stilregel, nicht in
+ *  der eigentlichen Abschnitts-Aufgabenstellung — KI erwaehnte sie dadurch nie,
+ *  obwohl die Werte im Kontext vorlagen. GEX-Text von veralteter "AAPL-Proxy"-
+ *  Formulierung auf "SqueezeMetrics SPY-Markt-Level" korrigiert (EIC+Public).
+ *  DIX-Text erweitert auf "S&P-500-Basis UND ETF-Korb" (vorher nur ETF-Korb).
+ *  _dixReal-Berechnung in index.html erweitert (erkennt jetzt beide DIX-Quellen).
+ *  Bekannter, noch offener Punkt: Server-seitiger Python-Pfad (market_aggregator.py,
+ *  KV-gecachtes Briefing) hat vermutlich eigene, unabhaengige Prompt-Logik — dieser
+ *  Fix deckt nur den clientseitigen JS-Pfad ab. S. UEBERGABE-2026-08-15.md. 
  *  Version: 2.5.1 (15.08.2026) — getEffectiveRules() ergaenzt (liest Delta/DTE
  *  aus KoStrategyRegistry statt hartcodierter Werte), csp_wheel/cc-Prompts
  *  nutzen sie jetzt (neue Delta-Zeile, korrigierte DTE-Range 30-45 statt
