@@ -1,12 +1,12 @@
 {
   "_meta": {
-    "version": "2.3.0",
+    "version": "2.4.0",
     "created": "2026-07-09",
     "description": "UIQ Indikator-Registry — zentrale Quelle aller Makro-Indikatoren",
     "repository": "ahsub/ko-modules",
     "note": "Neue Indikatoren = neues Objekt. Kein Code-Eingriff nötig.",
-    "updated": "2026-07-27",
-    "changelog": "v2.3.0: breadth_osc (27.07.2026) — UIQ McClellan Breadth-Oszillator aus Eigenbestand (~700 Ticker Advance/Decline, EMA19-EMA39 Net-Advance, SUITE.md Backlog #12). aggregatorKey: market.breadthOsc.oscillator. | v2.2.0: 5 neue Indikatoren (20.07.2026) — hy_spread, net_liquidity, move_index, skew_vvix_div, qqq_markov. Alle bisher im ZUSATZ-KONTEXT des MB-Prompts hardcodiert, jetzt Registry-basiert. aggregatorKey-Pfade gegen echte Aggregator-Datenstruktur verifiziert. signalRules fuer z-Score-basierte Signale (zgte) und Signal-String-Vergleich (signal_eq) erweitert — Loader v1.3.0 erforderlich. | v2.1.1: BUGFIX — pcr.aggregatorKey war \"pcr.value\" (Feld existiert nicht im master_market_data-Schema), korrigiert auf \"pcr.pcr\" (bestaetigt gegen echte Aggregator-Daten, Run #106 14.07.2026: market.pcr = {pcr: 0.78, signal, source, components}). Ursache fuer PCR-Kachel im Home-Panel, die staendig \"—\" zeigte, obwohl PCR-Daten im Aggregator vorlagen. | v2.1.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc-Zeitstempel umgestellt (Loader v1.2.0) — FOMC nutzt jetzt Zweitage-Fenster (meeting_start_utc), bufferMinutes fuer Karenzzeit um Decision-Zeitpunkt (Spread-Normalisierung). FOMC/CPI-Termine gegen federalreserve.gov/bls.gov verifiziert (Axel, 14.07.2026). | v2.0.0: MCM Grundgeruest (enabled/weight/signalRules/Calendar)."
+    "updated": "2026-08-16",
+    "changelog": "v2.4.0: fear_greed BUGFIX (16.08.2026, Axel-Deep-Debug-Anfrage) — source computed/domId cnn-fg-score auf aggregator/aggregatorKey fearGreed.score umgestellt. Root Cause: seit v368 (17.07.2026, CNN->alternative.me-Umstellung) schrieb fetchCnnFearGreed() die Werte nie mehr ins DOM (KoData.fetchCnnFearGreed() liefert nur einen Rueckgabewert, der am Aufrufort in loadIntermarket() nie konsumiert wurde) — #cnn-fg-score blieb dauerhaft '—', wodurch der Faktor in buildMarketContext() IMMER uebersprungen wurde (nicht nur Anzeige-Bug: fehlte dadurch auch komplett in ctx.summary.caution_flags/risk_flags der MCM-Strategie-Ampel). Aggregator liefert denselben Wert bereits zuverlässig (master.market.fearGreed.score, identisch zur bereits korrekt funktionierenden Morning-Briefing-Modal-Anzeige) — robuster als der fragile externe Live-Fetch, konsistent mit pcr/ios_market-Mustern. | v2.3.0: breadth_osc (27.07.2026) — UIQ McClellan Breadth-Oszillator aus Eigenbestand (~700 Ticker Advance/Decline, EMA19-EMA39 Net-Advance, SUITE.md Backlog #12). aggregatorKey: market.breadthOsc.oscillator. | v2.2.0: 5 neue Indikatoren (20.07.2026) — hy_spread, net_liquidity, move_index, skew_vvix_div, qqq_markov. Alle bisher im ZUSATZ-KONTEXT des MB-Prompts hardcodiert, jetzt Registry-basiert. aggregatorKey-Pfade gegen echte Aggregator-Datenstruktur verifiziert. signalRules fuer z-Score-basierte Signale (zgte) und Signal-String-Vergleich (signal_eq) erweitert — Loader v1.3.0 erforderlich. | v2.1.1: BUGFIX — pcr.aggregatorKey war \"pcr.value\" (Feld existiert nicht im master_market_data-Schema), korrigiert auf \"pcr.pcr\" (bestaetigt gegen echte Aggregator-Daten, Run #106 14.07.2026: market.pcr = {pcr: 0.78, signal, source, components}). Ursache fuer PCR-Kachel im Home-Panel, die staendig \"—\" zeigte, obwohl PCR-Daten im Aggregator vorlagen. | v2.1.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc-Zeitstempel umgestellt (Loader v1.2.0) — FOMC nutzt jetzt Zweitage-Fenster (meeting_start_utc), bufferMinutes fuer Karenzzeit um Decision-Zeitpunkt (Spread-Normalisierung). FOMC/CPI-Termine gegen federalreserve.gov/bls.gov verifiziert (Axel, 14.07.2026). | v2.0.0: MCM Grundgeruest (enabled/weight/signalRules/Calendar)."
   },
   "indicators": {
     "vix": {
@@ -125,12 +125,11 @@
     "fear_greed": {
       "label": "Fear & Greed",
       "category": "sentiment",
-      "source": "computed",
-      "domId": "cnn-fg-score",
+      "source": "aggregator",
+      "aggregatorKey": "fearGreed.score",
       "promptKey": "Fear & Greed CNN",
       "promptWeight": "mittel",
       "promptHint": "0-25 extreme Angst, 75-100 extreme Gier",
-      "domIdFallback": "home-fg-val",
       "enabled": true,
       "weight": 1.0,
       "signalRules": [
