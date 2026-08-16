@@ -432,8 +432,16 @@ async function buildMarketContext(alphaData, regime) {
   }
 
   // MOVE Index (Z-Score basiert)
-  if (reg.move_index && reg.move_index.enabled !== false && _mkt && _mkt.zscores && _mkt.zscores.move && _mkt.zscores.move.ok) {
-    var _move = _mkt.zscores.move;
+  // BUGFIX (16.08.2026, Axel-Deep-Debug-Anfrage): pruefte bisher _mkt.zscores.move —
+  // dieser Pfad existiert strukturell NIE (macro_zscores/_entry() liefert nur
+  // vvix/skew/vix/vixRatio/skew_vvix_divergence, nie 'move'). Die echten MOVE-
+  // Index-Daten (inkl. Z-Score) liegen unter dem TOP-LEVEL-Key market.moveIndex
+  // (siehe fetch_move_index() im Aggregator). Dieser Block hat dadurch seit
+  // Einfuehrung (v2.2.0, 20.07.2026) NIE ausgeloest — MOVE Index war strukturell
+  // unerreichbar fuer die KI, exakt dieselbe Fehlerklasse wie der breadth_osc-
+  // Bug (falscher Feldpfad, kein einziger Live-Treffer moeglich).
+  if (reg.move_index && reg.move_index.enabled !== false && _mkt && _mkt.moveIndex && _mkt.moveIndex.ok) {
+    var _move = _mkt.moveIndex;
     var _moveSignal = _evalSignalRules(reg.move_index.signalRules, _move.current, _move.zscore, null);
     ctx.factors.move_index = {
       value: _move.current, zscore: _move.zscore, percentile: _move.percentile,
@@ -444,10 +452,14 @@ async function buildMarketContext(alphaData, regime) {
     if (_moveSignal === 'risk')    ctx.summary.risk_flags.push('move_index');
   }
 
-  // SKEW/VVIX-Divergenz (Signal-String basiert)
+  // SKEW/VVIX-Divergenz (16.08.2026: von fragilem exaktem String-Vergleich
+  // signal_eq==="WARNUNG" auf numerischen Divergenzwert umgestellt — das
+  // Server-Feld signal ist ein ganzer Satz ("WARNUNG: Institutionelle..."),
+  // nie exakt gleich dem kurzen Token "WARNUNG". Caution-Flag hat dadurch
+  // seit Einfuehrung nie ausgeloest, obwohl der Rohwert im Prompt-Text stand.
   if (reg.skew_vvix_div && reg.skew_vvix_div.enabled !== false && _mkt && _mkt.zscores && _mkt.zscores.skew_vvix_divergence && _mkt.zscores.skew_vvix_divergence.ok) {
     var _div = _mkt.zscores.skew_vvix_divergence;
-    var _divSignal = _evalSignalRules(reg.skew_vvix_div.signalRules, null, null, _div.signal);
+    var _divSignal = _evalSignalRules(reg.skew_vvix_div.signalRules, _div.value, null, _div.signal);
     ctx.factors.skew_vvix_div = {
       value: _div.value, signalStr: _div.signal,
       signal: _divSignal,
