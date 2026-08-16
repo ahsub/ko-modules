@@ -458,7 +458,7 @@
       "label": "SKEW/VVIX-Divergenz",
       "category": "volatility",
       "source": "aggregator",
-      "aggregatorKey": "market.zscores.skew_vvix_divergence",
+      "aggregatorKey": "zscores.skew_vvix_divergence",
       "unit": "",
       "promptKey": "SKEW/VVIX-Divergenz",
       "promptWeight": "mittel",
@@ -468,7 +468,7 @@
       "signalRules": [
         {
           "signal": "caution",
-          "signal_eq": "WARNUNG"
+          "gte": 1.5
         },
         {
           "signal": "ok"
@@ -559,7 +559,7 @@
       "label": "UIQ Breadth-Oszillator (McClellan)",
       "category": "breadth",
       "source": "aggregator",
-      "aggregatorKey": "market.breadthOsc.oscillator",
+      "aggregatorKey": "breadthOsc.oscillator",
       "promptWeight": "mittel",
       "promptKey": "Breadth-Oszillator",
       "promptHint": "McClellan-Oszillator aus UIQ-Universum (~700 Ticker): EMA19-EMA39 der Net-Advance-Reihe. >+10=BULLISH, <-10=BEARISH",
