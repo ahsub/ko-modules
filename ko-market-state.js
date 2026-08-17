@@ -1,8 +1,15 @@
 /**
- * ko-market-state.js — Market State Engine v2.2
+ * ko-market-state.js — Market State Engine v2.3
  * ================================================
  * Bestimmt das übergeordnete Markt-Regime aus normalisierten
  * Dark-Pool, Volatilitäts- und Flow-Indikatoren.
+ *
+ * NEU in v2.3 (17.08.2026, Axel-Anfrage — DIX/GEX-Bulk-Historie-Nebenfund):
+ *   - loadHistoryFromAggregator() backfillt jetzt auch _history.gex/.dix aus
+ *     market.dixGex.history (squeezemetrics-Bulk-Historie seit 2011, server-
+ *     seitig ab market_aggregator.py v5.36.13 mitgeliefert). Vorher blieben
+ *     GEX/DIX bewusst inkrementell ("kein Aggregator-Data") — Z-Scores waren
+ *     dadurch erst nach mehreren Tagen/Wochen Live-Betrieb verfügbar.
  *
  * NEU in v2.0:
  *   - loadHistoryFromAggregator(): lädt 30T-History aus master_market_data.json (KV)
@@ -102,6 +109,18 @@ var KoMarketState = {
    * Lädt die 30T-History aus master_market_data.mseHistory (Cloudflare KV).
    * Füllt _history.vvix, .skew, .vixRatio mit echten Tagesdaten.
    * Wird einmalig beim App-Start aufgerufen (vor dem ersten analyze()).
+   *
+   * ERWEITERT (17.08.2026, Axel-Anfrage — DIX/GEX-Bulk-Historie-Nebenfund):
+   * GEX/DIX waren bisher bewusst von diesem Backfill ausgenommen ("kein
+   * Aggregator-Data" — s. Git-History dieser Zeile), weil market_aggregator.py
+   * bis dahin nur den aktuellsten squeezemetrics-Wert las. Seit
+   * fetch_dix_gex() v5.36.13 liefert der Server zusätzlich die letzten 60
+   * Handelstage unter market.dixGex.history (dates/dix/gex/n) — echte
+   * squeezemetrics-Historie seit 2011, nicht nur der heutige Wert. Backfill
+   * hier NUR wenn die lokale Historie noch leer ist (kein Überschreiben
+   * bereits akkumulierter echter Live-Punkte) — löst das Symptom vom
+   * 17.08.2026 ("DIX Z-Score n/v — keine Historie" nach dem Wochenende,
+   * weil die lokale Historie erst über Tage/Wochen anwachsen musste).
    */
   async loadHistoryFromAggregator() {
     try {
@@ -126,10 +145,23 @@ var KoMarketState = {
       this._history.skew     = clean(mseH.skew);
       this._history.vix      = clean(mseH.vix);
       this._history.vixRatio = clean(mseH.vixRatio);
-      // GEX/DIX bleiben inkrementell (kein Aggregator-Data)
+
+      // ── GEX/DIX-Backfill (NEU, 17.08.2026) ────────────────────────
+      var dixGexHist = json?.market?.dixGex?.history;
+      var backfilledDixGex = false;
+      if (dixGexHist && dixGexHist.n >= 3) {
+        if (this._history.gex.length === 0) {
+          this._history.gex = clean(dixGexHist.gex);
+        }
+        if (this._history.dix.length === 0) {
+          this._history.dix = clean(dixGexHist.dix);
+        }
+        backfilledDixGex = true;
+      }
 
       this._historySource = 'aggregator';
-      console.log('[MSE v2] History aus Aggregator geladen — ' + mseH.dates.length + ' Tage | VVIX-Punkte: ' + this._history.vvix.length + ' | SKEW: ' + this._history.skew.length);
+      console.log('[MSE v2] History aus Aggregator geladen — ' + mseH.dates.length + ' Tage | VVIX-Punkte: ' + this._history.vvix.length + ' | SKEW: ' + this._history.skew.length +
+        (backfilledDixGex ? ' | GEX/DIX-Backfill: ' + this._history.gex.length + '/' + this._history.dix.length + ' Punkte (squeezemetrics-Bulk)' : ' | GEX/DIX: kein Backfill verfügbar'));
       return true;
     } catch(e) {
       console.warn('[MSE v2] loadHistoryFromAggregator Fehler:', e.message);
@@ -539,4 +571,4 @@ KoMarketState.loadHistoryFromAggregator().then(function(ok) {
   if (ok) console.log('[MSE v2] Aggregator-History bereit — Z-Scores sofort zuverlässig');
 });
 
-console.log('[ko-market-state.js] v2.2 geladen — 4-Regime MSE + Context-Aware Strategy Gates (MCM) + kontextualisierte Regime-Texte (AP D)');
+console.log('[ko-market-state.js] v2.3 geladen — 4-Regime MSE + Context-Aware Strategy Gates (MCM) + kontextualisierte Regime-Texte (AP D) + GEX/DIX-Bulk-History-Backfill');
