@@ -1,18 +1,18 @@
 {
   "_meta": {
-    "version": "2.4.0",
+    "version": "2.4.1",
     "created": "2026-07-09",
     "description": "UIQ Indikator-Registry — zentrale Quelle aller Makro-Indikatoren",
     "repository": "ahsub/ko-modules",
     "note": "Neue Indikatoren = neues Objekt. Kein Code-Eingriff nötig.",
-    "updated": "2026-08-16",
-    "changelog": "v2.4.0: fear_greed BUGFIX (16.08.2026, Axel-Deep-Debug-Anfrage) — source computed/domId cnn-fg-score auf aggregator/aggregatorKey fearGreed.score umgestellt. Root Cause: seit v368 (17.07.2026, CNN->alternative.me-Umstellung) schrieb fetchCnnFearGreed() die Werte nie mehr ins DOM (KoData.fetchCnnFearGreed() liefert nur einen Rueckgabewert, der am Aufrufort in loadIntermarket() nie konsumiert wurde) — #cnn-fg-score blieb dauerhaft '—', wodurch der Faktor in buildMarketContext() IMMER uebersprungen wurde (nicht nur Anzeige-Bug: fehlte dadurch auch komplett in ctx.summary.caution_flags/risk_flags der MCM-Strategie-Ampel). Aggregator liefert denselben Wert bereits zuverlässig (master.market.fearGreed.score, identisch zur bereits korrekt funktionierenden Morning-Briefing-Modal-Anzeige) — robuster als der fragile externe Live-Fetch, konsistent mit pcr/ios_market-Mustern. | v2.3.0: breadth_osc (27.07.2026) — UIQ McClellan Breadth-Oszillator aus Eigenbestand (~700 Ticker Advance/Decline, EMA19-EMA39 Net-Advance, SUITE.md Backlog #12). aggregatorKey: market.breadthOsc.oscillator. | v2.2.0: 5 neue Indikatoren (20.07.2026) — hy_spread, net_liquidity, move_index, skew_vvix_div, qqq_markov. Alle bisher im ZUSATZ-KONTEXT des MB-Prompts hardcodiert, jetzt Registry-basiert. aggregatorKey-Pfade gegen echte Aggregator-Datenstruktur verifiziert. signalRules fuer z-Score-basierte Signale (zgte) und Signal-String-Vergleich (signal_eq) erweitert — Loader v1.3.0 erforderlich. | v2.1.1: BUGFIX — pcr.aggregatorKey war \"pcr.value\" (Feld existiert nicht im master_market_data-Schema), korrigiert auf \"pcr.pcr\" (bestaetigt gegen echte Aggregator-Daten, Run #106 14.07.2026: market.pcr = {pcr: 0.78, signal, source, components}). Ursache fuer PCR-Kachel im Home-Panel, die staendig \"—\" zeigte, obwohl PCR-Daten im Aggregator vorlagen. | v2.1.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc-Zeitstempel umgestellt (Loader v1.2.0) — FOMC nutzt jetzt Zweitage-Fenster (meeting_start_utc), bufferMinutes fuer Karenzzeit um Decision-Zeitpunkt (Spread-Normalisierung). FOMC/CPI-Termine gegen federalreserve.gov/bls.gov verifiziert (Axel, 14.07.2026). | v2.0.0: MCM Grundgeruest (enabled/weight/signalRules/Calendar)."
+    "updated": "2026-08-17",
+    "changelog": "v2.4.1: vix/vix_term/mse_regime BUGFIX (17.08.2026, Axel-Anfrage nach Teildaten-Badge-Deep-Debug) — alle drei Kern-Faktoren (promptWeight hoch/sehr_hoch) waren strukturell nie befuellbar: (1) vix hatte source=aggregator OHNE aggregatorKey (getIndicatorValue() verlangt aggregatorKey zwingend, sonst kein Read) UND domId=m-vix wurde nie gelesen weil der DOM-Pfad nur bei source=dom aktiv ist — auf source=dom umgestellt (Axel-Entscheidung: Live-Wert statt bis zu 24h altem Aggregator-Snapshot, konsistent mit v324 VIX-Cache-Fix). (2) vix_term hatte computeFrom=[vix,vix3m] deklariert, aber getIndicatorValue() kennt keinen computeFrom-Mechanismus — Feld war wirkungslose Doku. Echter Wert lag laengst korrekt unter market.vixTerm (Aggregator), jetzt per Spezial-Block gelesen wie hy_spread/move_index. (3) mse_regime hatte computeFn=KoMarketState.getRegime referenziert — diese Methode existiert im gesamten Code nicht. Echtes Regime liegt unter KoMarketState._lastRegime bzw. wird als Parameter an buildMarketContext() durchgereicht (ctx._regime), jetzt per Spezial-Block uebernommen. Alle drei computeFrom/computeFn-Geister-Felder entfernt (waren reine Doku ohne Wirkung, gleiche Fehlerklasse wie dead code). Folge: dataQuality zeigte permanent partial (7/10) unabhaengig vom tatsaechlichen Datenstand — Loader v1.4.1 erforderlich. | v2.4.0: fear_greed BUGFIX (16.08.2026, Axel-Deep-Debug-Anfrage) — source computed/domId cnn-fg-score auf aggregator/aggregatorKey fearGreed.score umgestellt. Root Cause: seit v368 (17.07.2026, CNN->alternative.me-Umstellung) schrieb fetchCnnFearGreed() die Werte nie mehr ins DOM (KoData.fetchCnnFearGreed() liefert nur einen Rueckgabewert, der am Aufrufort in loadIntermarket() nie konsumiert wurde) — #cnn-fg-score blieb dauerhaft '—', wodurch der Faktor in buildMarketContext() IMMER uebersprungen wurde (nicht nur Anzeige-Bug: fehlte dadurch auch komplett in ctx.summary.caution_flags/risk_flags der MCM-Strategie-Ampel). Aggregator liefert denselben Wert bereits zuverlässig (master.market.fearGreed.score, identisch zur bereits korrekt funktionierenden Morning-Briefing-Modal-Anzeige) — robuster als der fragile externe Live-Fetch, konsistent mit pcr/ios_market-Mustern. | v2.3.0: breadth_osc (27.07.2026) — UIQ McClellan Breadth-Oszillator aus Eigenbestand (~700 Ticker Advance/Decline, EMA19-EMA39 Net-Advance, SUITE.md Backlog #12). aggregatorKey: market.breadthOsc.oscillator. | v2.2.0: 5 neue Indikatoren (20.07.2026) — hy_spread, net_liquidity, move_index, skew_vvix_div, qqq_markov. Alle bisher im ZUSATZ-KONTEXT des MB-Prompts hardcodiert, jetzt Registry-basiert. aggregatorKey-Pfade gegen echte Aggregator-Datenstruktur verifiziert. signalRules fuer z-Score-basierte Signale (zgte) und Signal-String-Vergleich (signal_eq) erweitert — Loader v1.3.0 erforderlich. | v2.1.1: BUGFIX — pcr.aggregatorKey war \"pcr.value\" (Feld existiert nicht im master_market_data-Schema), korrigiert auf \"pcr.pcr\" (bestaetigt gegen echte Aggregator-Daten, Run #106 14.07.2026: market.pcr = {pcr: 0.78, signal, source, components}). Ursache fuer PCR-Kachel im Home-Panel, die staendig \"—\" zeigte, obwohl PCR-Daten im Aggregator vorlagen. | v2.1.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc-Zeitstempel umgestellt (Loader v1.2.0) — FOMC nutzt jetzt Zweitage-Fenster (meeting_start_utc), bufferMinutes fuer Karenzzeit um Decision-Zeitpunkt (Spread-Normalisierung). FOMC/CPI-Termine gegen federalreserve.gov/bls.gov verifiziert (Axel, 14.07.2026). | v2.0.0: MCM Grundgeruest (enabled/weight/signalRules/Calendar)."
   },
   "indicators": {
     "vix": {
       "label": "VIX",
       "category": "volatility",
-      "source": "aggregator",
+      "source": "dom",
       "symbol": "^VIX",
       "domId": "m-vix",
       "unit": "",
@@ -39,16 +39,21 @@
       "label": "VIX Termstruktur",
       "category": "volatility",
       "source": "computed",
-      "computeFrom": [
-        "vix",
-        "vix3m"
-      ],
       "domId": null,
       "promptKey": "VIX Term Structure",
       "promptWeight": "hoch",
       "promptHint": "CONTANGO=normal, BACKWARDATION=Stress",
       "enabled": true,
-      "weight": 1.0
+      "weight": 1.0,
+      "signalRules": [
+        {
+          "signal": "risk",
+          "signal_eq": "BACKWARDATION"
+        },
+        {
+          "signal": "ok"
+        }
+      ]
     },
     "vvix": {
       "label": "VVIX Z-Score",
@@ -376,7 +381,6 @@
       "label": "MSE Regime",
       "category": "regime",
       "source": "computed",
-      "computeFn": "KoMarketState.getRegime",
       "promptKey": "MSE Regime",
       "promptWeight": "sehr_hoch",
       "promptHint": "BULL_QUIET/BULL_FRAGILE/STRESS_UNSTABLE/POST_PANIC_REVERSION",
