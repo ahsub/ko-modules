@@ -6,7 +6,8 @@
  *   - buildPromptSection()    → generischer Prompt-Aufbau
  *   - getIndicatorValue()     → einheitlicher DOM/Window/Aggregator-Read
  *
- * Version: 1.4.1 (17.08.2026) — vix/vix_term/mse_regime BUGFIX (Axel-Deep-Debug-Anfrage nach Teildaten-Badge): drei Kern-Faktoren (promptWeight hoch/sehr_hoch) waren strukturell nie befüllbar (vix: aggregatorKey fehlte + DOM-Pfad nur bei source=dom aktiv, jetzt source=dom in Registry; vix_term/mse_regime: computeFrom/computeFn nie implementiert, jetzt per Spezial-Block wie hy_spread/move_index gelesen). dataQuality zeigte dadurch permanent 'partial' unabhängig vom echten Datenstand. Erfordert ko-indicators.json v2.4.1.
+ * Version: 1.4.2 (17.08.2026) — Sieben neue Konjunktur-Indikatoren (Axel-Anfrage, "auf diesem Auge bislang blind"): nfci, core_cpi_yoy, sahm_rule, oecd_cli_score, heavy_truck_trend (je ein Spezial-Block, strukturierte FRED-Objekte analog hy_spread/net_liquidity), staples_discretionary/growth_value (rein informativ, kein Signal, analog qqq_markov). Client-Parity-Nachzug zu market_aggregator.py v5.36.14/fetch_fred_macro(). Erfordert ko-indicators.json v2.5.0. Noch NICHT live verifiziert.
+ *   v1.4.1 (17.08.2026) — vix/vix_term/mse_regime BUGFIX (Axel-Deep-Debug-Anfrage nach Teildaten-Badge): drei Kern-Faktoren (promptWeight hoch/sehr_hoch) waren strukturell nie befüllbar (vix: aggregatorKey fehlte + DOM-Pfad nur bei source=dom aktiv, jetzt source=dom in Registry; vix_term/mse_regime: computeFrom/computeFn nie implementiert, jetzt per Spezial-Block wie hy_spread/move_index gelesen). dataQuality zeigte dadurch permanent 'partial' unabhängig vom echten Datenstand. Erfordert ko-indicators.json v2.4.1.
  *   v1.4.0 (25.07.2026) — dataQuality-Flag in buildMarketContext (Backlog #20): 'full'|'partial'|'minimal' nach Kern-Faktor-Befüllungsgrad (promptWeight hoch/sehr_hoch), _dataQualityDetail mit filled/total/pct/missing. Console-Log erweitert.
  *   v1.3.2 (21.07.2026) — Calendar-Fetch von raw.githubusercontent statt same-origin — MCM: buildMarketContext, signalRules, Makro-Kalender
  *   v1.2.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc
@@ -502,6 +503,94 @@ async function buildMarketContext(alphaData, regime) {
         label: 'MSE Regime: ' + _regimeVal,
       };
     }
+  }
+
+  // ── Konjunktur-Indikatoren (17.08.2026, Axel-Anfrage — "auf diesem Auge
+  // bislang blind"). Client-Parity-Nachzug zu market_aggregator.py v5.36.14
+  // (fetch_fred_macro()). Alle sieben lesen strukturierte Objekte, daher wie
+  // hy_spread/net_liquidity per Spezial-Block statt generischem aggregatorKey.
+
+  // NFCI (Chicago Fed National Financial Conditions Index, woechentlich)
+  if (reg.nfci && reg.nfci.enabled !== false && _mkt && _mkt.fredMacro && _mkt.fredMacro.nfci && _mkt.fredMacro.nfci.ok) {
+    var _nfci = _mkt.fredMacro.nfci;
+    var _nfciSignal = _evalSignalRules(reg.nfci.signalRules, _nfci.current, _nfci.zscore, null);
+    ctx.factors.nfci = {
+      value: _nfci.current, zscore: _nfci.zscore, percentile: _nfci.percentile,
+      signal: _nfciSignal,
+      label: 'NFCI (Chicago Fed): ' + (_nfci.current >= 0 ? '+' : '') + _nfci.current.toFixed(3) +
+             (_nfci.zscore != null ? ' (Z=' + (_nfci.zscore >= 0 ? '+' : '') + _nfci.zscore + ')' : '') +
+             ' → ' + (_nfci.signal || ''),
+    };
+    if (_nfciSignal === 'caution') ctx.summary.caution_flags.push('nfci');
+    if (_nfciSignal === 'risk')    ctx.summary.risk_flags.push('nfci');
+  }
+
+  // US Core CPI YoY (ex Food & Energy)
+  if (reg.core_cpi_yoy && reg.core_cpi_yoy.enabled !== false && _mkt && _mkt.fredMacro && _mkt.fredMacro.core_cpi_yoy && _mkt.fredMacro.core_cpi_yoy.ok) {
+    var _cpi = _mkt.fredMacro.core_cpi_yoy;
+    var _cpiSignal = _evalSignalRules(reg.core_cpi_yoy.signalRules, _cpi.current, _cpi.zscore, null);
+    ctx.factors.core_cpi_yoy = {
+      value: _cpi.current, zscore: _cpi.zscore,
+      signal: _cpiSignal,
+      label: 'US Core CPI YoY: ' + _cpi.current + '%',
+    };
+    if (_cpiSignal === 'caution') ctx.summary.caution_flags.push('core_cpi_yoy');
+  }
+
+  // Sahm-Rule (offizielle FRED-Serie SAHMREALTIME, ueber unemployment.sahmRule)
+  if (reg.sahm_rule && reg.sahm_rule.enabled !== false && _mkt && _mkt.fredMacro && _mkt.fredMacro.unemployment && _mkt.fredMacro.unemployment.ok && _mkt.fredMacro.unemployment.sahmRule != null) {
+    var _un = _mkt.fredMacro.unemployment;
+    var _sahmSignal = _evalSignalRules(reg.sahm_rule.signalRules, _un.sahmRule, null, null);
+    ctx.factors.sahm_rule = {
+      value: _un.sahmRule, signal: _sahmSignal,
+      label: 'Sahm-Rule: ' + (_un.sahmRule >= 0 ? '+' : '') + _un.sahmRule.toFixed(2) +
+             ' Pkt (Arbeitslosenrate ' + _un.current + '%, Trigger ≥0.50)',
+    };
+    if (_sahmSignal === 'risk') ctx.summary.risk_flags.push('sahm_rule');
+  }
+
+  // OECD Composite Leading Indicator (USA, Quadranten-Score aus Level + Richtung)
+  if (reg.oecd_cli_score && reg.oecd_cli_score.enabled !== false && _mkt && _mkt.fredMacro && _mkt.fredMacro.oecd_cli && _mkt.fredMacro.oecd_cli.ok) {
+    var _cli = _mkt.fredMacro.oecd_cli;
+    var _cliSignal = _evalSignalRules(reg.oecd_cli_score.signalRules, _cli.quadrantScore, null, null);
+    ctx.factors.oecd_cli_score = {
+      value: _cli.quadrantScore, signal: _cliSignal,
+      label: 'OECD Composite Leading Indicator (USA): ' + _cli.current + ' → ' + (_cli.signal || ''),
+    };
+    if (_cliSignal === 'caution') ctx.summary.caution_flags.push('oecd_cli_score');
+    if (_cliSignal === 'risk')    ctx.summary.risk_flags.push('oecd_cli_score');
+  }
+
+  // Heavy Truck Sales (10-Monats-Schnitt, 3M-Trend — Axel-Vorschlag)
+  if (reg.heavy_truck_trend && reg.heavy_truck_trend.enabled !== false && _mkt && _mkt.fredMacro && _mkt.fredMacro.heavy_truck && _mkt.fredMacro.heavy_truck.ok && _mkt.fredMacro.heavy_truck.trend_3m_pct != null) {
+    var _truck = _mkt.fredMacro.heavy_truck;
+    var _truckSignal = _evalSignalRules(reg.heavy_truck_trend.signalRules, _truck.trend_3m_pct, null, null);
+    ctx.factors.heavy_truck_trend = {
+      value: _truck.trend_3m_pct, signal: _truckSignal,
+      label: 'Heavy Truck Sales (10M-Schnitt, 3M-Trend): ' + (_truck.trend_3m_pct >= 0 ? '+' : '') +
+             _truck.trend_3m_pct + '% → ' + (_truck.signal || ''),
+    };
+    if (_truckSignal === 'caution') ctx.summary.caution_flags.push('heavy_truck_trend');
+  }
+
+  // Consumer Staples vs. Discretionary (XLP/XLY) — rein informativ, kein Signal
+  if (reg.staples_discretionary && reg.staples_discretionary.enabled !== false && _mkt && _mkt.stapleDiscretionary && _mkt.stapleDiscretionary.ok) {
+    var _sd = _mkt.stapleDiscretionary;
+    ctx.factors.staples_discretionary = {
+      value: _sd.trend, signal: null,
+      label: 'Consumer Staples vs. Discretionary (XLP/XLY): ' + _sd.ratio +
+             ' — 5T ' + _sd.chg5d + '% / 20T ' + _sd.chg20d + '% (' + _sd.trend + ')',
+    };
+  }
+
+  // Growth vs. Value (IWF/IWD) — rein informativ, kein Signal
+  if (reg.growth_value && reg.growth_value.enabled !== false && _mkt && _mkt.growthValue && _mkt.growthValue.ok) {
+    var _gv = _mkt.growthValue;
+    ctx.factors.growth_value = {
+      value: _gv.trend, signal: null,
+      label: 'Growth vs. Value (IWF/IWD): ' + _gv.ratio +
+             ' — 5T ' + _gv.chg5d + '% / 20T ' + _gv.chg20d + '% (' + _gv.trend + ')',
+    };
   }
 
   // QQQ Markov-Regime (Window-Variable)
