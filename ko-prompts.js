@@ -1,6 +1,17 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.5.3 (17.08.2026) — PFLICHTREGEL-Nachzug (Axel-Deep-Debug-Anfrage,
+ *  Folgepunkt aus UEBERGABE-2026-08-16.md §4/§6): der server-seitige Fix
+ *  (market_aggregator.py v5.36.11) — jeder [CAUTION]/[RISK]-Faktor aus MARKET
+ *  CONTEXT MUSS explizit genannt werden, unabhängig von der STRUKTUR-Liste —
+ *  fehlte im Client-Fallback-Prompt (_getMorningPrompt, nur bei KV-Cache-Miss
+ *  oder EIC-Force-Refresh aktiv). Beide Branches (EIC + Public) nachgezogen,
+ *  Wortlaut analog zum Server-Prompt. messwerteLines enthaelt die [CAUTION]/
+ *  [RISK]-Labels bereits laenger (contextToPromptLines()) — es fehlte nur die
+ *  bindende Anweisung, sie auch zu erwaehnen. Noch NICHT live verifiziert
+ *  (Pfad wird selten getriggert) — naechster KV-Cache-Miss oder EIC-Force-
+ *  Refresh mit echtem caution/risk-Signal sollte das bestaetigen.
  *  Version: 2.5.2 (15.08.2026) — Morning-Briefing-Prompt (_getMorningPrompt)
  *  korrigiert: DIX/GEX standen nur in einer nachgelagerten Stilregel, nicht in
  *  der eigentlichen Abschnitts-Aufgabenstellung — KI erwaehnte sie dadurch nie,
@@ -252,6 +263,10 @@ Das bedeutet konkret:
         + 'AUFGABE: Morning Briefing — Tagesstart-Coaching für heute.\n'
         + 'Sprich wie ein erfahrener Mentor, der kurz vor Handelsbeginn mit dem Investor spricht: '
         + 'Was ist los im Markt, was bedeutet das konkret, und was ist heute die richtige Haltung?\n\n'
+        + 'PFLICHTREGEL (bindend, vor der STRUKTUR unten — 17.08.2026, Konsistenz-Nachzug zum Server-Prompt): '
+        + 'JEDER Faktor aus MESSWERTE mit Signal [CAUTION] oder [RISK] MUSS explizit in einem der 6 Abschnitte '
+        + 'namentlich genannt werden — unabhängig davon, ob er unten als Pflichtinhalt aufgeführt ist. Die STRUKTUR '
+        + 'ist eine Mindestanforderung, keine abschließende Aufzählung.\n\n'
         + 'STRUKTUR (6 Abschnitte, je 2-4 Sätze direkt und auf den Punkt):\n'
         + '1. MARKT-REGIME: Was sagt das aktuelle Regime (MSE) — und was bedeutet das heute konkret für die Handelsbereitschaft? '
         + 'Breadth und Rotation als Bestätigung oder Warnung einordnen (Zahlen nennen).\n'
@@ -279,6 +294,10 @@ Das bedeutet konkret:
         + 'AUFGABE: Morning Briefing — Marktüberblick zum Tagesstart.\n'
         + 'Erkläre klar und verständlich, was der Markt heute zeigt — und was das für einen Investor bedeutet. '
         + 'Kein Fachjargon ohne Erklärung. Jede Zahl bekommt eine Bedeutung in einem Halbsatz.\n\n'
+        + 'PFLICHTREGEL (bindend, vor der STRUKTUR unten — 17.08.2026, Konsistenz-Nachzug zum Server-Prompt): '
+        + 'JEDER Faktor aus MESSWERTE mit Signal [CAUTION] oder [RISK] MUSS explizit in einem der 5 Abschnitte '
+        + 'namentlich genannt werden — unabhängig davon, ob er unten als Pflichtinhalt aufgeführt ist. Die STRUKTUR '
+        + 'ist eine Mindestanforderung, keine abschließende Aufzählung.\n\n'
         + 'STRUKTUR (5 Abschnitte, je 2-4 Sätze, BaFin-konform gem. §1 WpHG):\n\n'
         + basis + '\n\n'
         + 'ABSCHNITTE:\n'
