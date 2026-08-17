@@ -1,6 +1,20 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.5.4 (17.08.2026) — csp_wheel.rollRules-Anbindungspruefung
+ *  (Folgepunkt aus UEBERGABE-2026-08-15.md §4/§7): Befund — rollRules wurde
+ *  von KEINER Funktion konsumiert (getEffectiveRules() reichte nur delta-
+ *  Range/dteRange durch; der zweite in der Registry genannte Konsument,
+ *  evaluateOptionsTradeAgainstUIQRules()/Trade-Doktor, existiert als Code
+ *  nirgends). Gemeinsam mit Axel entschieden: rollRules bleibt bewusst
+ *  UNVERDRAHTET — die Intent-basierte Verzweigung (urspruengliche Handels-
+ *  absicht einer BESTEHENDEN Position) passt strukturell nicht in den
+ *  Kandidaten-Scanner dieses Prompts, sondern in den geplanten Options-
+ *  Doktor (Positions-Management). stopLoss/profitTaking dagegen SIND jetzt
+ *  eingebunden (getEffectiveRules() erweitert, neuer Punkt "g) EXIT-
+ *  KRITERIEN" im csp_wheel-Prompt) — Exit-Kriterien fuer eine NEU zu
+ *  eroeffnende Position passen strukturell in den Scanner-Kontext.
+ *  Noch NICHT live verifiziert (echter API-Call steht aus).
  *  Version: 2.5.3 (17.08.2026) — PFLICHTREGEL-Nachzug (Axel-Deep-Debug-Anfrage,
  *  Folgepunkt aus UEBERGABE-2026-08-16.md §4/§6): der server-seitige Fix
  *  (market_aggregator.py v5.36.11) — jeder [CAUTION]/[RISK]-Faktor aus MARKET
@@ -328,9 +342,24 @@ Das bedeutet konkret:
   // Setting). Fallback auf hartcodierte Werte falls Registry nicht geladen
   // (Ladereihenfolge-Absicherung, KoStrategyRegistry ist normales <script>,
   // muss vor ko-prompts.js laden, ist aber defensiv abgesichert falls nicht).
+  //
+  // ERWEITERT (17.08.2026, Axel-Entscheidung nach csp_wheel.rollRules-Anbin-
+  // dungspruefung): stopLoss/profitTaking waren wie rollRules in der Registry
+  // vorhanden, aber nie hier durchgereicht — csp_wheel-Prompt kannte sie
+  // dadurch nicht. stopLoss/profitTaking sind Exit-Kriterien fuer eine NEU zu
+  // eroeffnende Position (passen strukturell in den Scanner-Kontext dieses
+  // Prompts). rollRules bewusst weiterhin NICHT durchgereicht: die Kern-
+  // Verzweigung dort (premiumNeutral, urspruengliche Handelsabsicht einer
+  // BESTEHENDEN Position) setzt eine offene Position mit bekannter Historie
+  // voraus, die der Kandidaten-Scanner nicht hat — gehoert strukturell zum
+  // geplanten Options-Doktor (Positions-Management), nicht zum Scanner.
   function getEffectiveRules(stratId, optsCfg) {
     var FALLBACK = {
-      csp_wheel: { deltaRange: [0.15, 0.30], dteRange: [30, 45] },
+      csp_wheel: {
+        deltaRange: [0.15, 0.30], dteRange: [30, 45],
+        stopLoss: { pct: -200, basis: 'Spina + Friedenheim' },
+        profitTaking: [{ pct: 50, condition: null, action: 'close' }]
+      },
       cc:        { deltaRange: [0.20, 0.30], dteRange: [30, 45] },
       atmna:     { deltaRange: null,         dteRange: [30, 30] }
     };
@@ -339,7 +368,12 @@ Das bedeutet konkret:
       : null;
     if (!base) base = FALLBACK[stratId] || null;
     if (!base) return null;
-    var effective = { deltaRange: base.deltaRange, dteRange: base.dteRange ? base.dteRange.slice() : null };
+    var effective = {
+      deltaRange:   base.deltaRange,
+      dteRange:     base.dteRange ? base.dteRange.slice() : null,
+      stopLoss:     base.stopLoss || null,
+      profitTaking: base.profitTaking || null
+    };
     if (optsCfg && optsCfg.dte != null && stratId !== 'atmna' && effective.dteRange) {
       effective.dteRange[0] = optsCfg.dte;
     }
@@ -530,7 +564,18 @@ Das bedeutet konkret:
       color: 'var(--amber)',
       prompt: function(ctx) {
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 30 };
-        var rules = getEffectiveRules('csp_wheel', cfg) || { deltaRange: [0.15, 0.30], dteRange: [cfg.dte, 45] };
+        var rules = getEffectiveRules('csp_wheel', cfg) || {
+          deltaRange: [0.15, 0.30], dteRange: [cfg.dte, 45],
+          stopLoss: { pct: -200, basis: 'Spina + Friedenheim' },
+          profitTaking: [{ pct: 50, condition: null, action: 'close' }]
+        };
+        // ERGAENZT (17.08.2026, Axel-Entscheidung nach rollRules-Anbindungspruefung):
+        // stopLoss/profitTaking sind Exit-Kriterien fuer eine NEU zu eroeffnende
+        // Position — passen strukturell in den Scanner (anders als rollRules, das
+        // eine bestehende Position mit bekannter Handelsabsicht voraussetzt und
+        // bewusst dem geplanten Options-Doktor vorbehalten bleibt).
+        var _pt = (rules.profitTaking && rules.profitTaking[0]) ? rules.profitTaking[0].pct : 50;
+        var _sl = rules.stopLoss ? rules.stopLoss.pct : -200;
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Options-Trader mit Fokus auf Wheel-Strategie (CSP + Covered Calls).\n\n'
           + '⚠️ Diese Analyse dient ausschliesslich zu Informationszwecken gem. §1 WpHG.\n\n'
@@ -559,6 +604,9 @@ Das bedeutet konkret:
           + '   d) Delta-Bereich: ' + rules.deltaRange[0] + '-' + rules.deltaRange[1] + ' (≈' + Math.round((1-rules.deltaRange[1])*100) + '-' + Math.round((1-rules.deltaRange[0])*100) + '% rechnerische Gewinnwahrscheinlichkeit)\n'
           + '   e) Prämien-SCHÄTZUNG aus HVP — IMMER als Schätzung kennzeichnen\n'
           + '   f) PFLICHT-CHECKS: IV Rank in IBKR · OI > 500 · Bid-Ask < 10%\n'
+          + '   g) EXIT-KRITERIEN (immer nennen): Gewinnmitnahme bei ' + _pt + '% der Prämie schließen. '
+          + 'Stop-Loss bei ' + _sl + '% der Prämie (Position kostet dann das ' + Math.abs(_sl / 100) + '-fache des Verkaufspreises zum Rückkauf) — '
+          + 'vor Eröffnung einplanen, nicht erst wenn die Position bereits bedrängt ist.\n'
           + '3. WATCHLIST: Titel die nach ER oder höherem IV interessant werden.\n'
           + '4. RISIKEN: IV-Crush, ER-Überraschungen, Titel unter 200d EMA.\n'
           + '\n⚠️ ABSCHLUSS: Immer mit Pflicht-Checks in IBKR/CapTrader abschliessen.\n'
