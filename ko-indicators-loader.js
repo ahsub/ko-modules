@@ -6,7 +6,8 @@
  *   - buildPromptSection()    → generischer Prompt-Aufbau
  *   - getIndicatorValue()     → einheitlicher DOM/Window/Aggregator-Read
  *
- * Version: 1.4.0 (25.07.2026) — dataQuality-Flag in buildMarketContext (Backlog #20): 'full'|'partial'|'minimal' nach Kern-Faktor-Befüllungsgrad (promptWeight hoch/sehr_hoch), _dataQualityDetail mit filled/total/pct/missing. Console-Log erweitert.
+ * Version: 1.4.1 (17.08.2026) — vix/vix_term/mse_regime BUGFIX (Axel-Deep-Debug-Anfrage nach Teildaten-Badge): drei Kern-Faktoren (promptWeight hoch/sehr_hoch) waren strukturell nie befüllbar (vix: aggregatorKey fehlte + DOM-Pfad nur bei source=dom aktiv, jetzt source=dom in Registry; vix_term/mse_regime: computeFrom/computeFn nie implementiert, jetzt per Spezial-Block wie hy_spread/move_index gelesen). dataQuality zeigte dadurch permanent 'partial' unabhängig vom echten Datenstand. Erfordert ko-indicators.json v2.4.1.
+ *   v1.4.0 (25.07.2026) — dataQuality-Flag in buildMarketContext (Backlog #20): 'full'|'partial'|'minimal' nach Kern-Faktor-Befüllungsgrad (promptWeight hoch/sehr_hoch), _dataQualityDetail mit filled/total/pct/missing. Console-Log erweitert.
  *   v1.3.2 (21.07.2026) — Calendar-Fetch von raw.githubusercontent statt same-origin — MCM: buildMarketContext, signalRules, Makro-Kalender
  *   v1.2.0: Calendar-Faktoren auf explizite decision_utc/meeting_start_utc
  *   umgestellt (kein Timezone-String-Parsing mehr), bufferMinutes fuer
@@ -466,6 +467,41 @@ async function buildMarketContext(alphaData, regime) {
       label: 'SKEW/VVIX-Divergenz: ' + _div.value + ' → ' + _div.signal,
     };
     if (_divSignal === 'caution') ctx.summary.caution_flags.push('skew_vvix_div');
+  }
+
+  // VIX Termstruktur (17.08.2026, Axel-Deep-Debug-Anfrage) — computeFrom-Feld
+  // in der Registry war nie implementiert (kein Code-Pfad wertet computeFrom
+  // aus), Faktor daher strukturell immer '—'. Echter Wert liegt laengst
+  // korrekt unter market.vixTerm (KoDarkPool.fetchVIXTerm(), server-seitig
+  // im Aggregator gespiegelt) — jetzt analog zu hy_spread/move_index direkt
+  // gelesen statt ueber getIndicatorValue().
+  if (reg.vix_term && reg.vix_term.enabled !== false && _mkt && _mkt.vixTerm) {
+    var _vt = _mkt.vixTerm;
+    var _vtSignal = _evalSignalRules(reg.vix_term.signalRules, null, null, _vt.structure);
+    ctx.factors.vix_term = {
+      value: _vt.structure, vix: _vt.vix, vix3m: _vt.vix3m, spread: _vt.spread,
+      signal: _vtSignal,
+      label: 'VIX Termstruktur: ' + _vt.structure + ' (VIX ' + _vt.vix + ' / VIX3M ' + _vt.vix3m + ', Spread ' + _vt.spread + ')',
+    };
+    if (_vtSignal === 'caution') ctx.summary.caution_flags.push('vix_term');
+    if (_vtSignal === 'risk')    ctx.summary.risk_flags.push('vix_term');
+  }
+
+  // MSE Regime (17.08.2026, Axel-Deep-Debug-Anfrage) — computeFn verwies auf
+  // KoMarketState.getRegime, eine Methode die im gesamten Code nie existiert
+  // hat (Registry-Versprechen ohne Umsetzung). Echtes Regime liegt unter
+  // KoMarketState._lastRegime bzw. wird bereits als Parameter an
+  // buildMarketContext(alphaData, regime) durchgereicht (steht schon in
+  // ctx._regime) — hier nur noch in ctx.factors gespiegelt fuer Prompt/
+  // dataQuality-Zaehlung.
+  if (reg.mse_regime && reg.mse_regime.enabled !== false) {
+    var _regimeVal = ctx._regime || (typeof KoMarketState !== 'undefined' ? KoMarketState._lastRegime : null);
+    if (_regimeVal) {
+      ctx.factors.mse_regime = {
+        value: _regimeVal, signal: null,
+        label: 'MSE Regime: ' + _regimeVal,
+      };
+    }
   }
 
   // QQQ Markov-Regime (Window-Variable)
