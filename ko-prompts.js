@@ -1,6 +1,17 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.5.5 (18.08.2026) — Letzter offener Punkt aus
+ *  UEBERGABE-2026-08-13.md §4 nachgezogen: EIC-System-Prompt-Zeile
+ *  ("• OPTIONS (CSP/CC/Spread): ...") zeigte noch "Delta 0.20–0.30 · DTE
+ *  21–45 Tage" — korrigiert auf "Delta 0.15–0.30 (CSP) / 0.20–0.30
+ *  (CC/Spread) · DTE 30–45 Tage". Bei der Gelegenheit verifiziert: die
+ *  übrigen 5 der 6 Punkte aus §4 waren bereits umgesetzt (vermutlich
+ *  15.08.2026-Session, deren UEBERGABE-Protokoll nie committed wurde —
+ *  Dokumentationslücke, kein Code-Problem). Zusätzlich einen veralteten,
+ *  irreführenden Kommentar in axel-scanner/index.html
+ *  (getTargetDteForStrategy()) korrigiert, der noch "Default 21" nannte,
+ *  obwohl der Code selbst bereits 30 nutzte.
  *  Version: 2.5.4 (17.08.2026) — csp_wheel.rollRules-Anbindungspruefung
  *  (Folgepunkt aus UEBERGABE-2026-08-15.md §4/§7): Befund — rollRules wurde
  *  von KEINER Funktion konsumiert (getEffectiveRules() reichte nur delta-
@@ -194,7 +205,7 @@ Das bedeutet konkret:
         + 'EMPFEHLUNGS-FORMAT:\n'
         + '• AKTIEN/ETF: Richtung (Long/Short) + Einstiegsbereich ($-Wert oder ATR-Abstand vom EMA) '
         + '+ Stop-Loss (1.5–2× ATR unter Entry) + Ziel (3–5× ATR) + Haltezeit in Tagen.\n'
-        + '• OPTIONS (CSP/CC/Spread): Delta 0.20–0.30 · DTE 21–45 Tage · '
+        + '• OPTIONS (CSP/CC/Spread): Delta 0.15–0.30 (CSP) / 0.20–0.30 (CC/Spread) · DTE 30–45 Tage · '
         + 'Strike = EMA200 − n×ATR (konkreten Wert berechnen und nennen) · '
         + 'Prämien-Erwartung: HVP-basiert (HVP>60=attraktiv, HVP<30=mager).\n'
         + '• KO-PRODUKTE/TURBOS: Knock-out-Abstand ≥ 2×ATR vom aktuellen Kurs · '
