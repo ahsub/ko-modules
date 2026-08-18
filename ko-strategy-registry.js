@@ -30,6 +30,28 @@
  * wiederholen. Synchrones <script>, muss im HTML VOR ko-prompts.js und
  * VOR ko-strategies.js eingebunden werden.
  *
+ * Version: 1.4 (18.08.2026 — atmna.rules um 3 Punkte ergänzt nach kritischer
+ *   Prüfung gegen Eric Ludwig, "Optionen unschlagbar handeln" (von Axel
+ *   bereitgestellt): expirationPreference (monatlich vor Weekly),
+ *   checkpointDaysBeforeExpiry:5 (fester Prüfzeitpunkt), postAssignmentEndgame
+ *   (asymmetrische Covered-Call-Technik nach Andienung, komplett neue Technik).
+ *   6 bestehende Zahlenwerte (ATM/30 DTE, alle 3 Roll-Stufen, maxRollDte:90)
+ *   dabei exakt bestätigt, keine Korrektur nötig. Details:
+ *   UEBERGABE-2026-08-18.md.
+ * Version: 1.3 (18.08.2026 — weekly_income.rules neu ergänzt, Trade-Doktor
+ *   Block D. Quelle: T.R. Lawrence, "Options Trading: How to Turn Every
+ *   Friday Into Payday Using Weekly Options" (Kap. 5-7, "KaChing Method"),
+ *   von Axel bereitgestellt. Deckt sich mit der bereits bestehenden
+ *   Diagonal-Put-Spread-Definition in ko-prompts.js (dort nie ins
+ *   maschinenlesbare rules-Format übertragen — genau die Lücke, die
+ *   evaluateOptionsTradeAgainstUIQRules() als REGELWERK_FEHLT aufgedeckt
+ *   hat). dteRange/deltaRange erfassen bewusst NUR das kurze, wöchentliche
+ *   Bein (Axel-Bestätigung 18.08.2026: streng genommen keine Single-Leg-
+ *   Strategie wie die übrigen Einträge, aber als eigenständige UIQ-Strategie
+ *   bereits integriert) — das lange Versicherungs-Bein (120 DTE) hat ein
+ *   separates longPutInsurance-Feld, da Discord-Trade-Posts (Block B) es
+ *   praktisch nie mitnennen. Neu ergänzt, bisher nirgends in UIQ erfasst:
+ *   riskPerTrade (max 5%, empfohlen 3% des Portfolios, Buch Kap.7).
  * Version: 1.2 (15.08.2026 — csp_wheel.rollRules literaturgestuetzt neu
  *   strukturiert: statt pauschalem "roll down and out" jetzt zweistufiges,
  *   praemienneutrales System (maxRollDte:90, wie ATMNA) mit Intent-basierter
@@ -125,6 +147,17 @@
       rules: {
         deltaRange: null,               // ATM per Definition — kein Delta-Fenster
         dteRange: [30, 30],             // "~30 Tage, bevorzugt 3. Freitag"; Roll-Fenster separat
+        // NEU (18.08.2026, Quelle: Eric Ludwig, "Optionen unschlagbar handeln",
+        // Kap. "Schritt-für-Schritt Anleitung" — von Axel bereitgestellt,
+        // kritisch gegen die bestehenden Werte geprüft). 6 unabhängige
+        // Zahlenwerte (ATM/30 DTE, alle 3 Roll-Stufen, maxRollDte:90) exakt
+        // bestätigt — s. UEBERGABE-2026-08-18.md. Drei ECHTE Ergänzungen:
+        expirationPreference: 'monatlich (3. Freitag) bevorzugt vor Weekly — '
+          + 'bessere Liquidität/engere Spreads, auch wenn das ein paar Tage '
+          + 'vom 30-Tage-Ziel abweicht',
+        checkpointDaysBeforeExpiry: 5,  // fester Prüfzeitpunkt zusätzlich zu
+                                        // den relativen profitTaking-Stufen
+                                        // unten (nicht als Ersatz dafür)
         profitTaking: [
           { pct: 50, condition: 'remaining_dte_pct > 50', action: 'close' },
           { pct: 60, condition: 'remaining_dte_pct >= 30_and_<=50', action: 'close' },
@@ -137,6 +170,25 @@
             { stage: 2, action: 'gleicher_strike_neue_laufzeit', premiumNeutral: true },
             { stage: 3, action: 'niedrigerer_strike_doppelte_kontrakte' }
           ]
+        },
+        // NEU (18.08.2026, Ludwig "Endspiel"-Kapitel): Nach Andienung (Schritt 5,
+        // alle 3 Rollstufen ausgeschöpft) — asymmetrische Covered-Call-Technik,
+        // KEIN klassisches "2 OTM-Calls auf 200 Aktien". Stattdessen 1 ATM-Call
+        // auf 200 Aktien: liefert laut Buch typischerweise 2-4x mehr Prämie als
+        // 2 OTM-Calls zusammen, bei vergleichbarem Abwärtsschutz UND die Hälfte
+        // der Aktien (100 von 200) behält uneingeschränktes Aufwärtspotenzial.
+        // Eigenständige, bisher in UIQ nicht abgebildete Technik — noch NICHT
+        // von Trade-Doktor Block D ausgewertet (Block D prüft nur Neueinstiege
+        // gegen deltaRange/dteRange, keine Post-Assignment-Zustandsmaschine).
+        postAssignmentEndgame: {
+          technik: 'asymmetrische_covered_call',
+          kontraktverhaeltnis: '1 ATM-Call pro 200 Aktien (NICHT 2 OTM-Calls)',
+          dteTarget: 30,
+          strikeGuidance: 'ATM (am Geld), nicht auf Höhe der Gewinnschwelle',
+          begruendung: '1 ATM-Call liefert typischerweise 2-4x mehr Prämie als '
+            + '2 OTM-Calls zusammen — vergleichbarer Abwärtsschutz, aber 100 der '
+            + '200 Aktien behalten volles Aufwärtspotenzial (Ludwig, Kap. '
+            + '"Unser Trumpf: Die asymmetrische Covered Call Technik").'
         },
         strikeGuidance: 'ATM (at-the-money)',
         strikeStaggeringMaxPct: 2.5
@@ -152,13 +204,66 @@
       memberOf: null,
       rules: null   // kein STRATEGIE_MATRIX-Eintrag — vollständige Behandlung in
                      // Options-Doktor-Modul (Suite Phase 3), s. ko-prompts.js Kommentar
-    }
+    },
 
-    // Nicht-Options-Strategien (ko, momentum, vcp, weekly_income, swing,
+    // NEU (18.08.2026, Trade-Doktor Block D — Quelle: T.R. Lawrence, "Options
+    // Trading: How to Turn Every Friday Into Payday Using Weekly Options",
+    // Kap. 5-7 "KaChing Method", von Axel bereitgestellt). Deckt sich mit der
+    // bereits bestehenden Prompt-Definition in ko-prompts.js (Diagonal-Put-
+    // Spread: 120-DTE-Long-Put als Versicherung + 7-DTE-Short-Put als
+    // wöchentliches Income) — hier erstmals ins maschinenlesbare rules-Format
+    // übertragen. Streng genommen KEINE Single-Leg-Strategie wie die übrigen
+    // Registry-Einträge (Axel-Bestätigung 18.08.2026), aber bereits als
+    // eigenständige UIQ-Strategie mit 12-Strategie-Kanon integriert (s.
+    // ko-market-state.js STRATEGY_ORDER). dteRange/deltaRange beschreiben
+    // AUSSCHLIESSLICH das kurze, handelbare Weekly-Bein — das lange
+    // Versicherungs-Bein hat ein eigenes, separates Feld (longPutInsurance),
+    // da es in einem typischen Discord-Trade-Post (Trade-Doktor Block B)
+    // praktisch nie separat genannt wird.
+    weekly_income: {
+      label: '💰 CSP (Weekly)',
+      hint: '💰 CSP (Weekly): Diagonal Put-Spread · ATM-Short 7 DTE + Long-Versicherung 120 DTE · 4×/Monat',
+      lbKey: null,
+      category: 'options',
+      color: '#34d399',
+      memberOf: null,
+      rules: {
+        deltaRange: [0.25, 0.50],       // Buch zeigt Beispiele 0.27 (konservativ,
+                                        // 73% Erfolgsws.) bis 0.50 (ATM) — kein
+                                        // striktes Einzelziel, bewusste Bandbreite
+        dteRange: [1, 10],              // NUR das kurze Weekly-Bein, passend zum
+                                        // Parser-Schwellenwert (CSP mit DTE<=10
+                                        // -> weekly_income, s. ko-trade-doktor-
+                                        // parser.js resolveStrategy())
+        profitTaking: [
+          { pct: 50, condition: null, action: 'close' }
+        ],
+        rollRules: {
+          cadence: 'woechentlich (freitags), neuer ATM-Put, 4x/Monat'
+        },
+        riskPerTrade: {
+          maxPct: 5, empfohlenPct: 3   // Lawrence, Kap.7 "Risk Percentages" —
+                                        // bisher NICHT in ko-prompts.js erfasst,
+                                        // neu aus dem Buch ergaenzt
+        },
+        longPutInsurance: {
+          dteTarget: 120,
+          deltaTarget: 0.25,
+          deltaRangeRiskOn: [0.35, 0.40],  // "risk-on"-Umfeld lt. Buch
+          hinweis: 'Zweites Bein der Diagonal-Spread-Struktur — wird von '
+                 + 'Block B/D (Single-Leg-Discord-Parser) nicht separat '
+                 + 'erfasst, nur als Kontext fuer Block E (KI-Erklaerschicht).'
+        }
+      }
+    },
+
+    // Nicht-Options-Strategien (ko, momentum, vcp, swing,
     // meanrev, breakout, fading_short, dividend, value) bleiben unverändert
     // in ko-strategies.js definiert — sie brauchen kein `rules`-Feld im
     // Trade-Doktor-Sinn und keine Composite-Zugehörigkeit. Diese Registry
     // wird bei Bedarf schrittweise erweitert, nicht in einem Rutsch.
+    // (weekly_income NICHT mehr hier gelistet seit 18.08.2026 — hat jetzt
+    // einen eigenen Registry-Eintrag oben, s. Trade-Doktor Block D.)
   };
 
   // ── COMPOSITE-STRATEGIEN ──────────────────────────────────────────────────
