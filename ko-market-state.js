@@ -1,8 +1,29 @@
 /**
- * ko-market-state.js — Market State Engine v2.3
+ * ko-market-state.js — Market State Engine v2.4
  * ================================================
  * Bestimmt das übergeordnete Markt-Regime aus normalisierten
  * Dark-Pool, Volatilitäts- und Flow-Indikatoren.
+ *
+ * NEU in v2.4 (23.08.2026, s. Nachtrag UIQ-Suite/docs/REGIME-BACKTEST-
+ * VALIDIERUNG.md): determineRegime() von der 5-Faktor-Formel (VVIX-Z/
+ * GEX-Z/DIX-Z/SKEW-Perzentil/Term-Structure) auf regime_v2 umgestellt —
+ * identische Formel wie market_aggregator.py::classify_regime_v2()
+ * (VIX3M/VIX-Ratio + VIX-Level + validierte GEX<0-Override-Regel).
+ * Grund: faire Neuvalidierung aller drei bis dahin konkurrierenden
+ * Regime-Berechnungen (market_regime_str/determine_mse_regime()/dieses
+ * Modell) auf identischer CBOE-Primärdatenbasis zeigte regime_v2 als
+ * durchgängig mindestens gleichwertig, bei BULL_FRAGILE klar überlegen.
+ * KEINE VVIX/SKEW-Abhängigkeit mehr für die Regime-Klassifikation selbst
+ * (macht den seit 17.07.2026 wiederkehrenden VVIX/SKEW-Datenblocker für
+ * dieses Modul strukturell irrelevant). Kennt kein NEUTRAL mehr — bewusste
+ * Design-Entscheidung von regime_v2, kein Funktionsverlust ggü. dem alten
+ * Modell (das NEUTRAL selbst war Teil der jetzt abgelösten Formel).
+ * THRESHOLDS entsprechend reduziert (vvixHighStress/gexShortGamma/
+ * dixAccumulation/skewHighHedging auskommentiert, nicht gelöscht — für
+ * das laufende Regime-Detection-Forschungsprojekt erhalten). Alte
+ * Funktionalität (5-Faktor-Z-Scores in normalizeMetrics()) bleibt als
+ * Diagnose-/Anzeigewert erhalten, fließt aber nicht mehr in
+ * determineRegime() ein. Noch NICHT live verifiziert.
  *
  * NEU in v2.3 (17.08.2026, Axel-Anfrage — DIX/GEX-Bulk-Historie-Nebenfund):
  *   - loadHistoryFromAggregator() backfillt jetzt auch _history.gex/.dix aus
@@ -68,11 +89,10 @@ var KoMarketState = {
   THRESHOLDS: {
     vixTermContango:     1.05,
     vixTermFlat:         0.98,
-    vvixHighStress:      1.5,
-    vvixLowStress:      -1.0,
-    gexShortGamma:      -1.0,
-    dixAccumulation:     0.5,
-    skewHighHedging:    80,
+    bullFragileVix:      25,     // BULL_FRAGILE vs. BULL_QUIET Schwelle
+    // -- ungenutzt seit regime_v2-Umstellung (23.08.2026), fuer Forschung erhalten:
+    // vvixHighStress: 1.5, vvixLowStress: -1.0, gexShortGamma: -1.0,
+    // dixAccumulation: 0.5, skewHighHedging: 80,
   },
 
   _history: {
@@ -221,6 +241,8 @@ var KoMarketState = {
       skew_raw:      rawData.skew,
       vixRatio:      rawData.vixRatio,
 
+      vix_raw:       rawData.vix,   // NEU -- fuer BULL_FRAGILE/BULL_QUIET-Schwelle in regime_v2
+
       vvix_z20:   this.zScore(h.vvix,     rawData.vvix),
       gex_z20:    this.zScore(h.gex,      rawData.gex),
       dix_z20:    this.zScore(h.dix,      rawData.dix),
@@ -242,32 +264,31 @@ var KoMarketState = {
 
   // ── REGIME BESTIMMUNG (Geminis Blueprint) ──────────────────────
   determineRegime(metrics) {
-    var vvix_z20    = metrics.vvix_z20;
-    var gex_z20     = metrics.gex_z20;
-    var dix_z20     = metrics.dix_z20;
-    var skew_pct20  = metrics.skew_pct20;
-    var vixRatio    = metrics.vixRatio;
-    var term        = metrics.term_structure;
-    var T           = this.THRESHOLDS;
+    // regime_v2 (validiert 23.08.2026, s. REGIME-BACKTEST-VALIDIERUNG.md
+    // Nachtrag) -- identische Formel wie market_aggregator.py::classify_regime_v2().
+    // Braucht nur noch vix/vix3m(-Ratio)/gex_raw -- KEINE VVIX/SKEW-Abhaengigkeit
+    // mehr, damit ist der seit 17.07.2026 wiederkehrende VVIX/SKEW-Datenblocker
+    // fuer die Regime-Klassifikation strukturell irrelevant. Kennt kein NEUTRAL
+    // mehr (bewusste Design-Entscheidung von regime_v2, kein Funktionsverlust).
+    var vixRatio = metrics.vixRatio;
+    var gexRaw   = metrics.gex_raw;
+    var vix      = metrics.vix_raw;
+    var T        = this.THRESHOLDS;
 
-    // 1. STRESS_UNSTABLE
-    if (term === 'BACKWARDATION' ||
-        (vvix_z20 > T.vvixHighStress && gex_z20 < T.gexShortGamma)) {
-      return 'STRESS_UNSTABLE';
+    if (vixRatio == null) return 'NEUTRAL';
+
+    var regime;
+    if (vixRatio < T.vixTermFlat) {
+      regime = 'STRESS_UNSTABLE';
+    } else if (vixRatio < T.vixTermContango) {
+      regime = 'POST_PANIC_REVERSION';
+    } else {
+      regime = (vix != null && vix > T.bullFragileVix) ? 'BULL_FRAGILE' : 'BULL_QUIET';
+      if (gexRaw != null && gexRaw < 0) {
+        regime = 'STRESS_UNSTABLE';  // GEX<0-Override, nur bei BULL_*
+      }
     }
-    // 2. POST_PANIC_REVERSION
-    if (term === 'FLAT' && dix_z20 > T.dixAccumulation && vvix_z20 < 0) {
-      return 'POST_PANIC_REVERSION';
-    }
-    // 3. BULL_FRAGILE
-    if (term === 'CONTANGO' && skew_pct20 > T.skewHighHedging && vvix_z20 > 0.8) {
-      return 'BULL_FRAGILE';
-    }
-    // 4. BULL_QUIET
-    if (term === 'CONTANGO' && gex_z20 > 0 && dix_z20 >= -0.5) {
-      return 'BULL_QUIET';
-    }
-    return 'NEUTRAL';
+    return regime;
   },
 
   // ── STRATEGY ROUTER ────────────────────────────────────────────
@@ -571,4 +592,4 @@ KoMarketState.loadHistoryFromAggregator().then(function(ok) {
   if (ok) console.log('[MSE v2] Aggregator-History bereit — Z-Scores sofort zuverlässig');
 });
 
-console.log('[ko-market-state.js] v2.3 geladen — 4-Regime MSE + Context-Aware Strategy Gates (MCM) + kontextualisierte Regime-Texte (AP D) + GEX/DIX-Bulk-History-Backfill');
+console.log('[ko-market-state.js] v2.4 geladen — regime_v2 (VIX3M/VIX-Ratio + GEX-Override), keine VVIX/SKEW-Abhaengigkeit mehr fuers Regime');
