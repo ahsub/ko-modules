@@ -1,6 +1,19 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.5.6 (23.08.2026) — Deep-Dive-Crash behoben (EIC-/Expert-
+ *  Modus-Teil): generateDeepDiveKI() in index.html erwartet pro Strategie
+ *  ein focus-Array (strat.focus[0..3]) fuer den Expert-Prompt-Aufbau — das
+ *  fehlte bei ALLEN 14 Strategien seit der Umstellung auf .prompt()-
+ *  Funktionen, wodurch der Deep-Dive fuer jede Strategie in jedem Modus
+ *  crashte (TypeError beim Public-seitigen prompt_context, der zusaetzlich
+ *  eine tote/ungenutzte Zeile war -- separat in index.html gefixt). Diese
+ *  Version ergaenzt bei allen 14 Strategien ein focus-Array (3 Analyse-
+ *  punkte + 1 Risikopunkt), abgeleitet aus dem bereits in .prompt()
+ *  vorhandenen strategiespezifischen Wissen -- keine .prompt()-Funktion
+ *  veraendert, nur ergaenzt (0 Zeilen entfernt, 84 Zeilen hinzugefuegt,
+ *  s. Diff). Betrifft nur den EIC-/Expert-Modus (privates Tool) -- der
+ *  Public-Modus-Crash war ein separater, in index.html behobener Fund.
  *  Version: 2.5.5 (18.08.2026) — Letzter offener Punkt aus
  *  UEBERGABE-2026-08-13.md §4 nachgezogen: EIC-System-Prompt-Zeile
  *  ("• OPTIONS (CSP/CC/Spread): ...") zeigte noch "Delta 0.20–0.30 · DTE
@@ -400,6 +413,12 @@ Das bedeutet konkret:
       lbKey: 'ko_long',
       hint:  '⚡ KO-Zertifikat: Hebel 3–8x · KO-Abstand · Positionsgröße max. €2.000',
       color: '#818cf8',
+      focus: [
+        "Hebel-Eignung: Passt die Volatilitaet (ATR) des Titels zu einem 3-8x-Hebel, ohne durch normales Kursrauschen ausgeknockt zu werden?",
+        "KO-Abstand: Sinnvoller Sicherheitsabstand zwischen Kurs und KO-Barriere, ATR-basiert eingeordnet",
+        "Positionsgroessen-Passung: Wie fuegt sich der Titel ins Limit von max. 2.000 EUR ein (Starter- vs. Aufstockungs-Groesse)?",
+        "Hauptrisiko fuer die Long-These: was koennte kurzfristig zum KO-Ereignis fuehren?"
+      ],
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Knock-out-Trading-Experte (Hebelprodukte auf Aktien, EUR-basiert).\n\n'
@@ -419,6 +438,12 @@ Das bedeutet konkret:
       lbKey: 'long_minervini',
       hint:  '📈 Momentum: SEPA/Minervini Stage-2 · Direktinvestment ohne Hebel',
       color: 'var(--green)',
+      focus: [
+        "SEPA/Stage-2-Qualitaet: Erfuellt der Titel die Kernkriterien (Trend, relative Staerke) aus den Scandaten?",
+        "Buy-Point/Timing: Steht der Titel am Pivot oder eher im Ruecksetzer zum EMA50 bei steigendem OBV?",
+        "Stop-Loss-Niveau: Sinnvoller Prozentabstand unter Kurs, abhaengig vom HVP-Wert (hoeherer HVP = engerer Stop)",
+        "Sektor- oder Makro-Risiko, das die Momentum-These aktuell am ehesten gefaehrden wuerde"
+      ],
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Momentum-Investor nach Minervini/SEPA-Methode.\n\n'
@@ -441,6 +466,12 @@ Das bedeutet konkret:
       lbKey: 'long_breakout',
       hint:  '🚀 Breakout: Pivot/52W-Hoch · Volumen-Bestätigung · OBV-Akkumulation · Stage-2',
       color: 'var(--green)',
+      focus: [
+        "Breakout-Reife: Kombination aus Naehe zum 52W-Hoch (pctFromHigh52), Volumen-Ratio und Tightness-Wert",
+        "Volumen-Bestaetigung: obvTrend-Richtung und vcpBreakoutVol als Ausbruchs-Signal",
+        "Relative-Staerke-Qualitaet: Einordnung des rsRating-Werts (>=85 = ideale Breakout-Qualitaet)",
+        "Groesstes False-Breakout-Risiko bei diesem spezifischen Setup"
+      ],
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Breakout-Trader mit Fokus auf technische Ausbrüche über '
@@ -493,6 +524,12 @@ Das bedeutet konkret:
       lbKey: 'vcp_setups',
       hint:  '📐 VCP-Setup: Volatility Contraction Pattern · Minervini · Direktinvestment',
       color: '#a855f7',
+      focus: [
+        "VCP-Reife: Anzahl der Contractions und Tiefe der letzten Korrektur (vcpLastPct)",
+        "Volumen-Kompression: vcpVolContraction-Wert als Mass fuer Austrocknung vor dem Ausbruch",
+        "Stage-2-Bestaetigung: Stuetzen RSI, MACD und OBV gemeinsam den Aufwaertstrend?",
+        "Risiko eines fehlgeschlagenen Ausbruchs (z.B. fehlendes Volumen, schwacher Gesamtmarkt)"
+      ],
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener technischer Analyst mit Spezialisierung auf das '
@@ -534,6 +571,12 @@ Das bedeutet konkret:
       lbKey: 'long_swing',
       hint:  '🔄 Swing-Trading: 5–20 Tage Haltedauer · Technische Muster',
       color: '#06b6d4',
+      focus: [
+        "Technisches Muster: Pullback, Breakout oder Reversal — welches liegt vor und wie klar ausgepraegt?",
+        "Entry-Zone: Aktueller Kurs im Verhaeltnis zum erkannten Setup (nur aus Kurs-Feld ableiten)",
+        "Stop-Loss in ATR-Einheiten: sinnvoller Abstand fuer die geschaetzte Haltedauer von 5-20 Tagen",
+        "Was wuerde dieses Swing-Setup am ehesten invalidieren?"
+      ],
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Swing-Trader mit Fokus auf 5-20 Tage Haltedauer.\n\n'
@@ -553,6 +596,12 @@ Das bedeutet konkret:
       lbKey: 'long_mr',
       hint:  '↩️ Mean Reversion: Rückkehr zum Mittelwert · Überverkauft/Überhitzt · ATR-Abstand',
       color: 'var(--yellow)',
+      focus: [
+        "Ueberverkauft-/Ueberhitzt-Grad: Wie extrem ist der aktuelle RSI-Wert einzuordnen?",
+        "Abstand zum Zielniveau: Distanz des Kurses zur EMA200 als Mean-Reversion-Referenz",
+        "ATR-Distanz: Wie viele ATR-Einheiten trennen Kurs und Mittelwert aktuell?",
+        "Momentum-Fallen-Risiko: spricht das uebergeordnete Trendumfeld gegen eine Mean-Reversion-These?"
+      ],
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein quantitativer Analyst mit Fokus auf Mean-Reversion-Strategien.\n\n'
@@ -573,6 +622,12 @@ Das bedeutet konkret:
       lbKey: 'options_csp',
       hint:  '⚙️ CSP/Wheel: Cash Secured Put + Covered Call · CapTrader/IBKR · Theta-Strategie',
       color: 'var(--amber)',
+      focus: [
+        "HVP-Eignung: Wie attraktiv ist die aktuelle Praemie gemessen am HVP-Wert des Titels?",
+        "Strike-Naeherung: EMA200-Abstand als grobe Orientierung fuer einen sinnvollen Strike-Bereich",
+        "Exit-Kriterien: Gewinnmitnahme- und Stop-Loss-Schwelle gemaess der hinterlegten Regel",
+        "IV-Crush- oder Earnings-Risiko innerhalb der betrachteten Laufzeit"
+      ],
       prompt: function(ctx) {
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 30 };
         var rules = getEffectiveRules('csp_wheel', cfg) || {
@@ -629,6 +684,12 @@ Das bedeutet konkret:
       lbKey: null,
       hint:  '🎯 CSP (ATM/NA): ATM-CSP · 50-70% Frühausstieg · 3-Stufen-Roll · Andienungs-Vermeidung',
       color: '#a371f7',
+      focus: [
+        "ATM-Strike-Logik: Wie gut passt der Titel zur Zeitwert-Maximierungs-Strategie bei aktuellem Kursniveau?",
+        "Frueausstiegs-Schwelle: welche der 50/60/70%-Gewinnmitnahme-Stufen greift je nach Restlaufzeit zuerst?",
+        "Roll-Eignung: Wie realistisch ist eine Andienungsvermeidung ueber die 3-Stufen-Rolllogik bei diesem Titel?",
+        "Risiko einer Andienung trotz Rollversuchen (z.B. anhaltender Abwaertstrend unter den Strike)"
+      ],
       prompt: function(ctx) {
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 21 };
         return '⛔⛔⛔ EIC-MODUS — ABSOLUTES HALLUZINATIONS-VERBOT ⛔⛔⛔\n'
@@ -680,6 +741,12 @@ Das bedeutet konkret:
       lbKey: null,
       hint:  '💰 CSP (Weekly): Diagonal Put-Spread · ATM-Short 7 DTE + Long-Versicherung 120 DTE · 4×/Monat',
       color: '#34d399',
+      focus: [
+        "Diagonal-Struktur: Passt das Verhaeltnis von Long-Put-Versicherung (~120 DTE) zu Short-Put-Income (7 DTE) beim aktuellen Kursniveau?",
+        "Woechentliches Rollen: Eignung des Titels fuer den 4x-pro-Monat-Rhythmus (Liquiditaet, Spreads)",
+        "Spread-Breite: wie gut begrenzt sie den maximalen Verlust im Verhaeltnis zur eingenommenen Praemie?",
+        "Liquiditaets- oder Weekly-Options-Verfuegbarkeitsrisiko bei diesem Titel"
+      ],
       prompt: function(ctx) {
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, erDays: 30 };
         return KI_ANTI_HALLUZINATION
@@ -724,6 +791,12 @@ Das bedeutet konkret:
       lbKey: 'options_cc',
       hint:  '📝 Covered Call: Call-Writing auf Bestandspositionen · Buy-Write · Prämieneinnahme',
       color: '#f59e0b',
+      focus: [
+        "Strike-Kompromiss: aggressiver (mehr Praemie, 5-8% OTM) oder konservativer Strike (mehr Upside, 10-15% OTM) sinnvoller?",
+        "HVP-Praemienqualitaet: rechtfertigt der HVP-Wert einen Covered Call auf diesen Titel?",
+        "Rollstrategie: wie wahrscheinlich ist ein Aufwaerts-Roll noetig, wenn der Kurs sich dem Strike naehert?",
+        "Risiko eines gekappten Gewinns bei ueberraschend starkem Kursanstieg"
+      ],
       prompt: function(ctx) {
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 300, minHvp: 30, goodHvp: 45, idealHvp: 60, erDays: 30, dte: 30 };
         var rules = getEffectiveRules('cc', cfg) || { deltaRange: [0.20, 0.30], dteRange: [cfg.dte, 45] };
@@ -769,6 +842,12 @@ Das bedeutet konkret:
       lbKey: null,
       hint:  '🛡️ Collar/Protective Put: Absicherung Bestandsposition · BULL_FRAGILE · Proxy-Strikes',
       color: '#0ea5e9',
+      focus: [
+        "Absicherungsbedarf: sprechen RSI/Momentum aktuell fuer eine Gewinnmitnahme-Absicherung auf diesem Titel?",
+        "Protective Put vs. voller Collar: lohnt sich hier eher die einfache Absicherung oder die volle Kostenreduktion mit gedeckeltem Upside?",
+        "Strike-Naeherung: ATR-basierte Put-/Call-Distanz als grobe Orientierung (keine echten Optionsketten verfuegbar)",
+        "Wichtigste Einschraenkung dieser Einschaetzung, die vor einer echten Position in IBKR/CapTrader zu pruefen ist"
+      ],
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Options-Stratege mit Fokus auf Absicherungsstrategien '
@@ -804,6 +883,12 @@ Das bedeutet konkret:
       lbKey: 'long_dividend',
       hint:  '💰 Dividend Growth: Qualitäts-Dividendentitel · Income + optionale CSP-Unterlegung',
       color: '#f59e42',
+      focus: [
+        "Dividendenqualitaet: Verhaeltnis von Rendite (divYield), Ausschuettungsquote (payoutRatio) und FCF-Yield",
+        "Fundamentalstaerke: ROE und Verschuldungsgrad als Qualitaetsindikatoren",
+        "CSP-Unterlegungs-Eignung: laesst sich ein Strike 5-10% unter Kurs sinnvoll platzieren?",
+        "Groesstes Risiko fuer die Nachhaltigkeit dieser Dividende"
+      ],
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Income-Investor spezialisiert auf Qualitäts-Dividendentitel '
@@ -837,6 +922,12 @@ Das bedeutet konkret:
       lbKey: 'long_value',
       hint:  '📊 Value Investing: Günstig bewertete Qualitätstitel · peForward, P/B, FCF-Yield',
       color: '#94a3b8',
+      focus: [
+        "Bewertungs-Kennzahlen: peForward, P/B und FCF-Yield im Verhaeltnis zum Sektor eingeordnet",
+        "Qualitaetscheck: rechtfertigt der ROE-Wert die guenstige Bewertung, oder handelt es sich um einen Value-Trap-Kandidaten?",
+        "Sicherheitsmarge: wie gross ist der Puffer zwischen Kurs und dem aus den Daten ableitbaren fairen Wert?",
+        "Staerkstes strukturelles Risiko (schrumpfendes Geschaeftsmodell, Schuldenlast, Sektor-Gegenwind)"
+      ],
       prompt: function(ctx) {
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Value-Investor nach Graham/Buffett-Prinzipien — '
@@ -873,6 +964,12 @@ Das bedeutet konkret:
       lbKey: 'short_fading_ko',
       hint:  '🔻 Fading Short (experimentell): KO-Short · Gegentrend · BULL_FRAGILE/STRESS',
       color: 'var(--red)',
+      focus: [
+        "Ueberhitzungsgrad: wie deutlich liegt der RSI-Wert ueber der 75-Schwelle?",
+        "Regime-Voraussetzung: ist das aktuelle Regime (BULL_FRAGILE/STRESS_UNSTABLE) ueberhaupt fuer Fading Short geeignet?",
+        "Stop-Level: sinnvoller Abstand knapp ueber dem 52-Wochen-Hoch",
+        "Das explizite Gegentrend-Risiko dieses experimentellen Setups im laufenden Bullmarkt"
+      ],
       // Kein eigener Analyse-Prompt: Fading-Short-Leaderboard hat keine
       // Bewertungsmetriken (kein score_fading_short() im Aggregator).
       // KI-Analyse-Button ist daher deaktiviert (runAlphaLbKI gibt Hinweis).
@@ -1028,7 +1125,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.5.0',
+    VERSION: '2.5.6',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
