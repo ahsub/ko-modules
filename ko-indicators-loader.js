@@ -403,6 +403,24 @@ async function buildMarketContext(alphaData, regime) {
     if (signal === 'risk')    ctx.summary.risk_flags.push(id);
   });
 
+  // NACHGERUESTET (25.08.2026, Axel-Bugreport VIX-Diskrepanz Morning
+  // Briefing) — Zeitstempel fuer den vix-Faktor anhaengen, falls das DOM-
+  // Element (m-vix, s. fetchVix()/index.html) ein data-asof-Attribut
+  // gesetzt hat. Macht sichtbar, WENN der VIX-Wert nicht vom heutigen Tag
+  // ist, statt eine moeglicherweise 1-2 Handelstage alte Zahl unmarkiert
+  // als aktuell erscheinen zu lassen. Bewusst NICHT in getIndicatorValue()
+  // eingebaut (generische Funktion fuer viele Indikatoren, keine VIX-
+  // Spezialbehandlung dort) -- stattdessen hier als gezielte Nachbearbeitung,
+  // gleiches Muster wie die Spezial-Bloecke unten fuer vix_term etc.
+  if (ctx.factors.vix) {
+    var _vixEl = document.getElementById('m-vix');
+    var _vixAsOf = _vixEl ? _vixEl.getAttribute('data-asof') : null;
+    if (_vixAsOf) {
+      ctx.factors.vix.asOf = _vixAsOf;
+      ctx.factors.vix.label += ' (Stand: ' + _vixAsOf + ')';
+    }
+  }
+
   // ── Spezial-Auswertung FRED/Derived-Indikatoren (v1.3.0) ─────────
   // Diese können nicht über getIndicatorValue() gelesen werden da sie
   // strukturierte Objekte zurückgeben (nicht einzelne Zahlen).
@@ -478,11 +496,26 @@ async function buildMarketContext(alphaData, regime) {
   // gelesen statt ueber getIndicatorValue().
   if (reg.vix_term && reg.vix_term.enabled !== false && _mkt && _mkt.vixTerm) {
     var _vt = _mkt.vixTerm;
+    // NACHGERUESTET (25.08.2026, Axel-Bugreport VIX-Diskrepanz) — Spot-VIX
+    // fuer die Terminstruktur-Anzeige wiederverwendet aus ctx.factors.vix
+    // (DOM/live, s.o.), FALLS vorhanden, statt eigenstaendig _mkt.vixTerm.vix
+    // (Aggregator-Snapshot) zu zeigen. Beide Werte koennen je nach Update-
+    // Zeitpunkt der zwei komplett unabhaengigen Datenpipelines (Yahoo-Live
+    // vs. GHA-Aggregator-Lauf) unterschiedlich alt sein -- frueher wurden sie
+    // unmarkiert nebeneinander im selben Briefing angezeigt (16.01 vs. 15.13
+    // am 25.08.2026 beobachtet). Vereinheitlicht auf EINE Quelle pro Anzeige,
+    // Spread wird bei Override konsistent neu berechnet (sonst Spread-Zahl
+    // gegen einen anderen VIX-Wert als den angezeigten gerechnet).
+    var _vtVix = (ctx.factors.vix && ctx.factors.vix.value != null) ? ctx.factors.vix.value : _vt.vix;
+    var _vtSpread = (_vtVix !== _vt.vix && _vt.vix3m != null)
+      ? Math.round((_vt.vix3m - _vtVix) * 100) / 100
+      : _vt.spread;
+    var _vtAsOf = (ctx.factors.vix && ctx.factors.vix.asOf) ? ' (Stand: ' + ctx.factors.vix.asOf + ')' : '';
     var _vtSignal = _evalSignalRules(reg.vix_term.signalRules, null, null, _vt.structure);
     ctx.factors.vix_term = {
-      value: _vt.structure, vix: _vt.vix, vix3m: _vt.vix3m, spread: _vt.spread,
+      value: _vt.structure, vix: _vtVix, vix3m: _vt.vix3m, spread: _vtSpread,
       signal: _vtSignal,
-      label: 'VIX Termstruktur: ' + _vt.structure + ' (VIX ' + _vt.vix + ' / VIX3M ' + _vt.vix3m + ', Spread ' + _vt.spread + ')',
+      label: 'VIX Termstruktur: ' + _vt.structure + ' (VIX ' + _vtVix + ' / VIX3M ' + _vt.vix3m + ', Spread ' + _vtSpread + ')' + _vtAsOf,
     };
     if (_vtSignal === 'caution') ctx.summary.caution_flags.push('vix_term');
     if (_vtSignal === 'risk')    ctx.summary.risk_flags.push('vix_term');
