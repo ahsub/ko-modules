@@ -1,8 +1,18 @@
 /**
- * ko-market-state.js — Market State Engine v2.4
+ * ko-market-state.js — Market State Engine v2.5
  * ================================================
  * Bestimmt das übergeordnete Markt-Regime aus normalisierten
  * Dark-Pool, Volatilitäts- und Flow-Indikatoren.
+ *
+ * NEU in v2.5 (27.08.2026, Legal-Briefing-Audit №61, Folgefix):
+ * loadHistoryFromAggregator() sendete den KV-Fetch bisher ohne Bearer-Token —
+ * seit ko-sync-worker.js v2.1 verlangt /public/master_market_data einen
+ * Token (STATIC_TOKEN/OWNER_TOKEN), daher schlug der Aufruf mit "KV 401"
+ * fehl (fail-open: Modul faellt sauber auf inkrementelle History zurueck,
+ * kein Absturz, aber Datenverlust bei der 30-Tage-Regime-History). Fix:
+ * Token direkt aus localStorage lesen (ko_ai_token), nicht ueber
+ * index.html::getAiToken() — dieses CDN-Modul kann vor dem Haupt-Script
+ * laden, localStorage ist unabhaengig von der Ladereihenfolge verfuegbar.
  *
  * NEU in v2.4 (23.08.2026, s. Nachtrag UIQ-Suite/docs/REGIME-BACKTEST-
  * VALIDIERUNG.md): determineRegime() von der 5-Faktor-Formel (VVIX-Z/
@@ -145,7 +155,17 @@ var KoMarketState = {
   async loadHistoryFromAggregator() {
     try {
       var kvUrl = 'https://ko-sync.ahildebrand.workers.dev/public/master_market_data';
-      var r = await fetch(kvUrl);
+      // NEU (27.08.2026, Legal-Briefing-Audit №61, Folgefix): der /public/*-
+      // Endpunkt verlangt seit ko-sync-worker.js v2.1 einen Bearer-Token
+      // (vorher unauthentifiziert). Direkter localStorage-Zugriff statt
+      // Abhaengigkeit von index.html::getAiToken() — dieses Modul kann vor
+      // dem Haupt-Script laden, localStorage ist immer verfuegbar.
+      var _koAiTok = (typeof KoConfig !== 'undefined' && KoConfig.api && KoConfig.api.aiToken)
+        ? KoConfig.api.aiToken
+        : (localStorage.getItem('ko_ai_token') || '');
+      var r = await fetch(kvUrl, {
+        headers: _koAiTok ? { 'Authorization': 'Bearer ' + _koAiTok } : {}
+      });
       if (!r.ok) throw new Error('KV ' + r.status);
       var resp = await r.json();
       var json = resp.data || resp;   // Worker gibt {key, data, updated_at}
@@ -592,4 +612,4 @@ KoMarketState.loadHistoryFromAggregator().then(function(ok) {
   if (ok) console.log('[MSE v2] Aggregator-History bereit — Z-Scores sofort zuverlässig');
 });
 
-console.log('[ko-market-state.js] v2.4 geladen — regime_v2 (VIX3M/VIX-Ratio + GEX-Override), keine VVIX/SKEW-Abhaengigkeit mehr fuers Regime');
+console.log('[ko-market-state.js] v2.5 geladen — regime_v2 (VIX3M/VIX-Ratio + GEX-Override), keine VVIX/SKEW-Abhaengigkeit mehr fuers Regime');
