@@ -1,6 +1,28 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.5.7 (28.08.2026) — SICHERHEITS-FIX (Legal-Briefing-Audit,
+ *  Folgefund zu Backlog №60/61 in SUITE.md): _getSystemPrompt() und
+ *  _getMorningPrompt() bauten bisher clientseitig einen kompletten
+ *  "EIC-Instruktions-Block" (u.a. "gib KONKRETE, DIREKTE Handlungs-
+ *  empfehlungen") direkt in den User-Prompt-Text ein, gesteuert allein
+ *  durch _expertModeActive/_eicUnlocked (Client-Variablen, selbstgesetzter
+ *  PIN — s. №60). Das lief am serverseitigen isOwner-Gate in ko-ai.js
+ *  komplett vorbei: der Worker waehlt zwar korrekt den Public-Systemprompt
+ *  fuer Nicht-Owner, aber der eingebettete User-Prompt-Text enthielt
+ *  trotzdem die EIC-Instruktion — das Modell folgt in der Praxis eher der
+ *  konkreten Aufgabenstellung im User-Text als dem widersprechenden
+ *  Systemprompt (live beobachtet: Covered-Call-Analyse im Public-Toggle-
+ *  Zustand enthielt trotzdem Strike/Delta/Praemien-Zahlen + Rangfolge).
+ *  Fix: eic-Parameter wird in beiden Funktionen nicht mehr zur Text-
+ *  auswahl verwendet — liefern jetzt IMMER die deskriptive Coaching-
+ *  Variante. Die eigentliche Public/Expert-Unterscheidung liegt
+ *  ausschliesslich noch serverseitig in ko-ai.js::selectSystemPrompt()
+ *  (bereits isOwner-gehaertet). Fuer Axel als Owner aendert sich die
+ *  Ausgabequalitaet nicht (Server-Systemprompt traegt die Experten-
+ *  Rahmung bereits zuverlaessig, am 27.08. verifiziert). Betrifft NICHT
+ *  die Options-Desk-Strategie-Templates (cc/atmna/csp_wheel/weekly_income),
+ *  die strukturell verwandt aber separat sind — s. Backlog №65/66.
  *  Version: 2.5.6 (23.08.2026) — Deep-Dive-Crash behoben (EIC-/Expert-
  *  Modus-Teil): generateDeepDiveKI() in index.html erwartet pro Strategie
  *  ein focus-Array (strat.focus[0..3]) fuer den Expert-Prompt-Aufbau — das
@@ -202,51 +224,48 @@ Das bedeutet konkret:
 
   // ── SYSTEM-PROMPTS (Public / EIC-Split) ───────────────────────────────────
   // Vorher inline in index.html getKiSystemPrompt() — jetzt Single Source of Truth.
-  // eic = true: Expert/EIC-Modus (direkte Empfehlungen, kein BaFin-Disclaimer)
-  // eic = false: Public-Modus (BaFin §1 WpHG, deskriptiv)
+  //
+  // SICHERHEITS-FIX (28.08.2026, Legal-Briefing-Audit, Folgefund zu №60/61):
+  // Diese Funktion baute bisher clientseitig einen kompletten "EIC-Instruktions-
+  // Block" (inkl. "gib KONKRETE, DIREKTE Handlungsempfehlungen") in den User-
+  // Prompt-Text ein, gesteuert allein durch die Client-Variablen
+  // _expertModeActive/_eicUnlocked (selbstgesetzter PIN, localStorage — siehe
+  // №60). Das lief am serverseitigen isOwner-Gate in ko-ai.js komplett vorbei:
+  // selbst wenn der Worker korrekt den Public-Systemprompt waehlt (expert_mode
+  // korrekt auf false erzwungen fuer Nicht-Owner), enthielt der eingebettete
+  // User-Prompt-Text trotzdem die EIC-Instruktion — das Modell folgt in der
+  // Praxis eher der konkreten Aufgabenstellung im User-Text als dem
+  // widersprechenden Systemprompt (empirisch beobachtet bei den Options-Desk-
+  // Templates, z.B. 'cc', die strukturell dasselbe Problem haben, s. Backlog
+  // №65/66).
+  //
+  // Fix: eic-Parameter wird nicht mehr zur Textauswahl verwendet — diese
+  // Funktion liefert jetzt IMMER die deskriptive Coaching-Variante. Die
+  // eigentliche Public/Expert-Unterscheidung liegt ausschliesslich noch
+  // serverseitig in ko-ai.js::selectSystemPrompt() (morning_public/expert,
+  // ki_briefing_public/expert), bereits korrekt auf isOwner gehaertet (№60).
+  // Fuer Axel als Owner aendert sich die Ausgabequalitaet NICHT — die
+  // eigentliche Experten-Rahmung kam ohnehin schon zuverlaessig vom Server
+  // (am 27.08. verifiziert). Parameter `eic` bleibt in der Signatur fuer
+  // Abwaertskompatibilitaet der Call-Sites, wird aber ignoriert.
 
   function _getSystemPrompt(context, eic) {
-    if (eic) {
-      return 'Du bist ein erfahrener quantitativer Portfolio-Manager, Options-Trader und '
-        + 'Knock-out-Produkt-Spezialist. Analysiere die gegebenen Messwerte und gib '
-        + 'KONKRETE, DIREKTE Handlungsempfehlungen.\n\n'
-        + 'STRICT NO-HALLUCINATION — ABSOLUTE PFLICHT:\n'
-        + '- ALLE Aussagen NUR aus den explizit gegebenen Messwerten ableiten.\n'
-        + '- KEINE Kurse, News, Bewertungen oder externe Daten erfinden oder schätzen.\n'
-        + '- Fehlende Werte mit n/v kennzeichnen — niemals interpolieren.\n'
-        + '- ATR ist deine Berechnungseinheit für alle Abstände, Strikes und Stops.\n\n'
-        + 'EMPFEHLUNGS-FORMAT:\n'
-        + '• AKTIEN/ETF: Richtung (Long/Short) + Einstiegsbereich ($-Wert oder ATR-Abstand vom EMA) '
-        + '+ Stop-Loss (1.5–2× ATR unter Entry) + Ziel (3–5× ATR) + Haltezeit in Tagen.\n'
-        + '• OPTIONS (CSP/CC/Spread): Delta 0.15–0.30 (CSP) / 0.20–0.30 (CC/Spread) · DTE 30–45 Tage · '
-        + 'Strike = EMA200 − n×ATR (konkreten Wert berechnen und nennen) · '
-        + 'Prämien-Erwartung: HVP-basiert (HVP>60=attraktiv, HVP<30=mager).\n'
-        + '• KO-PRODUKTE/TURBOS: Knock-out-Abstand ≥ 2×ATR vom aktuellen Kurs · '
-        + 'Hebelbereich = Kurs÷KO-Abstand (konkreten Bereich nennen, z.B. Hebel 4–6×) · '
-        + 'Basispreis-Logik basierend auf EMA50/EMA200 als Orientierung.\n'
-        + '• HVP-REGEL (zwingend): HVP < 30 → KEIN Prämienverkauf (CSP/CC/Short-Vola) — '
-        + 'stattdessen Debit Calls/Puts oder Debit-Spreads empfehlen. '
-        + 'HVP > 70 → Prämienverkauf (CSP / Credit Spread) weit OTM, Delta 0.15–0.20.\n\n'
-        + 'STIL: Direkt. Professionell. Kein Disclaimer. Keine BaFin-Formulierungen. Kein Markdown.\n'
-        + (context ? '\nKONTEXT: ' + context : '');
-    } else {
-      return 'Du bist ein Investment-Coach, der Investoren dabei hilft, bessere Entscheidungen zu treffen. '
-        + 'Deine Aufgabe: erkläre klar und direkt, ob ein Setup heute handlungswürdig ist — '
-        + 'oder warum es heute besser ist abzuwarten. '
-        + 'Schreibe wie ein erfahrener Mentor: konkret, ohne Umschweife, aber nie bevormundend.\n\n'
-        + 'STIL-REGELN:\n'
-        + '- Klare, direkte Sprache. Kein akademischer Stil, keine Schachtelsätze.\n'
-        + '- Erkläre jede Metrik in einem Halbsatz: "ADX 15 — kein etablierter Trend" statt nur "ADX 15".\n'
-        + '- Wenn du eine Einschätzung gibst, sage warum: "...weil [Metrik] zeigt, dass [Bedeutung]".\n'
-        + '- Regime-Konfidenz von 0% bei Range-Regime ignorieren — das ist ein technischer Wert, nicht inhaltlich relevant.\n'
-        + '- Statt "rechnerisch konsistent" oder "methodisch sinnvoll": einfach sagen was die Datenlage nahelegt.\n\n'
-        + 'ABSOLUTE REGELN:\n'
-        + '- ALLE Aussagen ausschliesslich aus den gegebenen Messwerten ableiten.\n'
-        + '- Keine direkten Kauf-/Verkaufsempfehlungen (BaFin §1 WpHG). '
-        + 'Stattdessen: "Die Datenlage spricht für..." oder "Das Risiko überwiegt heute, weil...".\n'
-        + '- Kein Markdown, kein "Ich".\n'
-        + (context ? '\nKONTEXT: ' + context : '');
-    }
+    return 'Du bist ein Investment-Coach, der Investoren dabei hilft, bessere Entscheidungen zu treffen. '
+      + 'Deine Aufgabe: erkläre klar und direkt, ob ein Setup heute handlungswürdig ist — '
+      + 'oder warum es heute besser ist abzuwarten. '
+      + 'Schreibe wie ein erfahrener Mentor: konkret, ohne Umschweife, aber nie bevormundend.\n\n'
+      + 'STIL-REGELN:\n'
+      + '- Klare, direkte Sprache. Kein akademischer Stil, keine Schachtelsätze.\n'
+      + '- Erkläre jede Metrik in einem Halbsatz: "ADX 15 — kein etablierter Trend" statt nur "ADX 15".\n'
+      + '- Wenn du eine Einschätzung gibst, sage warum: "...weil [Metrik] zeigt, dass [Bedeutung]".\n'
+      + '- Regime-Konfidenz von 0% bei Range-Regime ignorieren — das ist ein technischer Wert, nicht inhaltlich relevant.\n'
+      + '- Statt "rechnerisch konsistent" oder "methodisch sinnvoll": einfach sagen was die Datenlage nahelegt.\n\n'
+      + 'ABSOLUTE REGELN:\n'
+      + '- ALLE Aussagen ausschliesslich aus den gegebenen Messwerten ableiten.\n'
+      + '- Keine direkten Kauf-/Verkaufsempfehlungen (BaFin §1 WpHG). '
+      + 'Stattdessen: "Die Datenlage spricht für..." oder "Das Risiko überwiegt heute, weil...".\n'
+      + '- Kein Markdown, kein "Ich".\n'
+      + (context ? '\nKONTEXT: ' + context : '');
   }
 
   // ── MORNING BRIEFING PROMPT ────────────────────────────────────────────────
@@ -296,39 +315,13 @@ Das bedeutet konkret:
           : 'DIX darf in KEINER Begründung erwähnt werden (kein Datenfeed vorhanden). ')
       + 'Keine Strategie-Beschreibung, keine allgemeinen Marktkommentare in diesem Abschnitt.';
 
-    if (eic) {
-      return _getSystemPrompt(null, true) + '\n\n'
-        + 'AUFGABE: Morning Briefing — Tagesstart-Coaching für heute.\n'
-        + 'Sprich wie ein erfahrener Mentor, der kurz vor Handelsbeginn mit dem Investor spricht: '
-        + 'Was ist los im Markt, was bedeutet das konkret, und was ist heute die richtige Haltung?\n\n'
-        + 'PFLICHTREGEL (bindend, vor der STRUKTUR unten — 17.08.2026, Konsistenz-Nachzug zum Server-Prompt): '
-        + 'JEDER Faktor aus MESSWERTE mit Signal [CAUTION] oder [RISK] MUSS explizit in einem der 6 Abschnitte '
-        + 'namentlich genannt werden — unabhängig davon, ob er unten als Pflichtinhalt aufgeführt ist. Die STRUKTUR '
-        + 'ist eine Mindestanforderung, keine abschließende Aufzählung.\n\n'
-        + 'STRUKTUR (6 Abschnitte, je 2-4 Sätze direkt und auf den Punkt):\n'
-        + '1. MARKT-REGIME: Was sagt das aktuelle Regime (MSE) — und was bedeutet das heute konkret für die Handelsbereitschaft? '
-        + 'Breadth und Rotation als Bestätigung oder Warnung einordnen (Zahlen nennen).\n'
-        + '2. VOLATILITÄT & FLOW: VIX/VVIX/SKEW als Z-Score/Perzentil interpretieren — nicht den Rohwert, sondern was er bedeutet. '
-        + 'SKEW/VVIX-Divergenz explizit bewerten falls vorhanden. GEX (SPY-Markt-Level, SqueezeMetrics — sofern verfügbar) als echten Gamma-Exposure-Indikator einordnen. '
-        + (_dixReal
-            ? 'DIX (S&P-500-Basis UND ETF-Korb, beide getrennt kennzeichnen) als echte Messwerte einordnen.\n'
-            : 'DIX ist n/v — niemals erwähnen oder schätzen.\n')
-        + '3. MAKRO-RISIKEN: MOVE Index, HY Credit Spread, US Net Liquidity (Trend!) konkret einordnen — Entwarnung oder Warnsignal? '
-        + 'Keinen Messwert nennen ohne zu sagen was er bedeutet.\n'
-        + '4. SEKTOR-ROTATION: Welche Sektoren zeigen heute relative Stärke, welche Schwäche? '
-        + 'Direkte Konsequenz nennen: wo sucht man heute, wo nicht.\n'
-        + '5. SENTIMENT: Fear & Greed und PCR (als Proxy kennzeichnen falls source=vix_proxy) — '
-        + 'kontraindikatorisch lesen oder trendbestätigend? Eindeutige Einschätzung formulieren.\n'
-        + '6. STRATEGIE-AMPEL: Alle Strategien mit Ampelfarbe + 1-Satz-Begründung inkl. konkretem Messwert (Pflichtabschnitt).\n\n'
-        + 'COACHING-STIL (bindend für alle 6 Abschnitte):\n'
-        + '- Jede Metrik in einem Halbsatz erklären: \"VIX-Z +1.8 — Volatilität erhöht, Optionsprämien attraktiv\" statt nur \"VIX-Z +1.8\".\n'
-        + '- Konkrete Handlungshaltung je Abschnitt: handeln, abwarten oder absichern — immer mit Begründung aus den Daten.\n'
-        + '- Kein akademischer Stil, keine Schachtelsätze. Direkt wie ein Gesprächspartner.\n'
-        + '- Zahlen nennen, nie vage bleiben. Fehlende Werte: \"n/v\".\n\n'
-        + basis + '\n\n'
-        + STRATEGIE_MATRIX;
-    } else {
-      return _getSystemPrompt(null, false) + '\n\n'
+    // SICHERHEITS-FIX (28.08.2026, s. Kommentar bei _getSystemPrompt oben):
+    // Der eic-Zweig ist entfernt — diese Funktion liefert jetzt IMMER die
+    // deskriptive/BaFin-konforme Struktur, unabhängig vom eic-Parameter.
+    // Die Expert/Public-Unterscheidung liegt ausschliesslich noch serverseitig
+    // in ko-ai.js::selectSystemPrompt() (morning_public/morning_expert),
+    // bereits korrekt auf isOwner gehaertet.
+    return _getSystemPrompt(null, false) + '\n\n'
         + 'AUFGABE: Morning Briefing — Marktüberblick zum Tagesstart.\n'
         + 'Erkläre klar und verständlich, was der Markt heute zeigt — und was das für einen Investor bedeutet. '
         + 'Kein Fachjargon ohne Erklärung. Jede Zahl bekommt eine Bedeutung in einem Halbsatz.\n\n'
@@ -355,7 +348,6 @@ Das bedeutet konkret:
             ? 'DIX (S&P-500-Basis UND ETF-Korb, beide getrennt kennzeichnen) deskriptiv einordnen.\n'
             : 'DIX ist grundsätzlich nicht verfügbar — niemals erwähnen.\n')
         + STRATEGIE_MATRIX;
-    }
   }
   // NEU (15.08.2026): Effektive Regeln pro Strategie — liest Basis-Werte aus
   // KoStrategyRegistry (Single Source of Truth), ueberschreibt NUR die DTE-
@@ -1125,7 +1117,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.5.6',
+    VERSION: '2.5.7',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
