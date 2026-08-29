@@ -1,6 +1,27 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.14.0 (29.08.2026) — COLLAR-LIVE-TEST, HVP-RICHTUNGSFEHLER
+ *  (letzter Fund des Tages): (1) WICHTIGSTER FUND — "HVP 96% zeigt
+ *  Volatilitaetskompression" ist FAKTISCH FALSCH und erschien konsistent in
+ *  MEHREREN Strategien (CSP/Wheel, CC, Collar) heute, obwohl nirgends im
+ *  Prompt-Text so vorgegeben — reines LLM-Fehlkonzept, jetzt explizit
+ *  gegengesteuert: hoher HVP = hohe realisierte Vol relativ zur Historie,
+ *  nicht "komprimiert". (2) Neue Regel Beobachtung-vs-Einordnung bei
+ *  Extremwerten: ein Extremwert darf nicht direkt zu einer einseitigen
+ *  strategischen Interpretation ("klassisches Absicherungs-Setup") fuehren
+ *  — Pflicht: Beobachtung + zweiseitige Einordnung (spricht fuer UND
+ *  erhoehte Gegenbewegungs-Wahrscheinlichkeit). (3) "praemieneffiziente
+ *  Absicherungsstruktur"/"rechtfertigt [Massnahme]" als weitere Variante
+ *  der oekonomischen Tatsachenbehauptung verboten. (4) "strukturell
+ *  unnoetig" bei Regime-Einschaetzungen verboten (klingt wie Handlungs-
+ *  freigabe) — Pflichtformulierung inkl. explizitem "Modell bildet
+ *  individuelle Ziele nicht ab"-Zusatz. Reviewer-Kernpunkte 1 (Trade-off/
+ *  Modell-Grenze) und 5 (Collar-eigener Praemien/Upside-Zielkonflikt) waren
+ *  bereits gut — keine Aenderung noetig, nur bestaetigt. Punkt 7 (gemeinsamer
+ *  "UIQ Options Coaching Standard" ueber alle 4 Options-Strategien) bewusst
+ *  NICHT in diesem Commit umgesetzt — Architektur-Aufgabe fuer naechste
+ *  Session, s. UEBERGABE-2026-08-29.md.
  *  Version: 2.13.0 (29.08.2026) — COACHING-STRUKTUR-UPGRADE (Reviewer-
  *  Kernvorschlag zweiter CC-Live-Test: nicht mehr entschaerfen, sondern die
  *  gewonnene regulatorische Distanz fuer besseres Coaching nutzen). Der
@@ -720,7 +741,30 @@ Das bedeutet konkret:
     'Risiko [X]" (klingt wie reale Marktprognose) — stattdessen: "Diese ' +
     'Faktoren werden vom Modell bei der Bewertung des Strategy Fit ' +
     'beruecksichtigt; ein individuelles [X]-Risiko kann daraus nicht ' +
-    'abgeleitet werden."\n' +
+    'abgeleitet werden." Ebenso "praemieneffiziente Absicherungsstruktur" ' +
+    'oder "rechtfertigt [oekonomische Massnahme]" — UIQ hat keine Live- ' +
+    'Optionskette und kann Effizienz/Kosten nicht beurteilen, nur Strategy ' +
+    'Fit — stattdessen: "Das Modell erkennt hier eine Konstellation, bei ' +
+    'der die Absicherungsparameter naeher betrachtet werden koennen. Die ' +
+    'tatsaechlichen Kosten sind anhand der konkreten Optionskette zu ' +
+    'bestimmen."\n' +
+    '- Regime-Einschaetzungen NIEMALS als "strukturell unnoetig"/"nicht ' +
+    'erforderlich" formulieren (klingt wie eine Handlungsfreigabe) — ' +
+    'stattdessen: "Das Modell weist dem aktuellen Regime keinen erhoehten ' +
+    'systematischen Bedarf fuer [Massnahme] zu. Individuelle Portfolio-, ' +
+    'Gewinnsicherungs- oder Risikomanagementziele werden durch das Modell ' +
+    'nicht abgebildet."\n' +
+    '- BEOBACHTUNG VS. EINORDNUNG BEI EXTREMWERTEN (belegter Fund ' +
+    '29.08.2026): ein Extremwert (z.B. RSI 11) darf NIEMALS direkt zu einer ' +
+    'einseitigen strategischen Interpretation fuehren wie "klassisches ' +
+    'taktisches Absicherungs-Setup" (das liest sich wie eine Kaufempfehlung ' +
+    'fuer genau diese Struktur). PFLICHT: Beobachtung und Einordnung ' +
+    'trennen UND die Einordnung zweiseitig halten — z.B. "RSI 11 zeigt eine ' +
+    'ausgepraegte kurzfristige Schwaeche. Dies kann im Modellkontext auf ' +
+    'erhoehten kurzfristigen Bedarf fuer die betrachtete Strategie ' +
+    'hindeuten; gleichzeitig kann eine solche Extremsituation auch mit ' +
+    'erhoehter Wahrscheinlichkeit einer Gegenbewegung einhergehen." Niemals ' +
+    'nur die eine Lesart nennen, die fuer die Strategie spricht.\n' +
     '- Konkrete Optionsparameter (Strike, Delta, Praemie, PoP, Break-even, ' +
     'Assignment Risk) werden NICHT von UIQ bestimmt, sondern sind im Broker ' +
     'zu pruefen — das immer so benennen, nie als UIQ-Wert ausgeben. Formu- ' +
@@ -755,6 +799,17 @@ Das bedeutet konkret:
     'Titel insgesamt), NIEMALS als "ist fuer dich nicht geeignet" (UIQ ' +
     'bewertet ein Modell fuer eine Strategie, nicht die individuelle Eignung ' +
     'fuer den Nutzer oder die Aktie an sich).\n' +
+    '- BEGRIFFS-INTEGRITAET (HVP-Richtung, belegter Fund 29.08.2026, ' +
+    'Collar-Live-Test — durchgaengig in mehreren Strategien wiederholt, ' +
+    'obwohl nirgends im Prompt so vorgegeben): ein HOHER HVP-Wert (z.B. 90%+) ' +
+    'bedeutet, dass die AKTUELLE realisierte Volatilitaet HOCH ist relativ ' +
+    'zur eigenen 252-Tage-Historie — das ist das GEGENTEIL von "Kompression" ' +
+    'oder "niedrig". Formulierungen wie "HVP 96% zeigt Volatilitaetskompression" ' +
+    'oder "HVP 99% (hoechste Volatilitaetskomprimierung)" sind FAKTISCH FALSCH ' +
+    '(Bedeutungsumkehr), nicht nur unpraezise — VERBOTEN. Richtig: "HVP 96% ' +
+    'zeigt eine im historischen Vergleich erhoehte/hohe realisierte ' +
+    'Volatilitaet." Die Wörter "Kompression"/"komprimiert"/"Komprimierung" ' +
+    'NIEMALS in Verbindung mit einem hohen HVP-Wert verwenden.\n' +
     '- BEGRIFFS-INTEGRITAET (kein Sprach-, sondern Faktenproblem — belegter ' +
     'Fund 29.08.2026): HVP (Historical Volatility Percentile, berechnet ' +
     'AUSSCHLIESSLICH aus historischen Schlusskursen, siehe ' +
