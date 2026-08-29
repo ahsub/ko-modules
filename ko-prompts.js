@@ -1,6 +1,29 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.12.0 (29.08.2026) — CC-LIVE-TEST, TRADE-OFF-PRINZIP (neue
+ *  Kernregel statt weiterer Wortverbote): externer Review des Covered-Call-
+ *  Outputs zeigte einen neuen Fehlertyp — "Modell favorisiert/bevorzugt
+ *  [Strike-Bereich]" und "wird vom Modell als günstiges Prämien-Umfeld
+ *  bewertet" sind indirekte Optionsentscheidungen bzw. oekonomische
+ *  Tatsachenbehauptungen, ohne dass ein einzelnes verbotenes Wort vorkommt.
+ *  Reviewer-Kernidee: UIQ soll nicht mehr "Was soll ich tun?" beantworten,
+ *  sondern "Welche Eigenschaften machen dieses Setup interessant — und
+ *  welche Zielkonflikte bestehen?" (Trade-off-/Coaching-Sprache statt
+ *  Praeferenz-Sprache). Fix: (1) neuer Regelblock TRADE-OFF-PRINZIP in
+ *  PUBLIC_REGULATORY_GUARDRAIL — bei Strike-/Laufzeit-/Aggressivitaets-
+ *  Aussagen IMMER beide Seiten des Zielkonflikts beschreiben, nie eine
+ *  Richtung bevorzugen, mit Pflicht-Satzmuster + Vorher/Nachher-Beispiel
+ *  aus dem Reviewer-Text; (2) "Modell bevorzugt/favorisiert" nur noch auf
+ *  Aggregatebene (Titel-Ranking) erlaubt, nicht mehr auf Parameterebene
+ *  (Strike-Wahl); (3) oekonomische-Tatsachenbehauptung-Verbot ("guenstiges
+ *  Praemien-Umfeld", "reduziert die Gefahr") mit Pflicht-Ersatz "erhoehter
+ *  Strategy Fit"/"wird beruecksichtigt, individuelles Risiko nicht
+ *  ableitbar"; (4) Sektion-2-Ueberschrift in beiden Optionsstrategien jetzt
+ *  mit exaktem Pflichttext "HÖCHSTE [STRATEGIE] STRATEGY-FITS" erzwungen
+ *  (Live-Output hatte trotz Instruktion "SETUP-FIT" eigenmaechtig "TOP 3
+ *  [STRATEGIE]-KANDIDATEN" gewaehlt — Beleg, dass unpraezise Ueberschriften-
+ *  Vorgaben vom Modell umformuliert werden).
  *  Version: 2.11.0 (29.08.2026) — MORNING BRIEFING REVIEW-ZYKLUS-1-NACHZUG
  *  (drei offene Punkte aus dem allerersten externen MB-Review, 28.08.2026,
  *  nie umgesetzt): (1) CSP-Weekly-Contango-Regel in STRATEGIE_MATRIX war zu
@@ -635,7 +658,43 @@ Das bedeutet konkret:
     'definierten Kriterien", "Modell bevorzugt diese Konstellation", ' +
     '"technisch guenstigere Ausgangslage", "kompatibel mit den definierten ' +
     'Kriterien der Strategie", "innerhalb des untersuchten Universums ' +
-    'hoeher gerankt".\n' +
+    'hoeher gerankt". WICHTIG: "Modell bevorzugt"/"favorisiert" ist NUR auf ' +
+    'Aggregatebene erlaubt (ein Titel gegenueber anderen Titeln im ' +
+    'Ranking) — NIEMALS auf Parameterebene innerhalb eines Titels (z.B. ' +
+    '"Modell favorisiert aggressivere Strike-Wahl", "Modell bevorzugt hier ' +
+    'die hoehere Volatilitaetsnutzung"). Letzteres ist eine indirekte ' +
+    'Options-Entscheidung, s. TRADE-OFF-PRINZIP unten.\n' +
+    '- TRADE-OFF-PRINZIP STATT PRAEFERENZ-SPRACHE (belegter Fund 29.08.2026, ' +
+    'CC-Live-Test — neue Kernregel, nicht nur Wortliste): Bei jeder Aussage ' +
+    'zu Strike-Naehe, Aggressivitaet, Laufzeit oder aehnlichen Options- ' +
+    'Stellschrauben werden IMMER BEIDE Seiten des Zielkonflikts beschrieben, ' +
+    'NIEMALS eine Seite bevorzugt — unabhaengig davon, ob ein konkreter Wert ' +
+    'genannt wird. VERBOTEN: "Modell favorisiert/bevorzugt [Strike-Bereich/' +
+    'Ansatz]", "aggressivere/konservativere Strike-Wahl kann mit ... ' +
+    'einhergehen" als Empfehlung formuliert, jede Formulierung die EINE ' +
+    'Richtung als die bessere darstellt. PFLICHTFORMAT stattdessen: "Ein ' +
+    'naeher am aktuellen Kurs liegender Strike/eine kuerzere Laufzeit/[etc] ' +
+    'veraendert typischerweise das Verhaeltnis zwischen [Groesse A] und ' +
+    '[Groesse B]; welche Gewichtung sinnvoll ist, haengt von der gewaehlten ' +
+    'Optionsstruktur ab und ist anhand der aktuellen Optionskette im Broker ' +
+    'zu pruefen." Beispiel: statt "Modell bevorzugt konservativen Strike ' +
+    '(10-15% OTM)" → "Ein konservativerer Strike kann bei diesem Profil den ' +
+    'moeglichen Upside-Spielraum staerker erhalten, waehrend ein naeher am ' +
+    'aktuellen Kurs liegender Strike typischerweise staerker auf ' +
+    'Praemienertrag ausgerichtet ist. Die konkrete Auswahl erfolgt ' +
+    'ausserhalb von UIQ." Das gilt fuer JEDE Formulierung dieser Art, auch ' +
+    'wenn kein exaktes Wort aus der Verbotsliste vorkommt — die Pruefung ' +
+    'ist "beschreibt dieser Satz eine Richtung als die bessere?", nicht ' +
+    '"steht hier ein Prozentwert?".\n' +
+    '- Oekonomische Tatsachenbehauptungen statt Modellaussage sind verboten, ' +
+    'z.B. "wird vom Modell als guenstiges Praemien-Umfeld bewertet" ' +
+    '(oekonomisches Urteil als Tatsache) — stattdessen: "die Kombination ' +
+    'dieser Faktoren fuehrt im UIQ-Modell zu einem erhoehten Strategy Fit ' +
+    'fuer [Strategie]-Setups." Ebenso "reduziert modellseitig die Gefahr/das ' +
+    'Risiko [X]" (klingt wie reale Marktprognose) — stattdessen: "Diese ' +
+    'Faktoren werden vom Modell bei der Bewertung des Strategy Fit ' +
+    'beruecksichtigt; ein individuelles [X]-Risiko kann daraus nicht ' +
+    'abgeleitet werden."\n' +
     '- Konkrete Optionsparameter (Strike, Delta, Praemie, PoP, Break-even, ' +
     'Assignment Risk) werden NICHT von UIQ bestimmt, sondern sind im Broker ' +
     'zu pruefen — das immer so benennen, nie als UIQ-Wert ausgeben. Formu- ' +
@@ -759,17 +818,24 @@ Das bedeutet konkret:
       + '1. MARKTUMFELD: ' + o.marktumfeldFrage + ' (2-3 Sätze, Modellsignale '
       + 'explizit als Modellsignale kennzeichnen, keine Risikoreduktions-'
       + 'Tatsachenbehauptung)\n'
-      + '2. SETUP-FIT — TOP 3: Welche 3 Titel weisen die höchste Kriterien-'
+      + '2. Überschrift EXAKT "HÖCHSTE ' + o.stratName.toUpperCase() + ' STRATEGY-FITS" '
+      + '(niemals "Kandidaten", "Top-Kandidaten" oder ähnliche Ranking-Wörter '
+      + 'in der Überschrift). Welche 3 Titel weisen die höchste Kriterien-'
       + 'Übereinstimmung mit ' + o.stratName + ' auf? Für jeden: positive '
       + 'Faktoren, Risikofaktoren, grober qualitativer und gehedgter '
-      + 'Parameterbereich (z.B. "kann grundsätzlich mit höheren '
-      + 'Optionsprämien einhergehen", niemals als Tatsachenbehauptung) — '
-      + 'OHNE konkreten Strike, Delta-Wert, DTE-Zahl, Prämien-Schätzung oder '
-      + 'Verfallsdatum zu nennen, UND OHNE jede Exit-/Stop-/Roll-/Timing-'
-      + 'Regel (z.B. "Exit bei RSI über X", "Stop unterhalb Y") — solche '
-      + 'Regeln sind EIC-exklusiv (Grundgesetz #11), nie Teil dieser '
-      + 'Antwort. "Parameterbereich" beschreibt AUSSCHLIESSLICH den '
-      + 'Kriterien-Erfüllungsgrad, keine Handlungsschwelle.\n'
+      + 'Parameterbereich — IMMER als Zielkonflikt beider Richtungen '
+      + 'formuliert (z.B. "ein näher am aktuellen Kurs liegender Strike '
+      + 'verändert typischerweise das Verhältnis zwischen Prämienertrag und '
+      + 'Upside-Spielraum; die konkrete Auswahl erfolgt außerhalb von UIQ"), '
+      + 'NIEMALS eine Richtung als vom Modell bevorzugt darstellen (verboten: '
+      + '"Modell favorisiert/bevorzugt [Strike-Bereich/Ansatz]") — s. '
+      + 'TRADE-OFF-PRINZIP oben. OHNE konkreten Strike, Delta-Wert, DTE-Zahl, '
+      + 'Prämien-Schätzung oder Verfallsdatum zu nennen, UND OHNE jede '
+      + 'Exit-/Stop-/Roll-/Timing-Regel (z.B. "Exit bei RSI über X", "Stop '
+      + 'unterhalb Y") — solche Regeln sind EIC-exklusiv (Grundgesetz #11), '
+      + 'nie Teil dieser Antwort. "Parameterbereich" beschreibt '
+      + 'AUSSCHLIESSLICH den Kriterien-Erfüllungsgrad und Zielkonflikte, '
+      + 'keine Handlungsschwelle und keine Präferenz.\n'
       + '3. GERINGER UIQ STRATEGY FIT / AUSSCHLUSS NACH MODELLKRITERIEN: '
       + 'Titel + Grund, formuliert als "erfüllt die Kriterien nicht" — '
       + 'NIEMALS als "ist für dich nicht geeignet".\n'
