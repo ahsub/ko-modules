@@ -1,8 +1,43 @@
 /**
- * ko-market-state.js — Market State Engine v2.5
+ * ko-market-state.js — Market State Engine v2.7
  * ================================================
  * Bestimmt das übergeordnete Markt-Regime aus normalisierten
  * Dark-Pool, Volatilitäts- und Flow-Indikatoren.
+ *
+ * NEU in v2.7 (29.08.2026, Fortsetzung des v2.6-Nachzugs): die 4 eindeutig
+ * unstrittigen Treffer aus dem v2.6-Fund gefixt — 2× "optimal" (seit
+ * ko-prompts.js v2.8.0 explizit fuer KI-Text verboten, stand hier
+ * unveraendert im *immer sichtbaren* UI) und 2× konkrete Delta-Schwellen
+ * (Δ<0.25, Δ<0.15 — echte Ausfuehrungsparameter, laut Grundgesetz #11
+ * zweifelsfrei Broker-/EIC-Territorium). Delta-Werte durch qualitative
+ * Verweise auf den Broker ersetzt, "optimal" durch "gut kompatibel".
+ * Die restlichen ~38 Treffer (direktive Verben ohne Zahl, GESPERRT/NICHT
+ * EMPFOHLEN/PRIORITÄT-N-Status-Label) sind eine separate Grundsatzfrage
+ * (strukturell aehnlich dem validierten Ampel+Begruendung-Muster oder zu
+ * direktiv?) — bewusst NICHT in diesem Commit angefasst, noch keine
+ * Entscheidung getroffen.
+ *
+ * NEU in v2.6 (29.08.2026, Morning Briefing Review-Zyklus-1-Nachzug):
+ * BULL_QUIET-Regime-Text ('action'-Feld, direkt im UI gerendert, s.
+ * axel-scanner/index.html Zeilen 6249/22427/23936/24169/24177 — KEIN reiner
+ * KI-Prompt-Kontext) war "Gesamteinschätzung: Trendfolge, Breakouts &
+ * aggressive Income-Strategien" — vom externen Reviewer (Zyklus 1,
+ * 28.08.2026) als zu empfehlungsartig fuer einen Public-User eingestuft,
+ * Fix nie nachgezogen. Umformuliert zu "Strategischer Kontext: ...".
+ * WICHTIGER NEBENFUND (29.08.2026): Die uebrigen 4 Regime-'action'-Texte
+ * sowie ALLE ~60 einzelnen strategies[...].note-Texte in diesem Gate-Objekt
+ * sind ebenfalls direkt im UI gerendert (dieselben Fundstellen), enthalten
+ * aber weiterhin unveraendert direktive Sprache ("GESPERRT", "NICHT
+ * EMPFOHLEN", "PRIORITÄT 1 — Voll freigegeben", "ATM-Prämien bei hoher IV
+ * optimal" [enthaelt das seit v2.8.0 in ko-prompts.js verbotene Wort
+ * "optimal"]) — UND das komplett unabhaengig von Public/EIC-Modus, da dies
+ * statische JS-Daten sind, keine KI-Ausgabe. Keine der heutigen Guardrail-
+ * Mechanismen (PUBLIC_REGULATORY_GUARDRAIL, Compliance-Scanner in ko-ai.js)
+ * erfasst diese Stelle, weil beide nur KI-generierten Text pruefen. Nur
+ * BULL_QUIET.action in diesem Commit gefixt (expliziter Reviewer-Auftrag,
+ * Zyklus 1); die weiteren ~64 Fundstellen sind eine eigene, groessere
+ * Aufgabe — s. Anschlussfrage an Axel im Chat vom 29.08.2026, noch nicht
+ * entschieden ob/wann.
  *
  * NEU in v2.5 (27.08.2026, Legal-Briefing-Audit №61, Folgefix):
  * loadHistoryFromAggregator() sendete den KV-Fetch bisher ohne Bearer-Token —
@@ -329,7 +364,7 @@ var KoMarketState = {
           swing:        { active: true,  color: 'green',  note: 'PRIORITÄT 1 — Pullbacks kaufen, klare Trendstruktur' },
           ko:           { active: true,  color: 'green',  note: 'PRIORITÄT 2 — KO-Hebelprodukte Long freigegeben' },
           csp_wheel:    { active: true,  color: 'green',  note: 'PRIORITÄT 2 — ATM-Strikes aggressiv, kaum Gap-Risiko' },
-          atmna:        { active: true,  color: 'green',  note: 'PRIORITÄT 2 — ATM-Strategie in stabilem Umfeld optimal' },
+          atmna:        { active: true,  color: 'green',  note: 'PRIORITÄT 2 — ATM-Strategie in stabilem Umfeld gut kompatibel' },
           weekly_income:{ active: true,  color: 'green',  note: 'PRIORITÄT 2 — Covered Calls & Cash-Secured Puts freigegeben' },
           cc:           { active: true,  color: 'green',  note: 'PRIORITÄT 2 — Buy-Write auf Qualitätstitel, hohe Prämien bei geringem Gap-Risiko' },
           vcp:          { active: true,  color: 'green',  note: 'PRIORITÄT 1 — Ideales Contraction→Breakout-Umfeld, Vol komprimiert' },
@@ -337,7 +372,7 @@ var KoMarketState = {
           meanrev:      { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — kein Oversold-Signal in Bullmarkt' },
           fading_short: { active: false, color: 'red',    note: 'GESPERRT — Gegentrend-Short in stabilem Bullmarkt' },
         },
-        action: 'Gesamteinschätzung: Trendfolge, Breakouts & aggressive Income-Strategien',
+        action: 'Strategischer Kontext: Trendfolge/Breakout laut Modell bevorzugt; Income-Strategien eingeschränkt',
       },
       BULL_FRAGILE: {
         label:       '🟡 BULL FRAGILE — Vorsicht geboten',
@@ -346,7 +381,7 @@ var KoMarketState = {
         strategies: {
           momentum:     { active: true,  color: 'amber',  note: 'MÖGLICH — engere Trailing-Stops, nur A+ Qualität' },
           swing:        { active: true,  color: 'amber',  note: 'MÖGLICH — nur bei extrem starken Titeln (RS>90)' },
-          csp_wheel:    { active: true,  color: 'amber',  note: 'DROSSELN — defensive Strikes (Δ<0.25), kürzere Laufzeit' },
+          csp_wheel:    { active: true,  color: 'amber',  note: 'DROSSELN — defensive Strike-Nähe, kürzere Laufzeit (konkreter Delta-Bereich im Broker)' },
           weekly_income:{ active: true,  color: 'amber',  note: 'EINSCHRÄNKEN — kürzere Laufzeiten, höhere Strikes' },
           cc:           { active: true,  color: 'amber',  note: 'EINSCHRÄNKEN — nur auf bereits gehaltene Qualitätstitel, defensive Strikes' },
           atmna:        { active: true,  color: 'amber',  note: 'EINSCHRÄNKEN — defensiver Strike-Abstand' },
@@ -366,7 +401,7 @@ var KoMarketState = {
         strategies: {
           fading_short: { active: true,  color: 'green',  note: 'PRIORITÄT 1 — Short-Strategie via KO-Zertifikat Short' },
           meanrev:      { active: true,  color: 'amber',  note: 'MÖGLICH — selektiv Short-Squeeze Rebounds, enger Stop' },
-          csp_wheel:    { active: true,  color: 'amber',  note: 'NUR DEFENSIV — Δ<0.15, krisenresistente Value-Titel' },
+          csp_wheel:    { active: true,  color: 'amber',  note: 'NUR DEFENSIV — deutlich defensivere Strike-Nähe, krisenresistente Value-Titel (konkreter Delta-Bereich im Broker)' },
           cc:           { active: true,  color: 'amber',  note: 'SELEKTIV — nur auf bereits gehaltene Positionen, keine Neupositionen zum Buy-Write' },
           collar:       { active: true,  color: 'amber',  note: 'ZU SPÄT FÜR NEUABSICHERUNG — Put-Praemien bereits stark verteuert (hohe IV); bestehende Collars halten' },
           vcp:          { active: false, color: 'red',    note: 'GESPERRT — keine Contraction-Struktur in Stressphase moeglich' },
@@ -386,7 +421,7 @@ var KoMarketState = {
         strategies: {
           meanrev:      { active: true,  color: 'green',  note: 'PRIORITÄT 1 — Long-Rebounds überverkaufter Qualitätstitel' },
           csp_wheel:    { active: true,  color: 'green',  note: 'PRIORITÄT 1 — erhöhte IV verkaufen, hohe Prämien kassieren' },
-          atmna:        { active: true,  color: 'green',  note: 'PRIORITÄT 1 — ATM-Prämien bei hoher IV optimal' },
+          atmna:        { active: true,  color: 'green',  note: 'PRIORITÄT 1 — ATM-Prämien bei hoher IV gut kompatibel' },
           weekly_income:{ active: true,  color: 'green',  note: 'PRIORITÄT 2 — Vol-Crush nutzen für Income' },
           cc:           { active: true,  color: 'green',  note: 'PRIORITÄT 2 — erhöhte IV nach Panik für Buy-Write nutzen, hohe Prämien' },
           fading_short: { active: false, color: 'amber',  note: 'REDUZIEREN — Short-Positionen bei Bodenbildung abbauen' },
@@ -612,4 +647,4 @@ KoMarketState.loadHistoryFromAggregator().then(function(ok) {
   if (ok) console.log('[MSE v2] Aggregator-History bereit — Z-Scores sofort zuverlässig');
 });
 
-console.log('[ko-market-state.js] v2.5 geladen — regime_v2 (VIX3M/VIX-Ratio + GEX-Override), keine VVIX/SKEW-Abhaengigkeit mehr fuers Regime');
+console.log('[ko-market-state.js] v2.7 geladen — regime_v2 (VIX3M/VIX-Ratio + GEX-Override), keine VVIX/SKEW-Abhaengigkeit mehr fuers Regime');
