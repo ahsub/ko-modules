@@ -1,6 +1,35 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.9.0 (29.08.2026) — BEGRIFFS-/KAUSALITAETS-INTEGRITAET
+ *  (UIQ-REGULATORY-LANGUAGE-SPEC.md §1.3/§1.4, Spec-v1.1 §11 Punkte 4-6):
+ *  Axel wollte die HVP/IV-Percentile-Verwechslung aus Review-Zyklus 4 gegen
+ *  die TATSAECHLICHE Indikator-Definition pruefen, bevor am Prompt
+ *  weitergearbeitet wird. Ergebnis der Code-Recherche: HVP
+ *  (calc_hv_percentile() in market_aggregator.py) ist rein aus historischen
+ *  Schlusskursen berechnet, KEINE Options-/IV-Daten beteiligt — die
+ *  Indikator-Definition selbst ist sauber und eindeutig. Die eigentliche
+ *  Fehlerquelle war KEIN Sprachfehler der KI: in
+ *  axel-scanner/index.html::runOptionsKiBriefing() (Zeile ~24921) war das
+ *  Label-Praefix "IVR:" fix verdrahtet, auch im HVP-Fallback-Zweig — der
+ *  Prompt enthielt dadurch woertlich "IVR:HVP96%" (zwei Indikator-Namen
+ *  unaufgeloest im selben Feld). Die KI hat das im Output korrekt zitiert
+ *  ("Extreme IV-Percentile (HVP96%)") — sie hat nicht halluziniert, sondern
+ *  einen bereits mehrdeutigen Prompt-Input wiedergegeben. Separat gefixt in
+ *  index.html (uebernimmt das an drei anderen Stellen bereits etablierte
+ *  Muster label = isHV ? 'HVP' : 'IVP'). Dieser Fund aendert die
+ *  Fehlerklasse: Begriffs-Integritaet ist in erster Linie ein
+ *  Daten-Serialisierungs-Thema, nicht nur ein Prompt-Wortlaut-Thema —
+ *  deshalb hier zusaetzlich als Verteidigung in der Tiefe kodiert (falls
+ *  weitere, noch nicht gefundene Serialisierungs-Bugs aehnliche
+ *  Mehrdeutigkeiten erzeugen). Ergaenzt: RSI-Richtungskonsistenz
+ *  (ueberkauft/ueberverkauft muss zur Zahl passen), Kausalitaets-Integritaet
+ *  (keine mehrgliedrigen Kausalketten ohne Datenbeleg), ersatzlose
+ *  Streichung von Praemien-Richtungsvermutungen statt Hedging (Spec §9
+ *  Punkt 2), Verrechnungs-Suggestion "kompensiert" verboten, Ausschluss-
+ *  Formulierung jetzt explizit auf die Strategie skaliert ("erfuellt die
+ *  Kriterien der [Strategie] nicht" statt nur "erfuellt die Kriterien
+ *  nicht", Spec 10.4).
  *  Version: 2.8.0 (29.08.2026) — DRITTER LEGAL-REVIEW-ZYKLUS (Backlog №65
  *  Fortsetzung, externe Rechtsberatung zum ATM/NA-Public-Output nach
  *  v2.7.0): Struktur und Zahlenfreiheit wurden diesmal als "sehr viel
@@ -571,9 +600,43 @@ Das bedeutet konkret:
     '"Eine Kursbewegung unterhalb des Strike kann zu einer Andienung ' +
     'fuehren; dieses Ereignis wird durch die im Modell beruecksichtigten ' +
     'Faktoren nicht ausgeschlossen."\n' +
-    '- Ausschlussgruende als "erfuellt die Kriterien nicht" formulieren, ' +
-    'NIEMALS als "ist fuer dich nicht geeignet" (UIQ bewertet ein Modell, ' +
-    'nicht die individuelle Eignung fuer den Nutzer).\n' +
+    '- Ausschlussgruende als "erfuellt die Kriterien der [Strategie] nicht" ' +
+    'formulieren (IMMER auf die betrachtete Strategie skalieren, nie auf den ' +
+    'Titel insgesamt), NIEMALS als "ist fuer dich nicht geeignet" (UIQ ' +
+    'bewertet ein Modell fuer eine Strategie, nicht die individuelle Eignung ' +
+    'fuer den Nutzer oder die Aktie an sich).\n' +
+    '- BEGRIFFS-INTEGRITAET (kein Sprach-, sondern Faktenproblem — belegter ' +
+    'Fund 29.08.2026): HVP (Historical Volatility Percentile, berechnet ' +
+    'AUSSCHLIESSLICH aus historischen Schlusskursen, siehe ' +
+    'calc_hv_percentile() im Aggregator) und IV/IVR/IVP (Implied Volatility ' +
+    'Rank/Percentile, aus echter Optionsketten-IV) sind ZWEI VERSCHIEDENE ' +
+    'GROESSEN aus unterschiedlichen Datenquellen. Ein Feld, das im Prompt ' +
+    'als "HVP:" gekennzeichnet ist, NIEMALS als "IV-Percentile", ' +
+    '"IV-Rank" oder "implizite Volatilitaet" bezeichnen — immer exakt das ' +
+    'im Prompt gegebene Label uebernehmen, nie durch einen aehnlich ' +
+    'klingenden Fachbegriff ersetzen.\n' +
+    '- BEGRIFFS-INTEGRITAET (Richtungskonsistenz): RSI > 70 ist ' +
+    '"ueberkauft", RSI < 30 ist "ueberverkauft" — vor jeder Verwendung den ' +
+    'tatsaechlichen Zahlenwert gegen die Richtung pruefen, niemals aus dem ' +
+    'Kontext raten (z.B. RSI 77 ist ueberkauft, nicht "Ueberverkauftheitssignal").\n' +
+    '- KAUSALITAETS-INTEGRITAET: keine mehrgliedrigen Kausalketten ohne ' +
+    'direkten Datenbeleg (z.B. verboten: "komprimierte Praemie → hoehere ' +
+    'Wahrscheinlichkeit → zuegige Gewinnmitnahme" oder "RSI 30 → ' +
+    'Gegenbewegung → keine Andienung"). Jede Aussage endet an der Stelle, ' +
+    'die die vorliegenden Daten hergeben — die naechste inferentielle Stufe ' +
+    '("und deshalb passiert dann Y") wird NICHT mitgeliefert, auch wenn sie ' +
+    'plausibel klingt. Beispiel korrekt: "RSI 30 weist auf eine kurzfristig ' +
+    'schwache Kurslage hin. Eine weitere Kursbewegung unterhalb des Strike ' +
+    'kann daher nicht ausgeschlossen werden."\n' +
+    '- Praemien-Aussagen ohne zusaetzlichen Erkenntniswert (reine ' +
+    'Richtungsvermutung wie "kann mit hoeheren Praemien einhergehen") ' +
+    'ERSATZLOS WEGLASSEN statt hedgen — stattdessen ausschliesslich: "Die ' +
+    'tatsaechliche Optionspraemie und Liquiditaet sind ausserhalb von UIQ ' +
+    'zu pruefen."\n' +
+    '- Quantitative Verrechnungs-Suggestion ("Grade C wird durch X ' +
+    'kompensiert") verboten — stattdessen: "Grade C stellt einen negativen ' +
+    'Faktor dar; [Kontext] wirkt im Modell jedoch nicht als ' +
+    'Ausschlusskriterium."\n' +
     '- Marktumfeld-Einschaetzungen NIEMALS als "strukturelle Attraktivitaet ' +
     'fuer [Strategie]" formulieren (impliziert wirtschaftliche Attraktivitaet ' +
     'eines konkreten Geschaefts) — stattdessen woertlich: "Das Modell weist ' +
