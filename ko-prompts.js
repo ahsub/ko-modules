@@ -1,6 +1,29 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.7.0 (29.08.2026) — ZWEITER LEGAL-REVIEW-ZYKLUS (Backlog №65
+ *  Fortsetzung, externe Rechtsberatung zum ATM/NA-Public-Output nach
+ *  v2.6.1): der v2.6.1-Fix (kein Fazit, keine Zahlen) reichte nicht — der
+ *  Live-Output enthielt weiterhin direktive Formulierungen OHNE konkrete
+ *  Zahlen ("optimalerweise ... fokussiert", "reduziert Andienungsrisiken
+ *  erheblich", "Praemienniveau ausreichend", "Defensiv aussitzen",
+ *  "Handlungsorientierte Einschaetzung: Fokus auf LMT + AMZN"). Externe
+ *  Einschaetzung: ESMA fasst "Investment Recommendation" auch bei
+ *  indirekter/nicht-technischer Sprache weit — Zahlenfreiheit allein reicht
+ *  nicht. Fix: neuer gemeinsamer Baustein PUBLIC_REGULATORY_GUARDRAIL
+ *  (expliziter Verbotswoerter-Katalog + Pflicht-Ersatzformulierungen +
+ *  Hedging-Pflicht fuer Praemien-/Volatilitaetsaussagen + Modellsignal- statt
+ *  Tatsachen-Framing fuer Risikoaussagen), in beide Public-Builder
+ *  eingebaut. Options-Builder: Sektion 3 "NICHT GEEIGNET" umbenannt in
+ *  "GERINGER UIQ STRATEGY FIT / AUSSCHLUSS NACH MODELLKRITERIEN" (UIQ
+ *  bewertet ein Modell, nicht die individuelle Eignung des Nutzers). Beide
+ *  Builder: neue optionale Sektion 5 "UIQ ... ZUSAMMENFASSUNG" erlaubt einen
+ *  Schlussabschnitt wieder — aber nur als reine Wiederholung der bereits
+ *  genannten Kriterien-Uebereinstimmung + Pflicht-Verweis auf eigene
+ *  Pruefung ausserhalb UIQ, nie als neue Praeferenz/Handlungsanweisung
+ *  (ersetzt das v2.6.1-Verbot jedes Schlussabschnitts durch ein praeziseres,
+ *  auf das sichere Format beschraenktes Verbot). EIC-Zweig weiterhin in
+ *  jeder Strategie unveraendert (Axel-Entscheidung 29.08., s. №65/№66).
  *  Version: 2.6.1 (29.08.2026) — NACHSCHLIFF zu v2.6.0 (Backlog №65):
  *  Axel hat den v2.6.0-Fix live verifiziert (CDN-Pin auf 141a7c1
  *  aktualisiert, CSP-ATM/NA-Output neu generiert im Public-Modus) — die
@@ -468,8 +491,59 @@ Das bedeutet konkret:
     return (focus || []).map(function(f, i) { return (i + 1) + '. ' + f; }).join('\n');
   }
 
+  // ── PUBLIC-MODUS REGULATORY GUARDRAIL (29.08.2026, zweiter Legal-Review-
+  // Zyklus zum ATM/NA-Output) ────────────────────────────────────────────
+  // Der erste Public-Fix (v2.6.0/v2.6.1) unterband konkrete Zahlen (Strike/
+  // Delta/DTE/Praemie) und ein abschliessendes Fazit — der Live-Output
+  // zeigte danach aber weiterhin einzelne direktive WOERTER/Tatsachen-
+  // behauptungen ohne konkrete Zahlen ("optimalerweise ... fokussiert",
+  // "reduziert Andienungsrisiken erheblich", "Praemienniveau ausreichend",
+  // "Defensiv aussitzen", "Handlungsorientierte Einschaetzung: Fokus auf
+  // LMT + AMZN"). Diese Formulierungen sind unabhaengig davon problematisch,
+  // ob Zahlen genannt werden — ESMA fasst "Investment Recommendation" auch
+  // bei indirekter/nicht-technischer Sprache weit (externe Rechtsberatung,
+  // 29.08.2026). Reaktion: expliziter Wortfilter + Pflicht-Ersatzformu-
+  // lierungen statt Verlass auf implizite Vorsicht des Modells. Gilt fuer
+  // beide Public-Builder gemeinsam (Grundgesetz #1, Regelwerk-Einheit).
+  const PUBLIC_REGULATORY_GUARDRAIL =
+    'REGULATORY OUTPUT RULE — PUBLIC USER MODE (zwingend einzuhalten):\n' +
+    '- Erlaubt: Ranking, Scoring, Strategy Fit, Modellparameter, Chancen-/' +
+    'Risikofaktoren und Ausschlussgruende konkreter Wertpapiere.\n' +
+    '- VERBOTEN: jede Formulierung, die den Nutzer unmittelbar zum Kauf, ' +
+    'Verkauf, Eroeffnen, Schliessen, Rollen oder Halten einer konkreten ' +
+    'Position auffordert.\n' +
+    '- VERBOTENE Woerter/Wendungen (nicht abschliessend, sinngemaess ' +
+    'ebenfalls vermeiden): "kaufen", "verkaufen", "jetzt handeln", "Trade ' +
+    'eroeffnen", "Fokus auf", "priorisieren", "einsteigen", "aussitzen", ' +
+    '"beste Aktie/Titel fuer dich", "optimaler Trade", "Handlungsorientierte ' +
+    'Einschaetzung", "solltest du", "Empfehlung", "optimalerweise ... ' +
+    'fokussiert".\n' +
+    '- STATTDESSEN verwenden: "hoechster Strategy Fit", "erfuellt die ' +
+    'definierten Kriterien", "Modell bevorzugt diese Konstellation", ' +
+    '"technisch guenstigere Ausgangslage", "innerhalb des untersuchten ' +
+    'Universums hoeher gerankt".\n' +
+    '- Konkrete Optionsparameter (Strike, Delta, Praemie, PoP, Break-even, ' +
+    'Assignment Risk) werden NICHT von UIQ bestimmt, sondern sind im Broker ' +
+    'zu pruefen — das immer so benennen, nie als UIQ-Wert ausgeben.\n' +
+    '- Aussagen zu Praemien/Volatilitaet IMMER hedgen ("kann grundsaetzlich ' +
+    'mit ... einhergehen"); NIEMALS als Tatsachenbehauptung wie ' +
+    '"Praemienniveau ausreichend" oder "hoehere Praemien".\n' +
+    '- Aussagen zu Risikoreduktion IMMER als Modellsignal kennzeichnen, nie ' +
+    'als reale Risikoaussage — z.B. "wird vom Modell als unterstuetzender ' +
+    'Kontext bewertet; das individuelle Risiko bleibt bestehen" statt ' +
+    '"reduziert das Risiko erheblich".\n' +
+    '- Ausschlussgruende als "erfuellt die Kriterien nicht" formulieren, ' +
+    'NIEMALS als "ist fuer dich nicht geeignet" (UIQ bewertet ein Modell, ' +
+    'nicht die individuelle Eignung fuer den Nutzer).\n' +
+    '- Ein abschliessender Abschnitt ist NUR im Format "UIQ ... ' +
+    'ZUSAMMENFASSUNG" erlaubt (s. AUFGABE-Punkt 5) und darf ausschliesslich ' +
+    'bereits genannte Kriterien-Uebereinstimmungen wiederholen plus den ' +
+    'Pflichthinweis auf eigene Pruefung ausserhalb von UIQ — niemals eine ' +
+    'neue Praeferenz oder Handlungsanweisung.\n\n';
+
   function _publicEquityPrompt(ctx, o) {
     return KI_ANTI_HALLUZINATION
+      + PUBLIC_REGULATORY_GUARDRAIL
       + o.rolle + '\n\n'
       + '⚠️ Diese Analyse ist eine statistische Kontext-Analyse gem. §1 WpHG — '
       + 'keine Anlageberatung, keine Kauf-/Verkaufsempfehlung. Es werden '
@@ -479,23 +553,28 @@ Das bedeutet konkret:
       + '\n\nBEWERTUNGSKRITERIEN ' + o.stratName.toUpperCase() + ':\n'
       + _publicKriterienBlock(o.focus) + '\n\n'
       + 'AUFGABE:\n'
-      + '1. MARKTUMFELD: ' + o.marktumfeldFrage + ' (2-3 Sätze)\n'
+      + '1. MARKTUMFELD: ' + o.marktumfeldFrage + ' (2-3 Sätze, Modellsignale '
+      + 'explizit als Modellsignale kennzeichnen, keine Risikoreduktions-'
+      + 'Tatsachenbehauptung)\n'
       + '2. MODELLBEWERTUNG — TOP 3: Welche 3 Titel erfüllen die obigen '
       + 'Kriterien am deutlichsten? Für jeden: welche Kriterien in welchem '
       + 'Grad erfüllt sind, rein datenbasiert beschrieben.\n'
       + '3. BEOBACHTUNGSLISTE: Titel mit teilweiser Kriterien-Erfüllung.\n'
       + '4. EINORDNUNGSRISIKEN: Was könnte diese Modellbewertung entwerten '
       + '(Markt-, Sektor- oder Datenrisiko)?\n'
-      + '\nAntworte auf Deutsch, strukturiert 1-4. Max. ' + (o.maxWords || 350) + ' Wörter. '
+      + '5. UIQ ' + o.stratName.toUpperCase() + ' ZUSAMMENFASSUNG (optional, '
+      + 'max. 3 Sätze): ausschließlich Wiederholung der Kriterien-'
+      + 'Übereinstimmung aus Punkt 2 plus dem Hinweis, dass Einstiegszeitpunkt, '
+      + 'Positionsgröße und persönliche Risikolage außerhalb von UIQ zu prüfen '
+      + 'sind. Keine neue Präferenz, keine Handlungsanweisung.\n'
+      + '\nAntworte auf Deutsch, strukturiert 1-5. Max. ' + (o.maxWords || 400) + ' Wörter. '
       + 'KEINE Kursziele, Stop-Loss-Werte, Strike-Preise, Einstiegspunkte oder '
-      + 'Positionsgrößen nennen — nur den Erfüllungsgrad der Kriterien beschreiben. '
-      + 'KEIN abschließendes Fazit, keine zusammenfassende Rangfolge oder '
-      + 'Formulierungen wie "beste Kandidaten"/"Favorit" nach Punkt 4 — die '
-      + 'Antwort endet mit den Einordnungsrisiken aus Punkt 4.';
+      + 'Positionsgrößen nennen — nur den Erfüllungsgrad der Kriterien beschreiben.';
   }
 
   function _publicOptionsPrompt(ctx, o) {
     return KI_ANTI_HALLUZINATION
+      + PUBLIC_REGULATORY_GUARDRAIL
       + '⚠️ Diese Analyse ist eine statistische Kontext-Analyse gem. §1 WpHG — '
       + 'keine Anlage- oder Handlungsempfehlung.\n\n'
       + o.rolle + '\n\n'
@@ -503,21 +582,31 @@ Das bedeutet konkret:
       + '\n\nBEWERTUNGSKRITERIEN ' + o.stratName.toUpperCase() + ':\n'
       + _publicKriterienBlock(o.focus) + '\n\n'
       + 'AUFGABE:\n'
-      + '1. MARKTUMFELD: ' + o.marktumfeldFrage + ' (2-3 Sätze)\n'
+      + '1. MARKTUMFELD: ' + o.marktumfeldFrage + ' (2-3 Sätze, Modellsignale '
+      + 'explizit als Modellsignale kennzeichnen, keine Risikoreduktions-'
+      + 'Tatsachenbehauptung)\n'
       + '2. SETUP-FIT — TOP 3: Welche 3 Titel passen strukturell am besten zu '
       + o.stratName + '? Für jeden: positive Faktoren, Risikofaktoren, grober '
-      + 'qualitativer Parameterbereich (z.B. "Laufzeit eher kurz-/mittelfristig", '
-      + '"Prämienniveau ausreichend/grenzwertig") — OHNE konkreten Strike, '
-      + 'Delta-Wert, DTE-Zahl, Prämien-Schätzung oder Verfallsdatum zu nennen.\n'
-      + '3. NICHT GEEIGNET: Titel + Grund.\n'
-      + '4. RISIKEN: IV-Crush, Earnings-Überraschung, Liquiditätsrisiko, Andienung.\n'
-      + '\nAntworte auf Deutsch, strukturiert 1-4. Max. ' + (o.maxWords || 350) + ' Wörter. '
+      + 'qualitativer und gehedgter Parameterbereich (z.B. "kann '
+      + 'grundsätzlich mit höheren Optionsprämien einhergehen", niemals als '
+      + 'Tatsachenbehauptung) — OHNE konkreten Strike, Delta-Wert, DTE-Zahl, '
+      + 'Prämien-Schätzung oder Verfallsdatum zu nennen.\n'
+      + '3. GERINGER UIQ STRATEGY FIT / AUSSCHLUSS NACH MODELLKRITERIEN: '
+      + 'Titel + Grund, formuliert als "erfüllt die Kriterien nicht" — '
+      + 'NIEMALS als "ist für dich nicht geeignet".\n'
+      + '4. RISIKEN: IV-Crush, Earnings-Überraschung, Liquiditätsrisiko, '
+      + 'Andienung — als Downside-Risikoindikatoren des Modells formuliert, '
+      + 'z.B. "erhöht innerhalb des UIQ-Modells die Downside-'
+      + 'Risikoindikatoren" statt "Andienungsrisiko erhöht".\n'
+      + '5. UIQ ' + o.stratName.toUpperCase() + ' ZUSAMMENFASSUNG (optional, '
+      + 'max. 3 Sätze): ausschließlich Wiederholung der Kriterien-'
+      + 'Übereinstimmung aus Punkt 2 plus dem Pflichthinweis, dass '
+      + 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle '
+      + 'Risikoparameter außerhalb von UIQ im Broker zu prüfen sind. Keine '
+      + 'neue Präferenz, keine Handlungsanweisung.\n'
+      + '\nAntworte auf Deutsch, strukturiert 1-5. Max. ' + (o.maxWords || 400) + ' Wörter. '
       + 'KEINE konkreten Strikes, Deltas, DTE-Zahlen, Prämien oder Daten nennen — '
-      + 'nur qualitative Parameterbereiche und Kriterien-Einordnung. '
-      + 'KEIN abschließendes Fazit, keine zusammenfassende Rangfolge oder '
-      + 'Formulierungen wie "beste Kandidaten"/"Favorit" nach Punkt 4, und keine '
-      + 'pauschalen Handlungsanweisungen wie "engere Stops erforderlich" — die '
-      + 'Antwort endet mit den Risiken aus Punkt 4.';
+      + 'nur qualitative, gehedgte Parameterbereiche und Kriterien-Einordnung.';
   }
 
   // ── STRATEGIE-KONFIGURATIONEN (12 kanonische UIQ-Strategien) ──────────────
