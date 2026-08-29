@@ -1,6 +1,30 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.10.0 (29.08.2026) — CSP/WHEEL-LIVE-TEST, NEUE FEHLERKATEGORIE
+ *  (Spec-Belastungstest-Fortsetzung): erster Live-Test von csp_wheel (bisher
+ *  nur atmna durchlief die 5 Review-Zyklen, s. Spec §6 "noch nicht separat
+ *  extern reviewed"). Ergebnis: (a) "attraktiv" und "Praemienerwartung" —
+ *  BEIDE bereits seit v2.8.0/v2.7.0 wortwoertlich verboten — erschienen
+ *  trotzdem im Output. Beweis, dass Wortverbote allein keine 100%ige
+ *  Zuverlaessigkeit haben, auch bei exakter Uebereinstimmung. (b) NEUE
+ *  Fehlerkategorie entdeckt: konkrete Exit-/Stop-Regeln ("Exit-Schwelle bei
+ *  RSI oberhalb 45", "Stop unterhalb Support") in den "Parameter:"-Feldern —
+ *  keine Strike-/Delta-/Praemien-Zahl, also von keinem bisherigen Verbot
+ *  erfasst, aber inhaltlich dieselbe Kategorie: regelbasierte Trade-
+ *  Management-Logik, laut Grundgesetz #11 (SUITE.md, Analyse/Execution-
+ *  Trennung) EIC-exklusiv. Axel-Entscheidung: "sauber und gruendlich vor
+ *  schnell" — daher nicht nur Wortliste erweitert, sondern (1) allgemeine
+ *  Regel ergaenzt ("keine Handlungsschwelle jeglicher Art, unabhaengig von
+ *  der Formulierung"), (2) "strukturell guenstig"/"strukturell attraktiv" neu
+ *  verboten (moeglicher Ursprung: AUFGABE-Text selbst enthielt "passen
+ *  strukturell am besten zu" — umformuliert, um das Wort nicht mehr
+ *  vorzugeben), (3) explizite Exit-/Stop-/Roll-Verbote direkt in beiden
+ *  AUFGABE-Sektionen (naeher an der Generierung platzierte Instruktionen
+ *  gelten als zuverlaessiger befolgt als nur die Praeambel). WICHTIG: Punkt
+ *  (a) zeigt, dass Wortlisten/Regeln allein nicht ausreichen — ein
+ *  deterministischer serverseitiger Nachpruef-Schritt in ko-ai.js ist als
+ *  naechster Schritt vorgesehen (separat von diesem Commit).
  *  Version: 2.9.0 (29.08.2026) — BEGRIFFS-/KAUSALITAETS-INTEGRITAET
  *  (UIQ-REGULATORY-LANGUAGE-SPEC.md §1.3/§1.4, Spec-v1.1 §11 Punkte 4-6):
  *  Axel wollte die HVP/IV-Percentile-Verwechslung aus Review-Zyklus 4 gegen
@@ -569,9 +593,28 @@ Das bedeutet konkret:
     'eroeffnen", "Fokus auf", "priorisieren", "einsteigen", "aussitzen", ' +
     '"beste Aktie/Titel fuer dich", "optimaler Trade", "Handlungsorientierte ' +
     'Einschaetzung", "solltest du", "Empfehlung", "optimalerweise ... ' +
-    'fokussiert", "optimal", "attraktiv"/"Attraktivitaet", "Kandidat"/' +
-    '"Top-Kandidaten", "Praemienerwartung", "identifiziert als", ' +
-    '"top-gerankt", "sollte ... validiert werden".\n' +
+    'fokussiert", "optimal", "attraktiv"/"Attraktivitaet", "strukturell ' +
+    'guenstig"/"strukturell attraktiv", "Kandidat"/"Top-Kandidaten", ' +
+    '"Praemienerwartung", "identifiziert als", "top-gerankt", "sollte ... ' +
+    'validiert werden". WICHTIG: diese Liste ist NICHT abschliessend und ' +
+    'wird bei jedem neuen Fund erweitert — sie ist eine Beispielsammlung, ' +
+    'kein vollstaendiger Filter. Die Grundregeln (KEINE Handlungsaufforderung, ' +
+    'KEINE konkreten Ausfuehrungsparameter, s.u.) gelten unabhaengig davon, ' +
+    'ob das exakte Wort hier aufgelistet ist — auch neue, hier nicht ' +
+    'genannte Formulierungen mit demselben Sinn sind verboten.\n' +
+    '- KEINE KONKRETEN HANDLUNGSSCHWELLEN JEGLICHER ART (belegter Fund ' +
+    '29.08.2026, CSP/Wheel-Output): Formulierungen wie "Exit-Schwelle bei ' +
+    'RSI oberhalb 45", "Stop unterhalb Support", "engeres Exit-Fenster" ' +
+    'sind VERBOTEN — unabhaengig davon, ob sie Strike/Delta/Praemie nennen. ' +
+    'Das sind konkrete Trade-Management-Regeln (wann rollen, wann ' +
+    'aussteigen, wo der Stop liegt) und damit laut Grundgesetz #11 ' +
+    '(Analyse/Execution-Trennung, UIQ-Suite/SUITE.md) EIC-exklusiv, nie ' +
+    'Public. Die Pruefung lautet nicht "steht hier eine Zahl", sondern ' +
+    '"beschreibt dieser Satz WANN oder WIE der Nutzer handeln soll" — wenn ' +
+    'ja, raus, unabhaengig von der konkreten Formulierung. "Parameterbereich"-' +
+    'Angaben duerfen NUR die in §1.1 erlaubten Groessen beschreiben ' +
+    '(Kriterien-Erfuellungsgrad, qualitative Einordnung), NIEMALS Exit-, ' +
+    'Stop-, Roll- oder Timing-Regeln.\n' +
     '- STATTDESSEN verwenden: "hoher/hoechster Strategy Fit", "erfuellt die ' +
     'definierten Kriterien", "Modell bevorzugt diese Konstellation", ' +
     '"technisch guenstigere Ausgangslage", "kompatibel mit den definierten ' +
@@ -670,7 +713,10 @@ Das bedeutet konkret:
       + 'Tatsachenbehauptung)\n'
       + '2. MODELLBEWERTUNG — TOP 3: Welche 3 Titel erfüllen die obigen '
       + 'Kriterien am deutlichsten? Für jeden: welche Kriterien in welchem '
-      + 'Grad erfüllt sind, rein datenbasiert beschrieben.\n'
+      + 'Grad erfüllt sind, rein datenbasiert beschrieben. OHNE jede '
+      + 'Exit-/Stop-/Timing-Regel (z.B. "Exit bei RSI über X", "Stop '
+      + 'unterhalb Y") — solche Regeln sind EIC-exklusiv (Grundgesetz #11), '
+      + 'nie Teil dieser Antwort.\n'
       + '3. BEOBACHTUNGSLISTE: Titel mit teilweiser Kriterien-Erfüllung.\n'
       + '4. EINORDNUNGSRISIKEN: Was könnte diese Modellbewertung entwerten '
       + '(Markt-, Sektor- oder Datenrisiko)?\n'
@@ -697,12 +743,17 @@ Das bedeutet konkret:
       + '1. MARKTUMFELD: ' + o.marktumfeldFrage + ' (2-3 Sätze, Modellsignale '
       + 'explizit als Modellsignale kennzeichnen, keine Risikoreduktions-'
       + 'Tatsachenbehauptung)\n'
-      + '2. SETUP-FIT — TOP 3: Welche 3 Titel passen strukturell am besten zu '
-      + o.stratName + '? Für jeden: positive Faktoren, Risikofaktoren, grober '
-      + 'qualitativer und gehedgter Parameterbereich (z.B. "kann '
-      + 'grundsätzlich mit höheren Optionsprämien einhergehen", niemals als '
-      + 'Tatsachenbehauptung) — OHNE konkreten Strike, Delta-Wert, DTE-Zahl, '
-      + 'Prämien-Schätzung oder Verfallsdatum zu nennen.\n'
+      + '2. SETUP-FIT — TOP 3: Welche 3 Titel weisen die höchste Kriterien-'
+      + 'Übereinstimmung mit ' + o.stratName + ' auf? Für jeden: positive '
+      + 'Faktoren, Risikofaktoren, grober qualitativer und gehedgter '
+      + 'Parameterbereich (z.B. "kann grundsätzlich mit höheren '
+      + 'Optionsprämien einhergehen", niemals als Tatsachenbehauptung) — '
+      + 'OHNE konkreten Strike, Delta-Wert, DTE-Zahl, Prämien-Schätzung oder '
+      + 'Verfallsdatum zu nennen, UND OHNE jede Exit-/Stop-/Roll-/Timing-'
+      + 'Regel (z.B. "Exit bei RSI über X", "Stop unterhalb Y") — solche '
+      + 'Regeln sind EIC-exklusiv (Grundgesetz #11), nie Teil dieser '
+      + 'Antwort. "Parameterbereich" beschreibt AUSSCHLIESSLICH den '
+      + 'Kriterien-Erfüllungsgrad, keine Handlungsschwelle.\n'
       + '3. GERINGER UIQ STRATEGY FIT / AUSSCHLUSS NACH MODELLKRITERIEN: '
       + 'Titel + Grund, formuliert als "erfüllt die Kriterien nicht" — '
       + 'NIEMALS als "ist für dich nicht geeignet".\n'
