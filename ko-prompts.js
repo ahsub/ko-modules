@@ -1,6 +1,19 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.6.1 (29.08.2026) — NACHSCHLIFF zu v2.6.0 (Backlog №65):
+ *  Axel hat den v2.6.0-Fix live verifiziert (CDN-Pin auf 141a7c1
+ *  aktualisiert, CSP-ATM/NA-Output neu generiert im Public-Modus) — die
+ *  neue deskriptive Struktur (SETUP-FIT/NICHT GEEIGNET/RISIKEN, keine
+ *  Strikes/Deltas/DTE/Praemien) griff korrekt. Ein Rest blieb: das Modell
+ *  haengte von sich aus ein nicht angefordertes "Fazit: LMT + AMZN beste
+ *  Kandidaten... Treasury-Stress erfordert engere Stops" an — keine
+ *  konkreten Zahlen mehr, aber wieder naeher an einer Rangfolgen-Empfehlung/
+ *  Handlungsanweisung als an reiner Kriterien-Beschreibung. Fix: beide
+ *  Public-Builder (_publicEquityPrompt/_publicOptionsPrompt) verbieten jetzt
+ *  explizit ein abschliessendes Fazit, eine zusammenfassende Rangfolge
+ *  ("beste Kandidaten"/"Favorit") sowie pauschale Handlungsanweisungen nach
+ *  Punkt 4 — die Antwort endet mit den Risiken.
  *  Version: 2.6.0 (29.08.2026) — REGULATORISCHER FIX (Legal-Briefing-Audit,
  *  Backlog №65 Fortsetzung/Abschluss): die verbliebene, gestern offen
  *  gelassene Frage — verlangen die 14 Strategie-Templates selbst
@@ -475,7 +488,10 @@ Das bedeutet konkret:
       + '(Markt-, Sektor- oder Datenrisiko)?\n'
       + '\nAntworte auf Deutsch, strukturiert 1-4. Max. ' + (o.maxWords || 350) + ' Wörter. '
       + 'KEINE Kursziele, Stop-Loss-Werte, Strike-Preise, Einstiegspunkte oder '
-      + 'Positionsgrößen nennen — nur den Erfüllungsgrad der Kriterien beschreiben.';
+      + 'Positionsgrößen nennen — nur den Erfüllungsgrad der Kriterien beschreiben. '
+      + 'KEIN abschließendes Fazit, keine zusammenfassende Rangfolge oder '
+      + 'Formulierungen wie "beste Kandidaten"/"Favorit" nach Punkt 4 — die '
+      + 'Antwort endet mit den Einordnungsrisiken aus Punkt 4.';
   }
 
   function _publicOptionsPrompt(ctx, o) {
@@ -497,7 +513,11 @@ Das bedeutet konkret:
       + '4. RISIKEN: IV-Crush, Earnings-Überraschung, Liquiditätsrisiko, Andienung.\n'
       + '\nAntworte auf Deutsch, strukturiert 1-4. Max. ' + (o.maxWords || 350) + ' Wörter. '
       + 'KEINE konkreten Strikes, Deltas, DTE-Zahlen, Prämien oder Daten nennen — '
-      + 'nur qualitative Parameterbereiche und Kriterien-Einordnung.';
+      + 'nur qualitative Parameterbereiche und Kriterien-Einordnung. '
+      + 'KEIN abschließendes Fazit, keine zusammenfassende Rangfolge oder '
+      + 'Formulierungen wie "beste Kandidaten"/"Favorit" nach Punkt 4, und keine '
+      + 'pauschalen Handlungsanweisungen wie "engere Stops erforderlich" — die '
+      + 'Antwort endet mit den Risiken aus Punkt 4.';
   }
 
   // ── STRATEGIE-KONFIGURATIONEN (12 kanonische UIQ-Strategien) ──────────────
