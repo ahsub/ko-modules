@@ -1,6 +1,32 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.13.0 (29.08.2026) — COACHING-STRUKTUR-UPGRADE (Reviewer-
+ *  Kernvorschlag zweiter CC-Live-Test: nicht mehr entschaerfen, sondern die
+ *  gewonnene regulatorische Distanz fuer besseres Coaching nutzen). Der
+ *  Reviewer schlug ein 8-teiliges Zielmuster vor: Market Context → Strategy
+ *  Fit → Positive Factors → Risk Factors → Strategic Trade-offs → Modell-
+ *  Grenze → External Validation → Summary. Umsetzung in
+ *  _publicOptionsPrompt Sektion 2: Trade-off ("Strategischer Zielkonflikt:")
+ *  und Modell-Grenze ("Modell-Grenze:") sind jetzt PFLICHT-GELABELTE
+ *  Unterpunkte je Kandidat, nicht mehr nur beilaeufige Prosa — das war die
+ *  Fehlerquelle fuer "maximiert" (Superlativ in freier Formulierung) und
+ *  "beide Richtungen sind haltbar" (freie Paraphrase statt Pflichtsatz).
+ *  Neu: (1) "maximiert"/"optimiert" in Zielkonflikt-Gegenueberstellungen
+ *  verboten, neutrale "ist verbunden mit X, waehrend Y bedeutet"-Formel
+ *  erzwungen; (2) Pflicht-Satzmuster fuer Modell-Grenze woertlich
+ *  vorgegeben; (3) Sektion-3-Ueberschrift von "GERINGER UIQ STRATEGY FIT /
+ *  AUSSCHLUSS NACH MODELLKRITERIEN" auf "GERINGER STRATEGY FIT NACH
+ *  MODELLKRITERIEN" verkuerzt ("Ausschluss" klingt nach Handelsverbot, s.
+ *  Reviewer-Punkt 5); (4) neuer Parameter o.risikoBegriff/o.risikenText fuer
+ *  strategie-spezifische Risiko-Terminologie — cc nutzt jetzt "Ausübung/
+ *  Assignment des Short Calls" statt des CSP-spezifischen "Andienung"
+ *  (Reviewer-Punkt 6: Andienung ist Put-Assignment bei Kursverfall,
+ *  Covered-Call-Risiko ist Call-Assignment bei Kursanstieg — entgegen-
+ *  gesetzte Richtung, falscher Begriff waere ein Begriffs-Integritaets-
+ *  Fehler analog zum HVP/IV-Fund); (5) Upside-Cap-Zielkonflikt (Praemie vs.
+ *  gedeckeltes Aufwaertspotenzial) als explizit zu erklaerender Kernpunkt
+ *  fuer Covered Call verankert, nicht nur Randrisiko.
  *  Version: 2.12.0 (29.08.2026) — CC-LIVE-TEST, TRADE-OFF-PRINZIP (neue
  *  Kernregel statt weiterer Wortverbote): externer Review des Covered-Call-
  *  Outputs zeigte einen neuen Fehlertyp — "Modell favorisiert/bevorzugt
@@ -713,11 +739,17 @@ Das bedeutet konkret:
     'als reale Risikoaussage — z.B. "wird vom Modell als unterstuetzender ' +
     'Kontext bewertet; das individuelle Risiko bleibt bestehen" statt ' +
     '"reduziert das Risiko erheblich".\n' +
-    '- Andienungsrisiko IMMER im Kausal-Konditional-Format, NIEMALS als ' +
-    'knappe Feststellung wie "Andienung nicht auszuschliessen": ' +
-    '"Eine Kursbewegung unterhalb des Strike kann zu einer Andienung ' +
-    'fuehren; dieses Ereignis wird durch die im Modell beruecksichtigten ' +
-    'Faktoren nicht ausgeschlossen."\n' +
+    '- Ausuebungs-/Andienungsrisiko IMMER im Kausal-Konditional-Format, ' +
+    'NIEMALS als knappe Feststellung wie "Andienung nicht auszuschliessen": ' +
+    'bei CSP-artigen Strategien (Put-Assignment): "Eine Kursbewegung ' +
+    'unterhalb des Strike kann zu einer Andienung fuehren; dieses Ereignis ' +
+    'wird durch die im Modell beruecksichtigten Faktoren nicht ' +
+    'ausgeschlossen." Bei Covered Call (Call-Assignment, GEGENLAEUFIGE ' +
+    'Richtung — Kursbewegung UEBER den Strike): "Eine Kursbewegung ueber ' +
+    'den Strike kann zur Ausuebung des Short Calls fuehren; dieses Ereignis ' +
+    'wird durch die im Modell beruecksichtigten Faktoren nicht ' +
+    'ausgeschlossen." NIEMALS "Andienung" fuer das Covered-Call-Ereignis ' +
+    'verwenden — es ist begrifflich das falsche (entgegengesetzte) Konzept.\n' +
     '- Ausschlussgruende als "erfuellt die Kriterien der [Strategie] nicht" ' +
     'formulieren (IMMER auf die betrachtete Strategie skalieren, nie auf den ' +
     'Titel insgesamt), NIEMALS als "ist fuer dich nicht geeignet" (UIQ ' +
@@ -821,35 +853,48 @@ Das bedeutet konkret:
       + '2. Überschrift EXAKT "HÖCHSTE ' + o.stratName.toUpperCase() + ' STRATEGY-FITS" '
       + '(niemals "Kandidaten", "Top-Kandidaten" oder ähnliche Ranking-Wörter '
       + 'in der Überschrift). Welche 3 Titel weisen die höchste Kriterien-'
-      + 'Übereinstimmung mit ' + o.stratName + ' auf? Für jeden: positive '
-      + 'Faktoren, Risikofaktoren, grober qualitativer und gehedgter '
-      + 'Parameterbereich — IMMER als Zielkonflikt beider Richtungen '
-      + 'formuliert (z.B. "ein näher am aktuellen Kurs liegender Strike '
-      + 'verändert typischerweise das Verhältnis zwischen Prämienertrag und '
-      + 'Upside-Spielraum; die konkrete Auswahl erfolgt außerhalb von UIQ"), '
-      + 'NIEMALS eine Richtung als vom Modell bevorzugt darstellen (verboten: '
-      + '"Modell favorisiert/bevorzugt [Strike-Bereich/Ansatz]") — s. '
-      + 'TRADE-OFF-PRINZIP oben. OHNE konkreten Strike, Delta-Wert, DTE-Zahl, '
-      + 'Prämien-Schätzung oder Verfallsdatum zu nennen, UND OHNE jede '
-      + 'Exit-/Stop-/Roll-/Timing-Regel (z.B. "Exit bei RSI über X", "Stop '
-      + 'unterhalb Y") — solche Regeln sind EIC-exklusiv (Grundgesetz #11), '
-      + 'nie Teil dieser Antwort. "Parameterbereich" beschreibt '
-      + 'AUSSCHLIESSLICH den Kriterien-Erfüllungsgrad und Zielkonflikte, '
-      + 'keine Handlungsschwelle und keine Präferenz.\n'
-      + '3. GERINGER UIQ STRATEGY FIT / AUSSCHLUSS NACH MODELLKRITERIEN: '
+      + 'Übereinstimmung mit ' + o.stratName + ' auf? Für JEDEN Titel GENAU '
+      + 'diese 4 gelabelten Unterpunkte, in dieser Reihenfolge (Struktur ist '
+      + 'Pflicht, kein Fliesstext):\n'
+      + '   a) "Positive Faktoren:" — datenbasiert, aus den Bewertungskriterien.\n'
+      + '   b) "Risikofaktoren:" — datenbasiert, als Modellsignal formuliert.\n'
+      + '   c) "Strategischer Zielkonflikt:" — IMMER beide Seiten des '
+      + 'Zielkonflikts (z.B. Strike-Nähe, Laufzeit) neutral gegenüberstellen, '
+      + 'NIEMALS eine Seite als staerker/besser/optimaler darstellen. '
+      + 'Verboten: "maximiert", "optimiert" oder aehnliche Superlative in '
+      + 'dieser Gegenueberstellung — stattdessen neutral "ist typischerweise '
+      + 'verbunden mit X, waehrend Y typischerweise Z bedeutet".\n'
+      + '   d) "Modell-Grenze:" — wenn der Zielkonflikt aus c) nicht durch '
+      + 'die Modelldaten zugunsten einer Seite auflösbar ist (Regelfall), '
+      + 'PFLICHT-SATZMUSTER wörtlich: "Das Modell liefert hier keinen '
+      + 'eindeutigen Hinweis, diesen Zielkonflikt zugunsten eines '
+      + 'aggressiveren oder konservativeren Ansatzes aufzulösen." NIEMALS '
+      + '"beide Richtungen sind haltbar" oder aehnliche Formulierungen, die '
+      + 'wie eine versteckte Freigabe beider Optionen klingen koennten.\n'
+      + 'OHNE konkreten Strike, Delta-Wert, DTE-Zahl, Prämien-Schätzung oder '
+      + 'Verfallsdatum zu nennen, UND OHNE jede Exit-/Stop-/Roll-/Timing-'
+      + 'Regel (z.B. "Exit bei RSI über X", "Stop unterhalb Y") — solche '
+      + 'Regeln sind EIC-exklusiv (Grundgesetz #11), nie Teil dieser '
+      + 'Antwort.\n'
+      + '3. GERINGER STRATEGY FIT NACH MODELLKRITERIEN: '
       + 'Titel + Grund, formuliert als "erfüllt die Kriterien nicht" — '
-      + 'NIEMALS als "ist für dich nicht geeignet".\n'
-      + '4. RISIKEN: IV-Crush, Earnings-Überraschung, Liquiditätsrisiko, '
-      + 'Andienung — als Downside-Risikoindikatoren des Modells formuliert, '
+      + 'NIEMALS als "ist für dich nicht geeignet" und NIEMALS als '
+      + '"Ausschluss" bezeichnet (das Modell erkennt geringere Kriterien-'
+      + 'Übereinstimmung, es entscheidet nicht, dass ein Titel nicht '
+      + 'gehandelt werden darf).\n'
+      + '4. RISIKEN: IV-Crush, Earnings-Überraschung, Liquiditätsrisiko, ' + (o.risikoBegriff || 'Andienung')
+      + ' — als Downside-Risikoindikatoren des Modells formuliert, '
       + 'z.B. "erhöht innerhalb des UIQ-Modells die Downside-'
-      + 'Risikoindikatoren" statt "Andienungsrisiko erhöht".\n'
+      + 'Risikoindikatoren" statt "' + (o.risikoBegriff || 'Andienungsrisiko') + ' erhöht".'
+      + (o.risikenText ? ' ' + o.risikenText : '') + '\n'
       + '5. UIQ ' + o.stratName.toUpperCase() + ' ZUSAMMENFASSUNG (optional, '
       + 'max. 3 Sätze): ausschließlich Wiederholung der Kriterien-'
       + 'Übereinstimmung aus Punkt 2 plus dem Pflichthinweis, dass '
       + 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle '
       + 'Risikoparameter außerhalb von UIQ im Broker zu prüfen sind. Keine '
       + 'neue Präferenz, keine Handlungsanweisung.\n'
-      + '\nAntworte auf Deutsch, strukturiert 1-5. Max. ' + (o.maxWords || 400) + ' Wörter. '
+      + '\nAntworte auf Deutsch, strukturiert 1-5 mit den gelabelten '
+      + 'Unterpunkten a-d in Abschnitt 2. Max. ' + (o.maxWords || 450) + ' Wörter. '
       + 'KEINE konkreten Strikes, Deltas, DTE-Zahlen, Prämien oder Daten nennen — '
       + 'nur qualitative, gehedgte Parameterbereiche und Kriterien-Einordnung.';
   }
@@ -1337,7 +1382,20 @@ Das bedeutet konkret:
             stratName: 'Covered-Call-Setups',
             marktumfeldFrage: 'Ist das aktuelle Umfeld (VIX-Niveau, Trendstärke) für Covered Calls günstig?',
             focus: STRATEGIES.cc.focus,
-            maxWords: 400
+            maxWords: 450,
+            // BEGRIFFS-INTEGRITAET (29.08.2026, Reviewer-Punkt 6): "Andienung"
+            // ist CSP-spezifisch (Kursbewegung UNTER den Put-Strike loest sie
+            // aus). Bei Covered Call ist das relevante Risiko-Ereignis
+            // Assignment/Ausuebung DES SHORT CALLS (Kursbewegung UEBER den
+            // Strike) plus die Deckelung des weiteren Aufwaertspotenzials —
+            // zwei unterschiedliche, klar zu benennende Konzepte, nicht
+            // durch das CSP-Wort "Andienung" zu ersetzen.
+            risikoBegriff: 'Ausübung/Assignment des Short Calls (Kursbewegung ÜBER den Strike)',
+            risikenText: 'Zusätzlich IMMER den strategiespezifischen Zielkonflikt von Covered Calls '
+              + 'benennen: Prämieneinnahme steht der Begrenzung des weiteren Aufwärtspotenzials '
+              + 'gegenüber (Upside-Cap durch den Short Call) — das ist der zentrale strukturelle '
+              + 'Zielkonflikt dieser Strategie und darf ausdrücklich erklärt werden, nicht nur als '
+              + 'Randrisiko erwähnt.'
           });
         }
         return KI_ANTI_HALLUZINATION
