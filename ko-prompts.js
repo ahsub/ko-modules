@@ -1,6 +1,17 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.11.0 (29.08.2026) — MORNING BRIEFING REVIEW-ZYKLUS-1-NACHZUG
+ *  (drei offene Punkte aus dem allerersten externen MB-Review, 28.08.2026,
+ *  nie umgesetzt): (1) CSP-Weekly-Contango-Regel in STRATEGIE_MATRIX war zu
+ *  pauschal ("CONTANGO = gesundes Theta-Umfeld") — ergaenzt um VIX-Perzentil-
+ *  Schwelle (>25), da bei sehr niedrigem VIX die Praemie trotz normaler
+ *  Termstruktur limitierend bleibt (Reviewer-Punkt 8, Zyklus 1). (2) Neue
+ *  Pflichtregel in ABSCHNITT 1 (MARKTLAGE): Widersprueche zwischen Regime und
+ *  Fruehwarnindikatoren (z.B. BULL_QUIET bei steigenden Distribution Days)
+ *  muessen explizit als Spannung benannt werden, nicht nur nebeneinander
+ *  erwaehnt (Reviewer-Punkt 9, Zyklus 1). (3) s. ko-market-state.js fuer die
+ *  dritte Korrektur ("Gesamteinschaetzung"-Zeile, Reviewer-Punkt 3, Zyklus 1).
  *  Version: 2.10.0 (29.08.2026) — CSP/WHEEL-LIVE-TEST, NEUE FEHLERKATEGORIE
  *  (Spec-Belastungstest-Fortsetzung): erster Live-Test von csp_wheel (bisher
  *  nur atmna durchlief die 5 Review-Zyklen, s. Spec §6 "noch nicht separat
@@ -454,7 +465,7 @@ Das bedeutet konkret:
       + '\nOPTIONS-INCOME-STRATEGIEN:\n'
       + '• CSP/Wheel: 🟢 wenn VIX-Perzentil>50 (überdurchschnittliche Prämie) + kein akuter Stress (Regime≠STRESS_UNSTABLE). 🔴 wenn VIX-Perzentil<15 (Prämie zu mager) oder HY-Spread-Signal="STRESS".\n'
       + '• CSP (ATM/NA): 🟢 wenn VIX-Perzentil 30-75 + Regime nicht STRESS_UNSTABLE. 🔴 wenn VIX-Perzentil>90 (Prämie riskant hoch, große Bewegung erwartet).\n'
-      + '• CSP (Weekly): 🟢 wenn VIX-Termstruktur CONTANGO (gesundes Theta-Umfeld) + MOVE-Signal≠STRESS. 🔴 wenn VIX-Termstruktur BACKWARDATION (Absicherungsnotstand).\n'
+      + '• CSP (Weekly): 🟢 wenn VIX-Termstruktur CONTANGO (normales Volatilitätsregime) + MOVE-Signal≠STRESS + VIX-Perzentil>25 (Contango allein reicht nicht — bei sehr niedrigem VIX bleibt die erzielbare Prämie limitierend, das im Begründungssatz benennen). 🟡 wenn CONTANGO aber VIX-Perzentil≤25 (Prämie/Tail-Risk-Verhältnis ungünstig trotz normaler Struktur). 🔴 wenn VIX-Termstruktur BACKWARDATION (Absicherungsnotstand).\n'
       + '• Covered Call: 🟢 wenn bestehende Long-Positionen vorhanden + VIX moderat (15-25) + Regime nicht STRESS_UNSTABLE. 🟡 wenn VIX<15 (Prämie mager, aber CC auf starke Positionen sinnvoll). 🔴 wenn Regime=POST_PANIC_REVERSION (Upside nicht deckeln).\n'
       + '\nSHORT-STRATEGIEN:\n'
       + '• Fading Short (KO-Short): 🟢 wenn Regime=BULL_FRAGILE/STRESS_UNSTABLE + Fear&Greed>70 (Überhitzung) + SKEW/VVIX-Divergenz vorhanden. 🔴 wenn Fear&Greed<40 oder Regime=BULL_QUIET.\n'
@@ -482,7 +493,12 @@ Das bedeutet konkret:
         + basis + '\n\n'
         + 'ABSCHNITTE:\n'
         + '1. MARKTLAGE: Was ist das aktuelle Regime (MSE) — und was bedeutet das heute konkret? '
-        + 'Breadth und Rotation einordnen: bestätigen sie das Regime oder widersprechen sie ihm?\n'
+        + 'Breadth und Rotation einordnen: bestätigen sie das Regime oder widersprechen sie ihm? '
+        + 'Falls Distribution Days, Bull-Indikator oder andere Frühwarnindikatoren dem aktuellen Regime '
+        + 'widersprechen (z.B. BULL_QUIET bei gleichzeitig steigenden Distribution Days), das explizit als '
+        + 'Spannung benennen — z.B. "[Regime] ist aktuell das dominante Regime, wird jedoch durch '
+        + '[konkreter Gegenindikator] belastet" — nicht nur beide Fakten nebeneinander nennen, ohne den '
+        + 'Zusammenhang zu erklären.\n'
         + '2. SENTIMENT: Fear & Greed, PCR (als Proxy kennzeichnen falls source=vix_proxy), IOS-Market-Score — '
         + 'einordnen und erklären was der Wert bedeutet, nicht nur nennen. '
         + (_dixReal ? 'DIX (ETF-Korb, als solcher gekennzeichnet) UND ' : '')
