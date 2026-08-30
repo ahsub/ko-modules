@@ -1,6 +1,27 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.15.0 (30.08.2026) — MODE-ACHSE + VERSION-DRIFT-FIX:
+ *  (1) Neuer optionaler Parameter `mode` ('scan'|'holding_review'|
+ *  'structure_selection') fuer _publicOptionsPrompt(), als lokale Variable
+ *  am Anfang jeder der 5 Options-Strategie-Prompt-Funktionen deklariert und
+ *  fuer Public UND EIC-Zweig sichtbar (Axel-Entscheidung 30.08.2026).
+ *  csp_wheel/atmna/weekly_income/cc: mode='scan' (unveraendertes Verhalten).
+ *  collar: mode='holding_review' — Public-Zweig bekommt zusaetzliche
+ *  Sprachregel ("falls du haeltst" statt "deine Position"), da UIQ im
+ *  Public-Modus keinen Zugriff auf echte Nutzerpositionen hat (24.08.-
+ *  Vertraulichkeitsentscheidung); EIC-Zweig nur als Marker, keine
+ *  Verhaltensaenderung ("Bestandspositionen" dort schon explizit verankert).
+ *  'structure_selection' bewusst nur reserviert, keine Builder-Logik —
+ *  Regeln folgen mit Options-Modul-Start (Multi-Leg/Iron Condor etc.).
+ *  (2) VERSION-Drift-Fix: die exportierte KoPrompts.VERSION-Konstante stand
+ *  seit dem gesamten gestrigen Regulatory-Umbau (v2.6.0→v2.14.0, neun
+ *  Versionssprünge, alle 29.08.2026) unveraendert auf '2.5.7' — der
+ *  Datei-Header wurde jedes Mal aktualisiert, die tatsaechlich von
+ *  console.log() ausgelesene Konstante nicht. Live per Browser-Konsole
+ *  bestaetigt (Axel-Fund, 30.08.2026): Funktionscode war die ganze Zeit
+ *  aktuell, nur die Selbstauskunft war falsch. Jetzt synchronisiert.
+ *
  *  Version: 2.14.0 (29.08.2026) — COLLAR-LIVE-TEST, HVP-RICHTUNGSFEHLER
  *  (letzter Fund des Tages): (1) WICHTIGSTER FUND — "HVP 96% zeigt
  *  Volatilitaetskompression" ist FAKTISCH FALSCH und erschien konsistent in
@@ -893,6 +914,20 @@ Das bedeutet konkret:
   }
 
   function _publicOptionsPrompt(ctx, o) {
+    // MODE-ACHSE (30.08.2026, Axel-Entscheidung — Collar-Framing-Frage
+    // strukturell anders als Scan-Kandidatensuche): 'scan' (Default) = Kandidat
+    // aus dem Scan-Universum; 'holding_review' = Pruefung einer bestehenden
+    // Position (Collar) — Public-Modus hat KEINEN Zugriff auf echte
+    // Nutzerpositionen (24.08.-Vertraulichkeitsentscheidung), daher zwingend
+    // hypothetische Sprache; 'structure_selection' = Multi-Leg-Strukturwahl
+    // (Iron Condor etc., Options-Modul) — vorerst NUR als Platzhalter
+    // reserviert, keine Builder-Logik dafuer.
+    var mode = o.mode || 'scan';
+    if (mode === 'holding_review') {
+      o.rolle += ' UIQ kennt deine tatsächlichen Positionen nicht — '
+        + 'formuliere durchgehend hypothetisch ("falls du eine Position hältst"), '
+        + 'niemals "deine Position" oder "deine Aktien".';
+    }
     return KI_ANTI_HALLUZINATION
       + PUBLIC_REGULATORY_GUARDRAIL
       + '⚠️ Diese Analyse ist eine statistische Kontext-Analyse gem. §1 WpHG — '
@@ -1233,6 +1268,7 @@ Das bedeutet konkret:
         "IV-Crush- oder Earnings-Risiko innerhalb der betrachteten Laufzeit"
       ],
       prompt: function(ctx) {
+        var mode = 'scan';  // s. Kommentar in _publicOptionsPrompt — gilt fuer Public UND EIC
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 30 };
         var rules = getEffectiveRules('csp_wheel', cfg) || {
           deltaRange: [0.15, 0.30], dteRange: [cfg.dte, 45],
@@ -1252,7 +1288,8 @@ Das bedeutet konkret:
             stratName: 'CSP/Wheel-Setups',
             marktumfeldFrage: 'Ist das aktuelle Volatilitätsniveau (VIX) strukturell günstig für Prämien-Strategien?',
             focus: STRATEGIES.csp_wheel.focus,
-            maxWords: 400
+            maxWords: 400,
+            mode: mode
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -1304,6 +1341,7 @@ Das bedeutet konkret:
         "Risiko einer Andienung trotz Rollversuchen (z.B. anhaltender Abwaertstrend unter den Strike)"
       ],
       prompt: function(ctx) {
+        var mode = 'scan';  // s. Kommentar in _publicOptionsPrompt — gilt fuer Public UND EIC
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 21 };
         if (!ctx.isEic) {
           return _publicOptionsPrompt(ctx, {
@@ -1311,7 +1349,8 @@ Das bedeutet konkret:
             stratName: 'CSP (ATM/NA)-Setups',
             marktumfeldFrage: 'Sind ATM-CSPs beim aktuellen VIX-Niveau strukturell attraktiv?',
             focus: STRATEGIES.atmna.focus,
-            maxWords: 400
+            maxWords: 400,
+            mode: mode
           });
         }
         return '⛔⛔⛔ EIC-MODUS — ABSOLUTES HALLUZINATIONS-VERBOT ⛔⛔⛔\n'
@@ -1370,6 +1409,7 @@ Das bedeutet konkret:
         "Liquiditaets- oder Weekly-Options-Verfuegbarkeitsrisiko bei diesem Titel"
       ],
       prompt: function(ctx) {
+        var mode = 'scan';  // s. Kommentar in _publicOptionsPrompt — gilt fuer Public UND EIC
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, erDays: 30 };
         if (!ctx.isEic) {
           return _publicOptionsPrompt(ctx, {
@@ -1377,7 +1417,8 @@ Das bedeutet konkret:
             stratName: 'CSP (Weekly)-Setups',
             marktumfeldFrage: 'Ist das aktuelle Umfeld (VIX, Trend) für wöchentliche Einkommensstrategien günstig?',
             focus: STRATEGIES.weekly_income.focus,
-            maxWords: 400
+            maxWords: 400,
+            mode: mode
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -1429,6 +1470,7 @@ Das bedeutet konkret:
         "Risiko eines gekappten Gewinns bei ueberraschend starkem Kursanstieg"
       ],
       prompt: function(ctx) {
+        var mode = 'scan';  // s. Kommentar in _publicOptionsPrompt — gilt fuer Public UND EIC
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 300, minHvp: 30, goodHvp: 45, idealHvp: 60, erDays: 30, dte: 30 };
         var rules = getEffectiveRules('cc', cfg) || { deltaRange: [0.20, 0.30], dteRange: [cfg.dte, 45] };
         if (!ctx.isEic) {
@@ -1438,6 +1480,7 @@ Das bedeutet konkret:
             marktumfeldFrage: 'Ist das aktuelle Umfeld (VIX-Niveau, Trendstärke) für Covered Calls günstig?',
             focus: STRATEGIES.cc.focus,
             maxWords: 450,
+            mode: mode,
             // BEGRIFFS-INTEGRITAET (29.08.2026, Reviewer-Punkt 6): "Andienung"
             // ist CSP-spezifisch (Kursbewegung UNTER den Put-Strike loest sie
             // aus). Bei Covered Call ist das relevante Risiko-Ereignis
@@ -1502,15 +1545,19 @@ Das bedeutet konkret:
         "Wichtigste Einschraenkung dieser Einschaetzung, die vor einer echten Position in IBKR/CapTrader zu pruefen ist"
       ],
       prompt: function(ctx) {
+        var mode = 'holding_review';  // gilt fuer Public UND EIC — s. Kommentar in _publicOptionsPrompt
         if (!ctx.isEic) {
           return _publicOptionsPrompt(ctx, {
             rolle: 'Du analysierst Bestandspositionen auf strukturellen Absicherungsbedarf (Collar/Protective Put) in einem fragilen Bull-Regime. UIQ hat KEINEN Zugriff auf echte Optionsketten oder Bestandspositionen — alle Einordnungen sind ATR/HVP-basierte Näherungen.',
             stratName: 'Collar/Protective-Put-Setups',
             marktumfeldFrage: 'Spricht das aktuelle Regime (BULL_FRAGILE o.ä.) grundsätzlich für Absicherungsüberlegungen?',
             focus: STRATEGIES.collar.focus,
-            maxWords: 350
+            maxWords: 350,
+            mode: mode
           });
         }
+        // EIC-Zweig: mode bewusst nur als Marker notiert, keine Logikaenderung —
+        // "Bestandspositionen" ist hier schon explizit in Rolle/Aufgabe verankert.
         return KI_ANTI_HALLUZINATION
           + 'Du bist ein erfahrener Options-Stratege mit Fokus auf Absicherungsstrategien '
           + '(Collar / Protective Put) für bereits gehaltene Aktienpositionen in einem '
@@ -1846,7 +1893,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.5.7',
+    VERSION: '2.15.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
