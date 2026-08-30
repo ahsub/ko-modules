@@ -1,6 +1,30 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.16.0 (30.08.2026) — COLLAR-LIVE-TEST NACH MODE-ACHSE, AUFGABE-
+ *  STRUKTUR NACHGEZOGEN: v2.15.0s mode='holding_review' aenderte nur den
+ *  einleitenden rolle-Satz — der Live-Test (echter Collar-Button-Klick,
+ *  30.08.2026) zeigte einen strukturell unveraenderten Scan-Output ("HÖCHSTE
+ *  STRATEGY-FITS", 3 Titel gerankt aus dem Universum) OHNE jede Spur der
+ *  neuen Sprachregel. Root Cause: das Modell folgt der konkreten AUFGABE-
+ *  Formulierung (Punkt 2: "Welche 3 Titel weisen die höchste Kriterien-
+ *  Übereinstimmung auf?"), nicht der einleitenden Rollenbeschreibung — exakt
+ *  dieselbe Fehlerklasse wie der 28.08.-Fund (eingebetteter EIC-Block
+ *  widersprach dem System-Prompt, Modell folgte der konkreteren Anweisung).
+ *  Fix: AUFGABE-Punkte 2/3/5 in _publicOptionsPrompt() jetzt nach mode
+ *  verzweigt. holding_review bekommt eigene Formulierungen ("TITEL MIT
+ *  MODELLBASIERTEM ABSICHERUNGS-HINWEIS" statt "HÖCHSTE ... STRATEGY-FITS",
+ *  "liefern die Modellkriterien einen Hinweis, eine — falls gehaltene —
+ *  Position hinsichtlich Absicherung zu überprüfen?" statt Ranking-Sprache,
+ *  "KEIN MODELLBASIERTER ABSICHERUNGS-HINWEIS" statt "GERINGER STRATEGY FIT",
+ *  Zusammenfassung ohne "höchste Übereinstimmung"-Formulierung) — bei
+ *  identischer a-d-Struktur, identischen Pflicht-Satzmustern (Trade-off,
+ *  Modell-Grenze) und identischen Bewertungskriterien wie scan. scan-Modus
+ *  (csp_wheel/atmna/weekly_income/cc) strukturell unveraendert — per
+ *  isolierter Funktionsausfuehrung verifiziert (alle 4 weiterhin exakt die
+ *  alte "HÖCHSTE ... STRATEGY-FITS"-Formulierung, keine der neuen
+ *  holding_review-Formulierungen).
+ *
  *  Version: 2.15.0 (30.08.2026) — MODE-ACHSE + VERSION-DRIFT-FIX:
  *  (1) Neuer optionaler Parameter `mode` ('scan'|'holding_review'|
  *  'structure_selection') fuer _publicOptionsPrompt(), als lokale Variable
@@ -928,6 +952,105 @@ Das bedeutet konkret:
         + 'formuliere durchgehend hypothetisch ("falls du eine Position hältst"), '
         + 'niemals "deine Position" oder "deine Aktien".';
     }
+
+    // AUFGABE-Punkte 2/3/5 nach mode verzweigt (30.08.2026, Axel-Fund Collar-
+    // Live-Test: der reine rolle-Zusatz oben hatte KEINE Wirkung, weil das
+    // Modell der konkreten Aufgabenstellung folgt, nicht der einleitenden
+    // Rollenbeschreibung — der Output war trotz "holding_review" strukturell
+    // identisch zu einem Scan-Ranking ("HÖCHSTE STRATEGY-FITS", 3 Kandidaten
+    // gerankt). Fix: die AUFGABE-Formulierung selbst unterscheidet jetzt
+    // zwischen "Kandidat aus dem Scan-Universum" (scan) und "Titel mit
+    // modellbasiertem Absicherungs-Hinweis, hypothetisch formuliert"
+    // (holding_review) — bei ansonsten identischer a-d-Struktur, identischen
+    // Pflicht-Satzmustern und identischen Bewertungskriterien.
+    var aufgabe2, aufgabe3, aufgabe5;
+    if (mode === 'holding_review') {
+      aufgabe2 = '2. Überschrift EXAKT "TITEL MIT MODELLBASIERTEM ABSICHERUNGS-HINWEIS" '
+        + '(niemals "Kandidaten", "Top-Kandidaten", "Ranking" oder ähnliche '
+        + 'Ranking-Wörter in der Überschrift — hier wird keine Kaufgelegenheit '
+        + 'gerankt, sondern ein hypothetischer Absicherungsbedarf geprüft). '
+        + 'Für welche bis zu 3 Titel aus dem Universum liefern die '
+        + 'Modellkriterien einen Hinweis, eine — falls gehaltene — Position '
+        + 'hinsichtlich Absicherung zu überprüfen? Für JEDEN Titel GENAU '
+        + 'diese 4 gelabelten Unterpunkte, in dieser Reihenfolge (Struktur ist '
+        + 'Pflicht, kein Fliesstext):\n'
+        + '   a) "Positive Faktoren:" — datenbasiert, aus den Bewertungskriterien, '
+        + 'die laut Modell für eine Absicherungsüberprüfung sprechen.\n'
+        + '   b) "Risikofaktoren:" — datenbasiert, als Modellsignal formuliert.\n'
+        + '   c) "Strategischer Zielkonflikt:" — IMMER beide Seiten des '
+        + 'Zielkonflikts (z.B. einfacher Protective Put vs. voller Collar, '
+        + 'Strike-Nähe) neutral gegenüberstellen, NIEMALS eine Seite als '
+        + 'staerker/besser/optimaler darstellen. Verboten: "maximiert", '
+        + '"optimiert" oder aehnliche Superlative in dieser Gegenueberstellung '
+        + '— stattdessen neutral "ist typischerweise verbunden mit X, waehrend '
+        + 'Y typischerweise Z bedeutet".\n'
+        + '   d) "Modell-Grenze:" — wenn der Zielkonflikt aus c) nicht durch '
+        + 'die Modelldaten zugunsten einer Seite auflösbar ist (Regelfall), '
+        + 'PFLICHT-SATZMUSTER wörtlich: "Das Modell liefert hier keinen '
+        + 'eindeutigen Hinweis, diesen Zielkonflikt zugunsten eines '
+        + 'aggressiveren oder konservativeren Ansatzes aufzulösen." NIEMALS '
+        + '"beide Richtungen sind haltbar" oder aehnliche Formulierungen, die '
+        + 'wie eine versteckte Freigabe beider Optionen klingen koennten.\n'
+        + 'OHNE konkreten Strike, Delta-Wert, DTE-Zahl, Prämien-Schätzung oder '
+        + 'Verfallsdatum zu nennen, UND OHNE jede Exit-/Stop-/Roll-/Timing-'
+        + 'Regel (z.B. "Exit bei RSI über X", "Stop unterhalb Y") — solche '
+        + 'Regeln sind EIC-exklusiv (Grundgesetz #11), nie Teil dieser '
+        + 'Antwort.\n';
+      aufgabe3 = '3. KEIN MODELLBASIERTER ABSICHERUNGS-HINWEIS: '
+        + 'Titel + Grund, formuliert als "erfüllt die Kriterien nicht" — '
+        + 'NIEMALS als "ist für dich nicht geeignet" und NIEMALS als '
+        + '"Ausschluss" bezeichnet (das Modell erkennt keinen Hinweis auf '
+        + 'Absicherungsbedarf, es entscheidet nicht über eine tatsächliche '
+        + 'Position).\n';
+      aufgabe5 = '5. UIQ ' + o.stratName.toUpperCase() + ' ZUSAMMENFASSUNG (optional, '
+        + 'max. 3 Sätze): ausschließlich Wiederholung der in Punkt 2 genannten '
+        + 'Titel mit Absicherungs-Hinweis plus dem Pflichthinweis, dass '
+        + 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle '
+        + 'Risikoparameter außerhalb von UIQ im Broker zu prüfen sind. Keine '
+        + 'neue Präferenz, keine Handlungsanweisung, keine Ranking-Sprache '
+        + '("höchste Übereinstimmung" ist hier NICHT zutreffend, da kein '
+        + 'Scan-Ranking stattfindet).\n';
+    } else {
+      aufgabe2 = '2. Überschrift EXAKT "HÖCHSTE ' + o.stratName.toUpperCase() + ' STRATEGY-FITS" '
+        + '(niemals "Kandidaten", "Top-Kandidaten" oder ähnliche Ranking-Wörter '
+        + 'in der Überschrift). Welche 3 Titel weisen die höchste Kriterien-'
+        + 'Übereinstimmung mit ' + o.stratName + ' auf? Für JEDEN Titel GENAU '
+        + 'diese 4 gelabelten Unterpunkte, in dieser Reihenfolge (Struktur ist '
+        + 'Pflicht, kein Fliesstext):\n'
+        + '   a) "Positive Faktoren:" — datenbasiert, aus den Bewertungskriterien.\n'
+        + '   b) "Risikofaktoren:" — datenbasiert, als Modellsignal formuliert.\n'
+        + '   c) "Strategischer Zielkonflikt:" — IMMER beide Seiten des '
+        + 'Zielkonflikts (z.B. Strike-Nähe, Laufzeit) neutral gegenüberstellen, '
+        + 'NIEMALS eine Seite als staerker/besser/optimaler darstellen. '
+        + 'Verboten: "maximiert", "optimiert" oder aehnliche Superlative in '
+        + 'dieser Gegenueberstellung — stattdessen neutral "ist typischerweise '
+        + 'verbunden mit X, waehrend Y typischerweise Z bedeutet".\n'
+        + '   d) "Modell-Grenze:" — wenn der Zielkonflikt aus c) nicht durch '
+        + 'die Modelldaten zugunsten einer Seite auflösbar ist (Regelfall), '
+        + 'PFLICHT-SATZMUSTER wörtlich: "Das Modell liefert hier keinen '
+        + 'eindeutigen Hinweis, diesen Zielkonflikt zugunsten eines '
+        + 'aggressiveren oder konservativeren Ansatzes aufzulösen." NIEMALS '
+        + '"beide Richtungen sind haltbar" oder aehnliche Formulierungen, die '
+        + 'wie eine versteckte Freigabe beider Optionen klingen koennten.\n'
+        + 'OHNE konkreten Strike, Delta-Wert, DTE-Zahl, Prämien-Schätzung oder '
+        + 'Verfallsdatum zu nennen, UND OHNE jede Exit-/Stop-/Roll-/Timing-'
+        + 'Regel (z.B. "Exit bei RSI über X", "Stop unterhalb Y") — solche '
+        + 'Regeln sind EIC-exklusiv (Grundgesetz #11), nie Teil dieser '
+        + 'Antwort.\n';
+      aufgabe3 = '3. GERINGER STRATEGY FIT NACH MODELLKRITERIEN: '
+        + 'Titel + Grund, formuliert als "erfüllt die Kriterien nicht" — '
+        + 'NIEMALS als "ist für dich nicht geeignet" und NIEMALS als '
+        + '"Ausschluss" bezeichnet (das Modell erkennt geringere Kriterien-'
+        + 'Übereinstimmung, es entscheidet nicht, dass ein Titel nicht '
+        + 'gehandelt werden darf).\n';
+      aufgabe5 = '5. UIQ ' + o.stratName.toUpperCase() + ' ZUSAMMENFASSUNG (optional, '
+        + 'max. 3 Sätze): ausschließlich Wiederholung der Kriterien-'
+        + 'Übereinstimmung aus Punkt 2 plus dem Pflichthinweis, dass '
+        + 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle '
+        + 'Risikoparameter außerhalb von UIQ im Broker zu prüfen sind. Keine '
+        + 'neue Präferenz, keine Handlungsanweisung.\n';
+    }
+
     return KI_ANTI_HALLUZINATION
       + PUBLIC_REGULATORY_GUARDRAIL
       + '⚠️ Diese Analyse ist eine statistische Kontext-Analyse gem. §1 WpHG — '
@@ -940,49 +1063,14 @@ Das bedeutet konkret:
       + '1. MARKTUMFELD: ' + o.marktumfeldFrage + ' (2-3 Sätze, Modellsignale '
       + 'explizit als Modellsignale kennzeichnen, keine Risikoreduktions-'
       + 'Tatsachenbehauptung)\n'
-      + '2. Überschrift EXAKT "HÖCHSTE ' + o.stratName.toUpperCase() + ' STRATEGY-FITS" '
-      + '(niemals "Kandidaten", "Top-Kandidaten" oder ähnliche Ranking-Wörter '
-      + 'in der Überschrift). Welche 3 Titel weisen die höchste Kriterien-'
-      + 'Übereinstimmung mit ' + o.stratName + ' auf? Für JEDEN Titel GENAU '
-      + 'diese 4 gelabelten Unterpunkte, in dieser Reihenfolge (Struktur ist '
-      + 'Pflicht, kein Fliesstext):\n'
-      + '   a) "Positive Faktoren:" — datenbasiert, aus den Bewertungskriterien.\n'
-      + '   b) "Risikofaktoren:" — datenbasiert, als Modellsignal formuliert.\n'
-      + '   c) "Strategischer Zielkonflikt:" — IMMER beide Seiten des '
-      + 'Zielkonflikts (z.B. Strike-Nähe, Laufzeit) neutral gegenüberstellen, '
-      + 'NIEMALS eine Seite als staerker/besser/optimaler darstellen. '
-      + 'Verboten: "maximiert", "optimiert" oder aehnliche Superlative in '
-      + 'dieser Gegenueberstellung — stattdessen neutral "ist typischerweise '
-      + 'verbunden mit X, waehrend Y typischerweise Z bedeutet".\n'
-      + '   d) "Modell-Grenze:" — wenn der Zielkonflikt aus c) nicht durch '
-      + 'die Modelldaten zugunsten einer Seite auflösbar ist (Regelfall), '
-      + 'PFLICHT-SATZMUSTER wörtlich: "Das Modell liefert hier keinen '
-      + 'eindeutigen Hinweis, diesen Zielkonflikt zugunsten eines '
-      + 'aggressiveren oder konservativeren Ansatzes aufzulösen." NIEMALS '
-      + '"beide Richtungen sind haltbar" oder aehnliche Formulierungen, die '
-      + 'wie eine versteckte Freigabe beider Optionen klingen koennten.\n'
-      + 'OHNE konkreten Strike, Delta-Wert, DTE-Zahl, Prämien-Schätzung oder '
-      + 'Verfallsdatum zu nennen, UND OHNE jede Exit-/Stop-/Roll-/Timing-'
-      + 'Regel (z.B. "Exit bei RSI über X", "Stop unterhalb Y") — solche '
-      + 'Regeln sind EIC-exklusiv (Grundgesetz #11), nie Teil dieser '
-      + 'Antwort.\n'
-      + '3. GERINGER STRATEGY FIT NACH MODELLKRITERIEN: '
-      + 'Titel + Grund, formuliert als "erfüllt die Kriterien nicht" — '
-      + 'NIEMALS als "ist für dich nicht geeignet" und NIEMALS als '
-      + '"Ausschluss" bezeichnet (das Modell erkennt geringere Kriterien-'
-      + 'Übereinstimmung, es entscheidet nicht, dass ein Titel nicht '
-      + 'gehandelt werden darf).\n'
+      + aufgabe2
+      + aufgabe3
       + '4. RISIKEN: IV-Crush, Earnings-Überraschung, Liquiditätsrisiko, ' + (o.risikoBegriff || 'Andienung')
       + ' — als Downside-Risikoindikatoren des Modells formuliert, '
       + 'z.B. "erhöht innerhalb des UIQ-Modells die Downside-'
       + 'Risikoindikatoren" statt "' + (o.risikoBegriff || 'Andienungsrisiko') + ' erhöht".'
       + (o.risikenText ? ' ' + o.risikenText : '') + '\n'
-      + '5. UIQ ' + o.stratName.toUpperCase() + ' ZUSAMMENFASSUNG (optional, '
-      + 'max. 3 Sätze): ausschließlich Wiederholung der Kriterien-'
-      + 'Übereinstimmung aus Punkt 2 plus dem Pflichthinweis, dass '
-      + 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle '
-      + 'Risikoparameter außerhalb von UIQ im Broker zu prüfen sind. Keine '
-      + 'neue Präferenz, keine Handlungsanweisung.\n'
+      + aufgabe5
       + '\nAntworte auf Deutsch, strukturiert 1-5 mit den gelabelten '
       + 'Unterpunkten a-d in Abschnitt 2. Max. ' + (o.maxWords || 450) + ' Wörter. '
       + 'KEINE konkreten Strikes, Deltas, DTE-Zahlen, Prämien oder Daten nennen — '
@@ -1893,7 +1981,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.15.0',
+    VERSION: '2.16.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
