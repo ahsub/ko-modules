@@ -1,6 +1,19 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.18.0 (31.08.2026) — COLLAR risikoBegriff/risikenText
+ *  (Priorität 3 aus Übergabeprotokoll 30.08. §8, analog zum CC-Fund vom
+ *  29.08.). Collar nutzte bislang den generischen Fallback "Andienung"
+ *  in AUFGABE-Punkt 4 (RISIKEN) — begrifflich falsch für eine Struktur
+ *  mit zwei unterschiedlichen Seiten: Protective Put (Kauf, kein
+ *  Andienungsrisiko, nur Prämienkosten) vs. voller Collar (zusätzlicher
+ *  Short Call, CC-analoges Ausübungsrisiko auf der Call-Seite). Neuer
+ *  risikoBegriff + risikenText in STRATEGIES.collar.prompt(), Public-
+ *  Zweig — trennt beide Fälle explizit, ersetzt "Andienung" durch
+ *  "Ausübung/Assignment des Short Calls beim vollen Collar". EIC-Zweig
+ *  unverändert (nutzt bereits eigene, korrekte Formulierungen ohne
+ *  "Andienung"-Fallback). Nur collar geändert, isoliert verifiziert.
+ *
  *  Version: 2.17.0 (31.08.2026) — EXTERNES REVIEWER-FEEDBACK ZU COLLAR-
  *  LIVE-TEST-2 EINGEARBEITET (s. Übergabeprotokoll 30.08. §6), bevor
  *  weitere Live-Test-Zyklen laufen. Sieben Punkte, alle collar-bezogen:
@@ -1710,7 +1723,27 @@ Das bedeutet konkret:
             marktumfeldFrage: 'Spricht das aktuelle Regime (BULL_FRAGILE o.ä.) grundsätzlich für Absicherungsüberlegungen?',
             focus: STRATEGIES.collar.focus,
             maxWords: 350,
-            mode: mode
+            mode: mode,
+            // BEGRIFFS-INTEGRITAET (31.08.2026, Prioritaet 3 aus Uebergabe-
+            // protokoll 30.08. §8 — analog zum CC-Fund vom 29.08.). Collar
+            // nutzte bislang den generischen Fallback "Andienung" — begrifflich
+            // falsch fuer eine Struktur mit ZWEI unterschiedlichen Seiten:
+            // (a) Protective Put (Kauf eines Puts) hat KEIN Andienungs-/
+            // Ausuebungsrisiko, da keine eigene Optionsposition verkauft wird —
+            // das einzige Risiko ist die gezahlte Praemie (Kosten der
+            // Absicherung). (b) Voller Collar (zusaetzlicher Short Call) hat
+            // dagegen ein CC-analoges Ausuebungsrisiko auf der Call-Seite
+            // (Aktien koennen bei starkem Kursanstieg abgerufen werden,
+            // Aufwaertspotenzial gedeckelt) — das ist NICHT dasselbe Konzept
+            // wie "Andienung" (CSP-spezifisch, Put-Assignment bei Kursverfall).
+            risikoBegriff: 'Ausübung/Assignment des Short Calls beim vollen Collar (Kursbewegung ÜBER den Call-Strike)',
+            risikenText: 'Wichtig: Protective Put und voller Collar risikotechnisch trennen — '
+              + 'beim reinen Protective Put entsteht KEIN Andienungs-/Ausübungsrisiko (keine '
+              + 'eigene Position wird verkauft), einziges Risiko ist die gezahlte Put-Prämie '
+              + '(Kosten der Absicherung, ggf. Verfall ohne Ausübung). Beim vollen Collar '
+              + '(zusätzlicher Short Call zur Finanzierung der Put-Prämie) entsteht zusätzlich '
+              + 'ein CC-analoges Ausübungsrisiko auf der Call-Seite: starker Kursanstieg über '
+              + 'den Call-Strike kann die Aktienposition abrufen, Aufwärtspotenzial gedeckelt.'
           });
         }
         // EIC-Zweig: mode bewusst nur als Marker notiert, keine Logikaenderung —
@@ -2053,7 +2086,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.17.0',
+    VERSION: '2.18.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
