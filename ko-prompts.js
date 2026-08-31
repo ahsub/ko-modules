@@ -1,6 +1,52 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.17.0 (31.08.2026) — EXTERNES REVIEWER-FEEDBACK ZU COLLAR-
+ *  LIVE-TEST-2 EINGEARBEITET (s. Übergabeprotokoll 30.08. §6), bevor
+ *  weitere Live-Test-Zyklen laufen. Sieben Punkte, alle collar-bezogen:
+ *  (1) NEUER PFLICHT-TRENNSATZ Marktrisiko vs. Positionsrisiko, direkt
+ *  nach der Überschrift in AUFGABE-Punkt 2 (holding_review), VOR der
+ *  Titelliste — Reviewer stuft ihn als staerksten bislang ungenutzten
+ *  Satz fuer UIQ ein ("Der Absicherungs-Hinweis stellt keine Aussage
+ *  darueber dar, dass eine Position verkauft oder abgesichert werden
+ *  sollte..."). Bewusst als eigener Pflicht-Satz VOR der Liste
+ *  platziert, nicht nur in der Rolle — Lehre aus dem 30.08.-Fund (5.2):
+ *  das Modell folgt der AUFGABE-Struktur, nicht der Rollenbeschreibung.
+ *  (2) RANKING-ANMUTUNGS-FIX: reine Namensaufzaehlung ("LMT / PH / NUE")
+ *  erzeugte trotz entfernter Ranking-Sprache weiterhin einen Ranking-
+ *  Eindruck durch die Listenform allein. Fix: Pflichtvorgabe, die Titel
+ *  in einen Fliesstext-Rahmen einzubetten ("Folgende Titel erfuellen
+ *  die Modellkriterien fuer eine Absicherungsueberpruefung, Reihenfolge
+ *  ohne Wertung: ..."), keine blosse Aufzaehlung.
+ *  (3) HVP-KOMPRESSIONS-REGEL VERSCHAERFT: bestehende BEGRIFFS-
+ *  INTEGRITAET-Regel (seit 29.08., s.u.) reichte laut zwei unabhaengigen
+ *  Live-Belegen (30.08., beide NUE/HVP95%) allein nicht aus — Wortverbot
+ *  ohne strukturelle Verankerung wird vom Modell nicht zuverlaessig
+ *  befolgt. Zusaetzlich als PFLICHT-SATZMUSTER in die HVP-Bewertung
+ *  jeder Absicherungs-Kandidatenzeile aufgenommen (b) Risikofaktoren)
+ *  statt nur als allgemeines Verbot weiter oben im Prompt.
+ *  (4) RSI-KOMBINATIONSLOGIK KORRIGIERT (STRATEGIES.collar.focus[0] +
+ *  EIC-Zweig): "RSI niedrig + Protective Put" allein war konzeptionell
+ *  widerspruechlich (ein bereits gefallener Titel braucht nicht
+ *  automatisch mehr Absicherung). Kriterium jetzt explizit als
+ *  Kombination: RSI (hoch ODER niedrig) NUR in Verbindung mit hoher HVP
+ *  UND strukturell intaktem uebergeordnetem Trend, nie RSI allein.
+ *  (5) "GEWINNMITNAHME" ERSETZT — unterstellte implizit bereits
+ *  realisierten Gewinn, den UIQ nicht kennt. Neu: "gezielte Ueberpruefung
+ *  des Absicherungsbedarfs bei gehaltenen Positionen mit ausgepraegter
+ *  kurzfristiger Kursbewegung" (Public-Fokuskriterium + EIC-Zweig).
+ *  (6) "Strategy Fit"-Vermeidung bei Collar (s. v2.16.0 §5.3) vom
+ *  Reviewer explizit bestaetigt — keine Aenderung noetig, nur notiert.
+ *  (7) "MODEL DECISION BOUNDARY" als formales Element: bestehender
+ *  Punkt d) "Modell-Grenze:" bereits strukturell eigenstaendig und
+ *  pflicht-satzmuster-gebunden — deckt die Reviewer-Absicht inhaltlich
+ *  ab, keine Aenderung noetig. Das groessere 9-Punkte-Schema fuer alle
+ *  vier Options-Strategien (Reviewer-Strukturvorschlag) ist AUSSERHALB
+ *  des heutigen Scopes — vom Reviewer selbst als eigener, groesserer
+ *  Qualitaetssprung eingestuft, nicht Teil eines Einzel-Prompt-Zyklus.
+ *  Nur collar geaendert, alle 4 scan-Strategien unveraendert (isoliert
+ *  verifiziert).
+ *
  *  Version: 2.16.0 (30.08.2026) — COLLAR-LIVE-TEST NACH MODE-ACHSE, AUFGABE-
  *  STRUKTUR NACHGEZOGEN: v2.15.0s mode='holding_review' aenderte nur den
  *  einleitenden rolle-Satz — der Live-Test (echter Collar-Button-Klick,
@@ -969,14 +1015,37 @@ Das bedeutet konkret:
         + '(niemals "Kandidaten", "Top-Kandidaten", "Ranking" oder ähnliche '
         + 'Ranking-Wörter in der Überschrift — hier wird keine Kaufgelegenheit '
         + 'gerankt, sondern ein hypothetischer Absicherungsbedarf geprüft). '
+        + 'Direkt nach dieser Überschrift, VOR der Titelliste, folgender '
+        + 'PFLICHT-SATZ wörtlich (Trennung Marktrisiko/Positionsrisiko, '
+        + 'externes Reviewer-Feedback 30.08.2026, staerkster bislang '
+        + 'ungenutzter Satz): "Der Absicherungs-Hinweis stellt keine Aussage '
+        + 'darüber dar, dass eine Position verkauft oder abgesichert werden '
+        + 'sollte. Er beschreibt ausschließlich eine vom Modell erkannte '
+        + 'Konstellation, bei der eine bestehende Position hinsichtlich ihres '
+        + 'individuellen Downside-Risikos überprüft werden kann."\n'
         + 'Für welche bis zu 3 Titel aus dem Universum liefern die '
         + 'Modellkriterien einen Hinweis, eine — falls gehaltene — Position '
-        + 'hinsichtlich Absicherung zu überprüfen? Für JEDEN Titel GENAU '
+        + 'hinsichtlich Absicherung zu überprüfen? Die Titel NIEMALS als '
+        + 'blosse Aufzählung nennen (z.B. "LMT / PH / NUE") — das erzeugt '
+        + 'allein durch die Listenform einen Ranking-Eindruck, auch ohne '
+        + 'Ranking-Wörter. Stattdessen in einen Satzrahmen einbetten, '
+        + 'PFLICHT-FORMULIERUNG sinngemäß: "Folgende Titel erfüllen die '
+        + 'definierten Modellkriterien für eine Absicherungsüberprüfung '
+        + '(Reihenfolge ohne Wertung): [Titel 1], [Titel 2], [Titel 3]." '
+        + 'Für JEDEN Titel GENAU '
         + 'diese 4 gelabelten Unterpunkte, in dieser Reihenfolge (Struktur ist '
         + 'Pflicht, kein Fliesstext):\n'
         + '   a) "Positive Faktoren:" — datenbasiert, aus den Bewertungskriterien, '
         + 'die laut Modell für eine Absicherungsüberprüfung sprechen.\n'
-        + '   b) "Risikofaktoren:" — datenbasiert, als Modellsignal formuliert.\n'
+        + '   b) "Risikofaktoren:" — datenbasiert, als Modellsignal formuliert. '
+        + 'Bei einem HOHEN HVP-Wert (z.B. 90%+) IMMER "im historischen '
+        + 'Vergleich erhöhte/hohe realisierte Volatilität" — NIEMALS '
+        + '"Kompression", "komprimiert" oder "Komprimierung" in Verbindung '
+        + 'mit einem hohen HVP-Wert (Bedeutungsumkehr, belegter '
+        + 'Wiederholungsfund 30.08.2026 trotz allgemeiner Regel weiter oben '
+        + 'im Prompt — hier zusätzlich strukturell an dieser Stelle '
+        + 'verankert, da ein reines Wortverbot allein nicht zuverlässig '
+        + 'befolgt wurde).\n'
         + '   c) "Strategischer Zielkonflikt:" — IMMER beide Seiten des '
         + 'Zielkonflikts (z.B. einfacher Protective Put vs. voller Collar, '
         + 'Strike-Nähe) neutral gegenüberstellen, NIEMALS eine Seite als '
@@ -1627,7 +1696,7 @@ Das bedeutet konkret:
       hint:  '🛡️ Collar/Protective Put: Absicherung Bestandsposition · BULL_FRAGILE · Proxy-Strikes',
       color: '#0ea5e9',
       focus: [
-        "Absicherungsbedarf: sprechen RSI/Momentum aktuell fuer eine Gewinnmitnahme-Absicherung auf diesem Titel?",
+        "Absicherungsbedarf: sprechen RSI/Momentum NUR in Kombination mit hoher HVP UND strukturell intaktem uebergeordnetem Trend fuer eine gezielte Ueberpruefung des Absicherungsbedarfs bei diesem Titel? (RSI allein — ob hoch oder niedrig — reicht NICHT: ein bereits stark gefallener Titel mit niedrigem RSI braucht nicht automatisch mehr Absicherung, das waere konzeptionell widerspruechlich.)",
         "Protective Put vs. voller Collar: lohnt sich hier eher die einfache Absicherung oder die volle Kostenreduktion mit gedeckeltem Upside?",
         "Strike-Naeherung: ATR-basierte Put-/Call-Distanz als grobe Orientierung (keine echten Optionsketten verfuegbar)",
         "Wichtigste Einschraenkung dieser Einschaetzung, die vor einer echten Position in IBKR/CapTrader zu pruefen ist"
@@ -1658,8 +1727,11 @@ Das bedeutet konkret:
           + '\n\nAUFGABE:\n'
           + '1. EINSCHRÄNKUNG: Kurz erklären — keine echten Optionsketten verfügbar, '
           + 'alle Strikes sind Näherungen, IMMER in IBKR/CapTrader verifizieren.\n'
-          + '2. ABSICHERUNGS-KANDIDATEN: Für Titel mit hohem RSI/Momentum (Gewinnmitnahme-'
-          + 'Kandidaten in fragilem Umfeld): Protective-Put-Strike-Näherung '
+          + '2. ABSICHERUNGS-KANDIDATEN: Für Titel mit RSI/Momentum-Auffälligkeit NUR in '
+          + 'Kombination mit hoher HVP und strukturell intaktem übergeordnetem Trend '
+          + '(gezielte Überprüfung des Absicherungsbedarfs bei ausgeprägter kurzfristiger '
+          + 'Kursbewegung — NICHT RSI allein, das wäre konzeptionell widersprüchlich bei '
+          + 'bereits gefallenen Titeln): Protective-Put-Strike-Näherung '
           + '(ATR-basiert, 1-1.5x ATR unter Kurs), optional Call-Strike-Näherung für vollen '
           + 'Collar (1-2x ATR über Kurs). KEINEN echten Prämien-Betrag erfinden — nur '
           + 'Strike-Abstand in % und $ aus "Kurs:$" und "ATR:$" ableiten.\n'
@@ -1981,7 +2053,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.16.0',
+    VERSION: '2.17.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
