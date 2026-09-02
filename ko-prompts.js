@@ -1,6 +1,23 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.18.1 (02.09.2026) — ZWEI HARTNAECKIGE COMPLIANCE-FUNDE
+ *  AUS ÜBERGABEPROTOKOLL 01.09. GEHÄRTET (Priorität 0 + 1.1 des Zyklus):
+ *  (1) HVP-KOMPRESSIONSREGEL AUF SCAN-ZWEIG AUSGEWEITET: die Regel war
+ *  seit 30.08. nur im holding_review-Zweig von _publicOptionsPrompt()
+ *  verankert (Collar) — csp_wheel/atmna/weekly_income/cc teilen sich den
+ *  scan-Zweig und hatten die Regel dadurch strukturell nie erhalten, nicht
+ *  vier separate Lücken, sondern EINE gemeinsame. Live-Beleg 01.09.: atmna
+ *  bestätigt fehlend. (2) GUARDRAIL-VERSTÄRKUNG "attraktiv"/"Praemien-
+ *  erwartung": direktes NIEMALS/STATTDESSEN-Beispielpaar unmittelbar neben
+ *  der Wortliste in PUBLIC_REGULATORY_GUARDRAIL ergänzt (nicht nur weit
+ *  unten im Prompt wie das bestehende Praemienerwartung-Beispiel) — Auslöser
+ *  war die 4-fache/2-fache Wiederholung beider Begriffe am 01.09. trotz
+ *  bestehendem Wortverbot. Bewusst NICHT Teil dieses Fixes: eine geteilte
+ *  9-Punkte-Prompt-Architektur für alle 14 Strategien bleibt eigener,
+ *  separat zu planender Sprint (Reviewer-Vorschlag 30.08., Scope am
+ *  02.09. auf Equity-Strategien erweitert) — s. Übergabeprotokoll 02.09.
+ *
  *  Version: 2.18.0 (31.08.2026) — COLLAR risikoBegriff/risikenText
  *  (Priorität 3 aus Übergabeprotokoll 30.08. §8, analog zum CC-Fund vom
  *  29.08.). Collar nutzte bislang den generischen Fallback "Andienung"
@@ -792,6 +809,20 @@ Das bedeutet konkret:
     'KEINE konkreten Ausfuehrungsparameter, s.u.) gelten unabhaengig davon, ' +
     'ob das exakte Wort hier aufgelistet ist — auch neue, hier nicht ' +
     'genannte Formulierungen mit demselben Sinn sind verboten.\n' +
+    '- ZWEI BESONDERS HARTNAECKIGE BEGRIFFE — DIREKTES NIEMALS/STATTDESSEN-PAAR ' +
+    '(belegter Wiederholungsfund trotz Wortverbot in der Liste oben, zuletzt ' +
+    '01.09.2026 vierfach "Praemienerwartung" und zweifach "attraktiv"/' +
+    '"attraktiveren"): ein reines Wortverbot in einer langen Liste reicht bei ' +
+    'diesen beiden Begriffen nachweislich nicht aus — deshalb hier zusaetzlich ' +
+    'als direktes Beispielpaar, nicht nur als Listenposition:\n' +
+    '  • Schreibe NIEMALS "attraktive Praemie"/"attraktives Volatilitaetsniveau"' +
+    '/"attraktiv" in Bezug auf Praemien, Volatilitaet oder eine Optionsstruktur ' +
+    '— schreibe STATTDESSEN "die Praemienhoehe/das Volatilitaetsniveau ist im ' +
+    'Broker zu pruefen" oder "erfuellt die definierten Modellkriterien fuer ' +
+    'diese Strategie".\n' +
+    '  • Schreibe NIEMALS "Praemienerwartung"/"moderate Praemienerwartung" — ' +
+    'schreibe STATTDESSEN "Volatilitaetssignal" oder "die tatsaechlich ' +
+    'verfuegbare Optionspraemie ist im Broker zu pruefen".\n' +
     '- KEINE KONKRETEN HANDLUNGSSCHWELLEN JEGLICHER ART (belegter Fund ' +
     '29.08.2026, CSP/Wheel-Output): Formulierungen wie "Exit-Schwelle bei ' +
     'RSI oberhalb 45", "Stop unterhalb Support", "engeres Exit-Fenster" ' +
@@ -1100,7 +1131,15 @@ Das bedeutet konkret:
         + 'diese 4 gelabelten Unterpunkte, in dieser Reihenfolge (Struktur ist '
         + 'Pflicht, kein Fliesstext):\n'
         + '   a) "Positive Faktoren:" — datenbasiert, aus den Bewertungskriterien.\n'
-        + '   b) "Risikofaktoren:" — datenbasiert, als Modellsignal formuliert.\n'
+        + '   b) "Risikofaktoren:" — datenbasiert, als Modellsignal formuliert. '
+        + 'Bei einem HOHEN HVP-Wert (z.B. 90%+) IMMER "im historischen '
+        + 'Vergleich erhöhte/hohe realisierte Volatilität" — NIEMALS '
+        + '"Kompression", "komprimiert" oder "Komprimierung" in Verbindung '
+        + 'mit einem hohen HVP-Wert (Bedeutungsumkehr, belegter '
+        + 'Wiederholungsfund 30.08.2026 im holding_review-Zweig, hier am '
+        + '01.09.2026 auf den scan-Zweig ausgeweitet, da csp_wheel/atmna/'
+        + 'weekly_income/cc denselben Code-Pfad teilen und die Regel bislang '
+        + 'nur im holding_review-Zweig verankert war).\n'
         + '   c) "Strategischer Zielkonflikt:" — IMMER beide Seiten des '
         + 'Zielkonflikts (z.B. Strike-Nähe, Laufzeit) neutral gegenüberstellen, '
         + 'NIEMALS eine Seite als staerker/besser/optimaler darstellen. '
@@ -2086,7 +2125,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.18.0',
+    VERSION: '2.18.1',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
