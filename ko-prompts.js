@@ -1,6 +1,21 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.18.2 (02.09.2026) — RSI-BEGRIFFS-INTEGRITAET (externes
+ *  Reviewer-Feedback zum CSP-ATM/NA-Live-Test 02.09.): zweifacher belegter
+ *  Fund im selben Output (COP, LPG) — RSI 70/77 (UEBERKAUFT) wurde als
+ *  "kurzfristige Ueberverkauftheit" bezeichnet, das GEGENTEIL. Strukturell
+ *  identisch zum HVP-Richtungsfehler vom 29./30.08. (Bedeutungsumkehr statt
+ *  Ungenauigkeit): die Folgeaussage ("Gegenbewegung nicht auszuschliessen")
+ *  war inhaltlich korrekt, nur das Etikett verkehrt — analoge BEGRIFFS-
+ *  INTEGRITAET-Regel direkt neben der HVP-Regel in
+ *  PUBLIC_REGULATORY_GUARDRAIL ergaenzt, wirkt fuer alle 14 Strategien
+ *  (Equity + Options teilen dieselbe Guardrail). Bewusst NICHT Teil dieses
+ *  Fixes: die vom Reviewer vorgeschlagene serverseitige RSI-Vorklassifi-
+ *  zierung (overbought/oversold/neutral als bereits gelabeltes Aggregator-
+ *  Feld statt Modell-Interpretation) — das ist ein Architektur-Punkt fuer
+ *  den geplanten 9-Punkte-Schema-Sprint, kein Quick-Fix.
+ *
  *  Version: 2.18.1 (02.09.2026) — ZWEI HARTNAECKIGE COMPLIANCE-FUNDE
  *  AUS ÜBERGABEPROTOKOLL 01.09. GEHÄRTET (Priorität 0 + 1.1 des Zyklus):
  *  (1) HVP-KOMPRESSIONSREGEL AUF SCAN-ZWEIG AUSGEWEITET: die Regel war
@@ -945,6 +960,16 @@ Das bedeutet konkret:
     'zeigt eine im historischen Vergleich erhoehte/hohe realisierte ' +
     'Volatilitaet." Die Wörter "Kompression"/"komprimiert"/"Komprimierung" ' +
     'NIEMALS in Verbindung mit einem hohen HVP-Wert verwenden.\n' +
+    '- BEGRIFFS-INTEGRITAET (RSI-Richtung, belegter Fund 02.09.2026, CSP-' +
+    'ATM/NA-Live-Test — zweifach im selben Output): ein HOHER RSI-Wert ' +
+    '(>70) bedeutet UEBERKAUFT (erhoehtes kurzfristiges Rueckschlagrisiko) ' +
+    '— NIEMALS "ueberverkauft" (das ist das GEGENTEIL, Bedeutungsumkehr). ' +
+    'Ein NIEDRIGER RSI-Wert (<30) bedeutet UEBERVERKAUFT (erhoehtes ' +
+    'kurzfristiges Erholungspotenzial). Formulierungen wie "RSI 70 weist ' +
+    'auf kurzfristige Ueberverkauftheit hin" sind FAKTISCH FALSCH, nicht ' +
+    'nur unpraezise — VERBOTEN. Richtig: "RSI 70 zeigt eine ueberkaufte ' +
+    'kurzfristige Lage; eine Gegenbewegung kann nicht ausgeschlossen ' +
+    'werden."\n' +
     '- BEGRIFFS-INTEGRITAET (kein Sprach-, sondern Faktenproblem — belegter ' +
     'Fund 29.08.2026): HVP (Historical Volatility Percentile, berechnet ' +
     'AUSSCHLIESSLICH aus historischen Schlusskursen, siehe ' +
@@ -2125,7 +2150,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.18.1',
+    VERSION: '2.18.2',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
