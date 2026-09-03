@@ -1,6 +1,40 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.19.7 (03.09.2026) — DRITTE STRATEGIE AUF 9-PUNKTE-SCHEMA
+ *  MIGRIERT: weekly_income (Public-Zweig) von _publicOptionsPrompt() auf
+ *  _publicNinePointPrompt() umgestellt (csp_wheel und atmna bereits
+ *  gehärtet über mehrere Live-Test-Zyklen bis v2.19.6). Besondere
+ *  Relevanz: weekly_income war die Strategie mit der am 01.09. entdeckten
+ *  Model-Boundary/External-Validation-Vertauschung (damals als reine
+ *  Output-Stochastik eingeordnet, kein Prompt-Bug, da der Code zu diesem
+ *  Zeitpunkt wortidentisch mit csp_wheel/atmna/cc war) — mit dem neuen,
+ *  strikter gelabelten 9-Punkte-Schema (Abschnitt 7 "Was UIQ ableiten
+ *  kann" jetzt explizit von Abschnitt 8 "Modell-Grenze" getrennt) ist ein
+ *  Wiederauftreten dieser spezifischen Verwechslung strukturell
+ *  unwahrscheinlicher — im nächsten Live-Test gezielt gegenprüfen.
+ *  marktumfeldFrage bereits sauber (kein "attraktiv"), keine proaktive
+ *  Korrektur nötig.
+ *
+ *  Version: 2.19.6 (03.09.2026) — ZWEITER ATM/NA-LIVE-TEST: ALLE DREI
+ *  v2.19.5-FIXES BESTAETIGT STABIL (kein "gehemmt", kein "verdichtet"/
+ *  "komprimiert", kein Strike-Bezug aus RSI/D200 — erste erfolgreiche
+ *  Regressionspruefung der Meta-Regel-Strategie). EIN neuer Fund: "das
+ *  Modell bevorzugt trotzdem die Kombination aus stabiler Kurslage ... und
+ *  nicht-panischen Volatilitaetsverhaeltnissen" (Abschnitt 2, Strategy
+ *  Fit) — eine Modell-Praeferenz-Aussage AUSSERHALB des bisher bekannten
+ *  Strike-/Aggressivitaets-Kontexts der TRADE-OFF-PRINZIP-Regel (29.08.).
+ *  Bestehender COMPLIANCE_PATTERNS-Scanner-Regex in ko-ai.js war zu eng
+ *  gefasst (verlangte "Modell bevorzugt/favorisiert die/den/eine" +
+ *  spezifisches Adjektiv direkt danach) und liess "Modell bevorzugt
+ *  trotzdem die Kombination aus..." durch (zwei Luecken: "trotzdem"
+ *  zwischen bevorzugt/die, UND "Kombination" statt der vier erwarteten
+ *  Adjektive) — Regex verbreitert auf blosses "Modell (favorisiert|
+ *  bevorzugt)" ohne Objekt-Einschraenkung. TRADE-OFF-PRINZIP-Regel in
+ *  ko-prompts.js um diesen zweiten Beleg erweitert: gilt jetzt explizit
+ *  generisch fuer jede Markt-/Regime-Praeferenzaussage, nicht nur fuer
+ *  Options-Stellschrauben.
+ *
  *  Version: 2.19.5 (03.09.2026) — SYNONYM-UMGEHUNGS-MUSTER erkannt und
  *  gehärtet, nach parallelen Live-Tests von csp_wheel (4. Lauf) und atmna
  *  (1. Lauf, direkt nach Migration in v2.19.4). DREI Funde: (1)
@@ -1062,7 +1096,16 @@ Das bedeutet konkret:
     'ausserhalb von UIQ." Das gilt fuer JEDE Formulierung dieser Art, auch ' +
     'wenn kein exaktes Wort aus der Verbotsliste vorkommt — die Pruefung ' +
     'ist "beschreibt dieser Satz eine Richtung als die bessere?", nicht ' +
-    '"steht hier ein Prozentwert?".\n' +
+    '"steht hier ein Prozentwert?". ZWEITER belegter Fund 03.09.2026, ' +
+    'ATM/NA-Live-Test, AUSSERHALB von Strike/Aggressivitaet (bestaetigt: ' +
+    'die Regel gilt generisch, nicht nur fuer Options-Stellschrauben): ' +
+    '"das Modell bevorzugt trotzdem die Kombination aus stabiler Kurslage ' +
+    '... und nicht-panischen Volatilitaetsverhaeltnissen" (Abschnitt 2, ' +
+    'Strategy Fit) — "Modell bevorzugt"/"Modell favorisiert" ist ' +
+    'AUSNAHMSLOS verboten, unabhaengig vom Objekt danach. STATTDESSEN: ' +
+    '"Die Kombination aus stabiler Kurslage und nicht-panischen ' +
+    'Volatilitaetsverhaeltnissen wird vom Modell als kompatibel mit ' +
+    'Theta-fokussierten Strukturen eingeordnet."\n' +
     '- Oekonomische Tatsachenbehauptungen statt Modellaussage sind verboten, ' +
     'z.B. "wird vom Modell als guenstiges Praemien-Umfeld bewertet" ' +
     '(oekonomisches Urteil als Tatsache) — stattdessen: "die Kombination ' +
@@ -2151,13 +2194,14 @@ Das bedeutet konkret:
         var mode = 'scan';  // s. Kommentar in _publicOptionsPrompt — gilt fuer Public UND EIC
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, erDays: 30 };
         if (!ctx.isEic) {
-          return _publicOptionsPrompt(ctx, {
+          return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für eine wöchentliche Diagonal-Put-Spread-Einkommensstrategie (kurzfristiger Short-Put + langfristige Long-Put-Versicherung).',
             stratName: 'CSP (Weekly)-Setups',
             marktumfeldFrage: 'Ist das aktuelle Umfeld (VIX, Trend) für wöchentliche Einkommensstrategien günstig?',
             focus: STRATEGIES.weekly_income.focus,
-            maxWords: 400,
-            mode: mode
+            maxWords: 450,
+            mode: mode,
+            istOptionsStrategie: true
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -2655,7 +2699,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.19.5',
+    VERSION: '2.19.7',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
