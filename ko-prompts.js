@@ -1,6 +1,34 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.19.1 (03.09.2026) — SECHS FUNDE AUS DEM ERSTEN 9-PUNKTE-
+ *  LIVE-TEST (csp_wheel) GEHÄRTET, externes Reviewer-Feedback: (1) NEUE
+ *  REGEL Grade ≠ Fundamentals (Fund: "B-Einstufung deutet auf stabile
+ *  Fundamentals hin" — Grade ist reiner UIQ-interner Fit-Indikator). (2)
+ *  NEUE REGEL Gate ≠ Performance-Prognose (Fund: gruene Gates wurden zu
+ *  "strukturell ruhiges Szenario fuer Praemien-Einkommen" verdichtet). (3)
+ *  NEUE REGEL Strategy Fit ≠ Strike-Moneyness (Fund: CSP/Wheel-Output
+ *  sprach faelschlich von "ATM-orientierten Theta-Setups" — ATM ist keine
+ *  CSP/Wheel-Eigenschaft, sondern Name einer eigenen Schwester-Strategie).
+ *  (4) KAUSALITAETS-INTEGRITAET um konkretes D200-Beispiel erweitert
+ *  (Fund: "positiver D200-Abstand → Gewinnmitnahmen → erhoehtes Downside-
+ *  Risiko" ohne Stuetzsignal — Regel existierte bereits, wurde live
+ *  verletzt, gleiches Muster wie maximiert/optimiert). (5) Strike-Abstand
+ *  vs. EMA200-Abstand im Trade-off-Abschnitt (6) fuer Options-Strategien
+ *  explizit entwirrt (Fund: "Puffer zur EMA200" statt Strike-Puffer —
+ *  vermutlich durch die eigene csp_wheel-Fokuskriterie ausgeloest, die
+ *  beide Konzepte im selben Satz nennt). (6) EIGENER FEHLER KORRIGIERT:
+ *  der scan-Zweig von _publicNinePointPrompt() (Abschnitt 3, seit v2.19.0)
+ *  verlangte gleichzeitig die Ueberschrift "HÖCHSTE...STRATEGY-FITS" UND
+ *  die Pflichtformulierung "Reihenfolge ohne Wertung" — ein direkter
+ *  Widerspruch, der im ersten Live-Test prompt sichtbar wurde. Aufgeloest
+ *  zugunsten von Reviewer-Option A (Rangfolge existiert tatsaechlich im
+ *  UIQ-Kriterien-Score, daher offen benennen UND attribuieren statt sie
+ *  zu verschleiern) — NUR im scan-Zweig; der holding_review-Zweig (Collar)
+ *  behaelt bewusst "Reihenfolge ohne Wertung", da dort eine implizite
+ *  Priorisierung bestehender Positionen ein anderes regulatorisches
+ *  Risiko waere als eine reine Kriterien-Scan-Rangfolge.
+ *
  *  Version: 2.19.0 (03.09.2026) — 9-PUNKTE-SCHEMA-SPRINT GESTARTET
  *  (externes Reviewer-Feedback, Axel-Entscheidung 02.09.: Scope auf alle
  *  14 Strategien statt nur der 5 Options-Strategien erweitert). Neue
@@ -1061,7 +1089,42 @@ Das bedeutet konkret:
     '("und deshalb passiert dann Y") wird NICHT mitgeliefert, auch wenn sie ' +
     'plausibel klingt. Beispiel korrekt: "RSI 30 weist auf eine kurzfristig ' +
     'schwache Kurslage hin. Eine weitere Kursbewegung unterhalb des Strike ' +
-    'kann daher nicht ausgeschlossen werden."\n' +
+    'kann daher nicht ausgeschlossen werden." Konkretes Beispiel einer ' +
+    'verbotenen Kette (belegter Fund 03.09.2026, CSP/Wheel-Live-Test — ' +
+    'Regel existierte bereits, wurde trotzdem verwendet): "positiver D200-' +
+    'Abstand → laengere Aufwaertsbewegung → Gewinnmitnahmen → erhoehtes ' +
+    'Downside-Risiko" ist VERBOTEN, wenn kein zusaetzliches Signal (z.B. ' +
+    'RSI-Extremwert, Momentum-Ueberdehnung) explizit vorliegt und genannt ' +
+    'wird — ein positiver D200-Abstand allein zeigt nur eine Position ' +
+    'oberhalb der 200-Tage-Linie, keine Aussage ueber eine bevorstehende ' +
+    'Korrektur oder Gewinnmitnahme.\n' +
+    '- BEGRIFFS-INTEGRITAET (Grade ≠ Fundamentals, belegter Fund ' +
+    '03.09.2026, CSP/Wheel-Live-Test: "Die Qualitaetsgrade (B-Einstufung) ' +
+    'deuten auf stabile Fundamentals hin"): Grade A+/A/B/C/D ist ' +
+    'AUSSCHLIESSLICH ein UIQ-interner Kriterien-/Fit-Indikator fuer die ' +
+    'jeweils betrachtete Strategie, KEIN Fundamental-/Qualitaets-/' +
+    'Unternehmensgesundheits-Rating. NIEMALS aus einem Grade auf ' +
+    '"Fundamentals", "Bewertung", "Qualitaet" oder "Unternehmensgesundheit" ' +
+    'schliessen, ausser diese Information ist explizit Bestandteil der ' +
+    'vorliegenden Bewertungskriterien.\n' +
+    '- BEGRIFFS-INTEGRITAET (Gate ≠ Performance-Prognose, belegter Fund ' +
+    '03.09.2026, CSP/Wheel-Live-Test: gruene Strategie-Gates wurden zu ' +
+    '"strukturell ruhiges Szenario fuer Praemien-Einkommen" verdichtet): ' +
+    'ein gruenes Strategie-Gate bedeutet AUSSCHLIESSLICH, dass die ' +
+    'Strategie im aktuellen Modellkontext nicht strukturell ausgeschlossen ' +
+    'wird — NIEMALS, dass eine hohe Gewinnwahrscheinlichkeit oder optimale ' +
+    'Praemienrendite vorliegt. Formulierungen, die aus einer Gate-Farbe ' +
+    'eine Ergebnis-/Renditeerwartung ableiten, sind VERBOTEN.\n' +
+    '- BEGRIFFS-INTEGRITAET (Strategy Fit ≠ Strike-Moneyness, belegter ' +
+    'Fund 03.09.2026, CSP/Wheel-Live-Test: "keine strukturellen Hemmnisse ' +
+    'fuer ATM-orientierte Theta-Setups" — CSP/Wheel ist NICHT die ATM-' +
+    'benannte Strategie, das Modell hat faelschlich eine Moneyness-' +
+    'Praeferenz hineininterpretiert): ein positiver Strategy Fit fuer eine ' +
+    'Optionsstrategie bedeutet NIEMALS eine implizite Praeferenz fuer eine ' +
+    'bestimmte Strike-Moneyness (ATM/ITM/OTM) — UIQ bewertet die Eignung ' +
+    'der Strategie an sich, nicht die konkrete Strike-Wahl. Das Wort "ATM" ' +
+    'nur dann verwenden, wenn es explizit Teil des Strategienamens ist ' +
+    '(z.B. CSP ATM/NA).\n' +
     '- Praemien-Aussagen ohne zusaetzlichen Erkenntniswert (reine ' +
     'Richtungsvermutung wie "kann mit hoeheren Praemien einhergehen") ' +
     'ERSATZLOS WEGLASSEN statt hedgen — stattdessen ausschliesslich: "Die ' +
@@ -1189,7 +1252,13 @@ Das bedeutet konkret:
         + 'NIEMALS als bloße Aufzählung nennen — stattdessen in einen '
         + 'Satzrahmen einbetten, PFLICHT-FORMULIERUNG sinngemäß: "Folgende '
         + 'Titel weisen im betrachteten Snapshot den höchsten Strategy Fit '
-        + 'auf (Reihenfolge ohne Wertung): [Titel 1], [Titel 2], [Titel 3]." '
+        + 'auf (Rangfolge gemäß UIQ-Kriterien-Score, keine Anlageempfehlung): '
+        + '[Titel 1], [Titel 2], [Titel 3]." NIEMALS "Reihenfolge ohne '
+        + 'Wertung" hier verwenden (korrigierter Fund 03.09.2026 — im '
+        + 'Gegensatz zum holding_review-Zweig liegt hier tatsächlich eine '
+        + 'kriterienbasierte Rangfolge vor; sie neutral zu behaupten wäre '
+        + 'weniger transparent, nicht mehr — stattdessen wird die Rangfolge '
+        + 'offen benannt UND ihre Quelle attribuiert).\n'
         + 'Danach in einem kurzen Absatz: Titel, die die Kriterien für ' + o.stratName
         + ' NICHT erfüllen, formuliert als "erfüllt die Kriterien nicht" — '
         + 'NIEMALS als "ist für dich nicht geeignet" und NIEMALS als '
@@ -1219,7 +1288,12 @@ Das bedeutet konkret:
     var abschnitt6, abschnitt8;
     var zielkonfliktKontext = (mode === 'holding_review')
       ? '(z.B. einfacher Protective Put vs. voller Collar, Strike-Nähe)'
-      : (istOptions ? '(z.B. Strike-Nähe, Laufzeit)'
+      : (istOptions ? '(z.B. Strike-Nähe zum aktuellen Kurs, Laufzeit — '
+                    + 'Strike-Abstand ist der Abstand zwischen Strike und '
+                    + 'aktuellem Kurs, NICHT identisch mit einem EMA200-'
+                    + 'Abstand; beide Konzepte niemals vermischen oder als '
+                    + '"Puffer zur EMA200" bezeichnen, auch wenn ein EMA200-'
+                    + 'Bezug in den Bewertungskriterien vorkommt)'
                     : '(z.B. stärkeres Signal vs. höheres Rückschlagrisiko, engere Konsolidierung vs. dünnere Liquidität)');
     abschnitt6 = '6. STRATEGISCHER TRADE-OFF: IMMER beide Seiten eines '
       + 'zentralen Zielkonflikts der genannten Titel gemeinsam neutral '
@@ -2415,7 +2489,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.19.0',
+    VERSION: '2.19.1',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
