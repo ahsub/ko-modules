@@ -1,6 +1,51 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.20.2 (03.09.2026) — TERMINOLOGIEFRAGE AUS v2.20.1 GEKLÄRT:
+ *  Axel legte die Quelle vor (T.R. Lawrence, "Options Trading — How to
+ *  Turn Every Friday Into Payday Using Weekly Options", Kap. 7 "The
+ *  Weekly Cash KaChing Formula"). Mechanik-Abgleich bestätigt: UIQs
+ *  weekly_income implementiert exakt Lawrences Formel (Long-Put-"Insurance"
+ *  ~120 Tage unterhalb Kurs + woechentlicher ATM-Short-Put ~7-8 Tage,
+ *  gerollt — Lawrences eigenes SCHW-Beispiel: Long $70/120T, Short $74
+ *  ATM/7T). WICHTIGER NEBENFUND: das Buch selbst definiert in einem
+ *  spaeteren, separaten Options-Theorie-Kapitel einen formalen "Long Put
+ *  Diagonal Spread" MIT UMGEKEHRTER STRIKE-RICHTUNG (Long-Strike HOCH,
+ *  Short-Strike NIEDRIG, als baerische Strategie) — strukturell das
+ *  Gegenteil der KaChing-Formel (Long-Strike NIEDRIG, Short-Strike ATM/
+ *  HOCH, neutral-bullische Einkommensstrategie). Die bisherige principle-
+ *  Bezeichnung "Diagonal-Put-Spread-Strategie" waere fuer einen options-
+ *  kundigen Leser dieses Buches potenziell irrefuehrend (falsche Strike-
+ *  Richtungserwartung) — deshalb ersetzt durch explizite Quellenangabe
+ *  ("Weekly Cash KaChing-Methode nach T.R. Lawrence") statt des
+ *  zweideutigen Fachbegriffs, mit praeziserer struktureller Beschreibung
+ *  (Strike-Differenz statt "Spread-Breite").
+ *
+ *  Version: 2.20.1 (03.09.2026) — VIER FUNDE AUS DEM ERSTEN WEEKLY_INCOME-
+ *  LIVE-TEST MIT STRATEGIEPRINZIP GEHÄRTET, externes Reviewer-Feedback:
+ *  (1) RSI ~30-40 NIEMALS "neutral" (Fund: "RSI-Werte (31,34,36) ...
+ *  neutrale bis leicht schwache Lagen") — VOR Umsetzung geprüft: keine
+ *  einheitliche RSI-Klassifikation im Aggregator vorhanden (3 verschiedene
+ *  Scoring-Funktionen mit unterschiedlichen Schwellen 25/30/35/45/60/70/
+ *  75) — deshalb BEWUSST KEINE starre 5-Stufen-Matrix uebernommen (Reviewer
+ *  hatte eine vorgeschlagen), sondern nur die sicher belegbare Mindest-
+ *  regel: unter 40 ist "neutral" in KEINER Aggregator-Funktion korrekt.
+ *  (2) Gate-Regel um dritten Fund erweitert: gruene Momentum-/Breakout-/
+ *  Swing-Gates implizieren KEINE Aussage ueber operative Zuverlaessigkeit
+ *  von Rollvorgaengen oder Optionsliquiditaet (Fund: "...signalisieren,
+ *  dass die strukturelle Voraussetzung fuer zuverlaessiges woechentliches
+ *  Rollen ... gegeben ist"). (3) Abschnitt 1: "strukturelle Markt-
+ *  belastungen sind nicht erkennbar" verboten (klingt wie umfassende
+ *  Marktbeurteilung) — STATTDESSEN eng gefasst auf "keine spezifische
+ *  systemische Belastung, die diese Strategie ausschliesst". (4) Abschnitt
+ *  9: "profitiert von [Kennzahl]" verboten (impliziert einen von UIQ
+ *  bewerteten Vorteil) — STATTDESSEN rein deskriptiv "weist die hoechste/
+ *  niedrigste [Kennzahl] auf". OFFENE PRODUKTFRAGE, NICHT umgesetzt
+ *  (Reviewer-Punkt 1, Axel-Entscheidung noch ausstehend): ob "CSP (Weekly)
+ *  ist eine Diagonal-Put-Spread-Strategie" als UIQ-spezifische, vom
+ *  klassischen CSP/Wheel-Verstaendnis abweichende Definition explizit
+ *  gekennzeichnet werden soll — reine Terminologiefrage, kein Prompt-Bug.
+ *
  *  Version: 2.20.0 (03.09.2026) — STATISCHES STRATEGIEPRINZIP + ABSCHNITT-
  *  2-SCHÄRFUNG (Axel-Idee: UIQ als dediziertes Coaching-Tool soll die
  *  Trading-Strategie am Anfang kurz vom Prinzip her erklären UND
@@ -1302,6 +1347,16 @@ Das bedeutet konkret:
     '"ueberkauft", RSI < 30 ist "ueberverkauft" — vor jeder Verwendung den ' +
     'tatsaechlichen Zahlenwert gegen die Richtung pruefen, niemals aus dem ' +
     'Kontext raten (z.B. RSI 77 ist ueberkauft, nicht "Ueberverkauftheitssignal").\n' +
+    '- RSI ~30-40 NIEMALS "neutral" nennen (belegter Fund 03.09.2026, CSP-' +
+    'Weekly-Live-Test: "RSI-Werte (31, 34, 36) zeigen kurzfristig neutrale ' +
+    'bis leicht schwache Lagen" — geprueft gegen alle drei RSI-bezogenen ' +
+    'Scoring-Funktionen im Aggregator: KEINE davon behandelt einen Wert ' +
+    'unter 40 als neutral, unabhaengig von der exakten Schwelle. Hinweis: ' +
+    'es gibt KEINE einzelne offizielle UIQ-RSI-Klassifikationsmatrix mit ' +
+    'festen Grenzwerten — deshalb hier bewusst KEINE starre Matrix, ' +
+    'sondern nur diese Mindestregel). STATTDESSEN woertlich: "RSI-Werte ' +
+    'von [X]-[Y] zeigen kurzfristige Schwaeche, ohne ein extremes ' +
+    'Oversold-Signal unter 30."\n' +
     '- KAUSALITAETS-INTEGRITAET: keine mehrgliedrigen Kausalketten ohne ' +
     'direkten Datenbeleg (z.B. verboten: "komprimierte Praemie → hoehere ' +
     'Wahrscheinlichkeit → zuegige Gewinnmitnahme" oder "RSI 30 → ' +
@@ -1340,7 +1395,18 @@ Das bedeutet konkret:
     'trotz erster Guardrail-Runde erneut aufgetreten — klingt weiterhin zu ' +
     'positiv/absolut) — STATTDESSEN woertlich: "[Strategie] wird vom '  +
     'aktuellen Regime nicht ausgeschlossen." Green Gate = ' +
-    'strategiekompatibel, NICHT automatisch attraktiv oder ueberlegen.\n' +
+    'strategiekompatibel, NICHT automatisch attraktiv oder ueberlegen. ' +
+    'DRITTER belegter Fund 03.09.2026, CSP-Weekly-Live-Test: "die grünen ' +
+    'Gates für Momentum, Breakout und Swing ... signalisieren, dass die ' +
+    'strukturelle Voraussetzung für zuverlässiges wöchentliches Rollen — ' +
+    'nämlich kontinuierliches Kursmomentum und Liquidität — gegeben ist" ' +
+    '— aus einem gruenen Momentum-/Breakout-/Swing-Gate folgt NIEMALS eine ' +
+    'Aussage ueber operative Zuverlaessigkeit von Rollvorgaengen oder ' +
+    'Optionsliquiditaet — UIQ hat keine Optionsketten-/Liquiditaetsdaten. ' +
+    'STATTDESSEN woertlich: "Die aktuelle Marktstruktur ist mit der ' +
+    'Strategie vereinbar; ob die fuer woechentliche Rollvorgaenge ' +
+    'erforderliche Optionsliquiditaet tatsaechlich gegeben ist, muss ' +
+    'anhand der konkreten Optionskette geprueft werden."\n' +
     '- BEGRIFFS-INTEGRITAET (VIX-Niveau ≠ "komprimiert", belegter Fund ' +
     '03.09.2026, CSP/Wheel-Live-Test: "VIX notiert mit 15.42 ... was einem ' +
     'komprimierten Volatilitaetszustand entspricht"): "komprimiert"/' +
@@ -1613,7 +1679,11 @@ Das bedeutet konkret:
       + 'sinnvoll, je Titel EIN kurzer, differenzierender Halbsatz, worin '
       + 'sich sein Profil innerhalb der Bewertungskriterien von den anderen '
       + 'genannten Titeln unterscheidet (rein datenbasiert, keine Wertung, '
-      + 'keine Präferenz). Danach der Pflichthinweis, dass ' + (istOptions
+      + 'keine Präferenz). NIEMALS "profitiert von [Kennzahl]" (belegter '
+      + 'Fund 03.09.2026, CSP-Weekly-Live-Test — impliziert einen Vorteil, '
+      + 'den UIQ nicht bewertet) — STATTDESSEN rein deskriptiv: "[Titel] '
+      + 'weist die höchste/niedrigste [Kennzahl] auf." Danach der '
+      + 'Pflichthinweis, dass ' + (istOptions
           ? 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle Risikoparameter'
           : 'Einstiegszeitpunkt, Positionsgröße und individuelle Risikolage')
       + ' außerhalb von UIQ zu prüfen sind. Keine neue Präferenz, keine '
@@ -1644,7 +1714,12 @@ Das bedeutet konkret:
       + 'Breadth, Distribution Days) neutral zusammen — unabhängig von der '
       + 'betrachteten Strategie. 2-3 Sätze, Modellsignale explizit als '
       + 'Modellsignale kennzeichnen, keine Risikoreduktions-'
-      + 'Tatsachenbehauptung.\n'
+      + 'Tatsachenbehauptung. NIEMALS "strukturelle Marktbelastungen sind '
+      + 'nicht erkennbar" oder ähnlich pauschal (belegter Fund 03.09.2026, '
+      + 'CSP-Weekly-Live-Test — klingt wie eine umfassende Marktbeurteilung) '
+      + '— STATTDESSEN enger: "Das Modell erkennt im aktuellen Regime keine '
+      + 'spezifische systemische Belastung, die diese Strategie '
+      + 'ausschließt."\n'
       + abschnitt2
       + abschnitt3
       + abschnitt4
@@ -2278,7 +2353,7 @@ Das bedeutet konkret:
             maxWords: 500,
             mode: mode,
             istOptionsStrategie: true,
-            principle: 'CSP (Weekly) ist eine Diagonal-Put-Spread-Strategie: eine langfristige Long-Put-Position (~120 Tage) dient als Verlustabsicherung, während wöchentlich kurzfristige Short-Puts (7 Tage, ATM) zur Prämieneinnahme verkauft und gerollt werden. Der maximale Verlust ist durch die Spread-Breite strukturell begrenzt. Die Strategie hängt von verlässlicher wöchentlicher Liquidität (Weekly Options, enge Spreads) ab und ist entsprechend empfindlich gegenüber Liquiditätsverschlechterungen im gewählten Titel.'
+            principle: 'CSP (Weekly) implementiert die "Weekly Cash KaChing"-Methode nach T.R. Lawrence: eine langfristige Put-Position (~120 Tage, Strike unterhalb des aktuellen Kurses) dient als Verlustabsicherung ("Insurance"), während wöchentlich ein kurzfristiger Short-Put nahe am Geld (ATM, ~7-8 Tage) zur Prämieneinnahme verkauft und regelmäßig gerollt wird. Der maximale Verlust ist durch die Differenz der beiden Strikes (abzüglich vereinnahmter Prämie) strukturell begrenzt. Die Strategie hängt von verlässlicher wöchentlicher Liquidität ab und ist entsprechend empfindlich gegenüber Liquiditätsverschlechterungen im gewählten Titel.'
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -2776,7 +2851,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.20.0',
+    VERSION: '2.20.2',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
