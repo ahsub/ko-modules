@@ -1,6 +1,41 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.19.4 (03.09.2026) — ZWEITE STRATEGIE AUF 9-PUNKTE-SCHEMA
+ *  MIGRIERT: atmna (Public-Zweig) von _publicOptionsPrompt() auf
+ *  _publicNinePointPrompt() umgestellt (csp_wheel bereits seit v2.19.0,
+ *  über drei Live-Test-Zyklen gehärtet bis v2.19.3). ATM-Verbot in
+ *  Abschnitt 2 greift fuer atmna korrekt NICHT (an stratName gekoppelt,
+ *  "CSP (ATM/NA)-Setups" enthaelt woertlich "ATM"). PROAKTIVER FUND beim
+ *  Wiring (kein Live-Test noetig, direkt im Code sichtbar): atmnas
+ *  marktumfeldFrage enthielt woertlich "attraktiv" ("Sind ATM-CSPs beim
+ *  aktuellen VIX-Niveau strukturell attraktiv?") — genau das seit 01.09.
+ *  gehaertete Wort, haette das Modell in Abschnitt 2 vermutlich direkt zur
+ *  Wiederholung verleitet. Korrigiert auf "strukturell guenstig"
+ *  (konsistent mit allen anderen 13 Strategien — Stichprobe aller
+ *  marktumfeldFrage-Werte durchgefuehrt, kein weiteres Vorkommen von
+ *  "attraktiv" gefunden).
+ *
+ *  Version: 2.19.3 (03.09.2026) — DRITTER 9-PUNKTE-LIVE-TEST (csp_wheel,
+ *  nach v2.19.2): DREI der fuenf v2.19.2-Fixes bestaetigt wirksam (VIX≠
+ *  komprimiert, IV-Crush-Externalisierung, Abschnitt-9-Differenzierung —
+ *  alle sauber). ZWEI Fixes aus v2.19.1/2 jedoch ERNEUT VERLETZT, wortwoertlich
+ *  in derselben Formulierung wie beim urspruenglichen Fund: "keine
+ *  strukturellen Hemmnisse" UND "ATM-orientierte Theta-Strategien" —
+ *  beide im selben Satz in Abschnitt 2. Gleiches Grundmuster wie
+ *  attraktiv/Praemienerwartung/maximiert: ein Verbot allein in der
+ *  allgemeinen PUBLIC_REGULATORY_GUARDRAIL (weit oben im Prompt) reicht
+ *  nicht, wenn die Verletzung an einer spezifischen Stelle (hier:
+ *  Abschnitt 2) auftritt — deshalb jetzt zusaetzlich direkt in Abschnitt
+ *  2's eigenem Template-Text verankert (Salienz durch Naehe), PLUS zwei
+ *  neue COMPLIANCE_PATTERNS-Scanner-Eintraege in ko-ai.js fuer beide
+ *  Formulierungen (reine Sichtbarkeit, kein Blocking). Zusaetzlich: ein
+ *  ZWEITER Beleg fuer "Kein direkter Strike-Bezug aus Underlying-
+ *  Signalen" — diesmal mit D200 statt RSI ("D200-Abstand ... schnellerer
+ *  Strike-Annaeherung") — bestaetigt, dass die Regel generisch fuer JEDEN
+ *  Underlying-Indikator gilt, nicht nur RSI; entsprechendes zweites
+ *  Beispiel in der Regel ergaenzt.
+ *
  *  Version: 2.19.2 (03.09.2026) — FÜNF FUNDE AUS DEM ZWEITEN 9-PUNKTE-
  *  LIVE-TEST (csp_wheel, nach v2.19.1) GEHÄRTET, externes Reviewer-
  *  Feedback bestätigt 4/5 der v2.19.1-Fixes als wirksam (HVP, Grade,
@@ -1085,7 +1120,13 @@ Das bedeutet konkret:
     'hin und erhoehen damit das Risiko einer weiteren Kursbewegung gegen '  +
     'eine CSP-Position." (2) EXPLIZITER Kenntnis-Vorbehalt — "Ob diese ' +
     'Bewegung fuer einen konkreten Strike relevant ist, kann UIQ ohne ' +
-    'Optionskettendaten nicht beurteilen."\n' +
+    'Optionskettendaten nicht beurteilen." ZWEITER belegter Fund ' +
+    '03.09.2026 (gleicher Fehlertyp, anderer Indikator — bestaetigt: die ' +
+    'Regel gilt fuer JEDEN Underlying-Indikator, nicht nur RSI): "D200-' +
+    'Abstand von +26,2%, was bei einer Korrektur zu schnellerer Strike-' +
+    'Annaeherung fuehren koennte" ist ebenso VERBOTEN — auch D200, ATR, ' +
+    'Trendindikatoren etc. duerfen niemals direkt mit "Strike" verknuepft ' +
+    'werden.\n' +
     '- Ausschlussgruende als "erfuellt die Kriterien der [Strategie] nicht" ' +
     'formulieren (IMMER auf die betrachtete Strategie skalieren, nie auf den ' +
     'Titel insgesamt), NIEMALS als "ist fuer dich nicht geeignet" (UIQ ' +
@@ -1303,7 +1344,16 @@ Das bedeutet konkret:
     } else {
       abschnitt2 = '2. STRATEGY FIT: ' + o.marktumfeldFrage + ' (2-3 Sätze, '
         + 'direkt auf die in Abschnitt 1 genannte Marktlage bezogen, '
-        + 'Modellsignale explizit als Modellsignale kennzeichnen)\n';
+        + 'Modellsignale explizit als Modellsignale kennzeichnen. ZWEIFACH '
+        + 'BELEGTER WIEDERHOLUNGSFUND 03.09.2026 — beide Formulierungen '
+        + 'traten trotz bestehendem Verbot im Guardrail-Text erneut in '
+        + 'GENAU DIESEM Abschnitt auf, deshalb hier zusätzlich direkt '
+        + 'verankert: NIEMALS "keine strukturellen Hemmnisse" — STATTDESSEN '
+        + '"[Strategie] wird vom aktuellen Regime nicht ausgeschlossen". '
+        + 'NIEMALS "ATM-orientiert"/"ATM-Strategien" (außer der '
+        + 'Strategienname enthält wörtlich "ATM") — ' + o.stratName + ' ist '
+        + 'KEINE ATM-benannte Strategie, ein Strategy Fit impliziert keine '
+        + 'Strike-Moneyness-Präferenz.)\n';
       abschnitt3 = '3. Überschrift EXAKT "HÖCHSTE ' + o.stratName.toUpperCase() + ' STRATEGY-FITS" '
         + '(niemals "Kandidaten", "Top-Kandidaten" oder ähnliche Ranking-Wörter '
         + 'in der Überschrift). Welche bis zu 3 Titel weisen die höchste '
@@ -1985,13 +2035,14 @@ Das bedeutet konkret:
         var mode = 'scan';  // s. Kommentar in _publicOptionsPrompt — gilt fuer Public UND EIC
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 21 };
         if (!ctx.isEic) {
-          return _publicOptionsPrompt(ctx, {
+          return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für eine systematische ATM-Cash-Secured-Put-Strategie (Zeitwert-Maximierung, ~30 Tage Laufzeit).',
             stratName: 'CSP (ATM/NA)-Setups',
-            marktumfeldFrage: 'Sind ATM-CSPs beim aktuellen VIX-Niveau strukturell attraktiv?',
+            marktumfeldFrage: 'Ist das aktuelle Volatilitätsniveau (VIX) strukturell günstig für ATM-CSPs?',
             focus: STRATEGIES.atmna.focus,
-            maxWords: 400,
-            mode: mode
+            maxWords: 450,
+            mode: mode,
+            istOptionsStrategie: true
           });
         }
         return '⛔⛔⛔ EIC-MODUS — ABSOLUTES HALLUZINATIONS-VERBOT ⛔⛔⛔\n'
@@ -2557,7 +2608,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.19.2',
+    VERSION: '2.19.4',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
