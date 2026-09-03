@@ -1,6 +1,31 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.19.5 (03.09.2026) — SYNONYM-UMGEHUNGS-MUSTER erkannt und
+ *  gehärtet, nach parallelen Live-Tests von csp_wheel (4. Lauf) und atmna
+ *  (1. Lauf, direkt nach Migration in v2.19.4). DREI Funde: (1)
+ *  "verdichtete Volatilitätsbedingungen" statt "komprimiert" — zweiter
+ *  Beleg zur bestehenden VIX-Regel ergänzt. (2) "wird ... nicht '
+ *  strukturell gehemmt" statt "keine strukturellen Hemmnisse" — Verb '
+ *  statt Nomen, gleiche verbotene Bedeutung. (3) DRITTER Fund fuer D200/'
+ *  RSI→Strike-Annäherung (atmna-Lauf: "D200-Abstand ... bei einer '
+ *  Korrektur zu schnellerer Strike-Annäherung führen kann", fast '
+ *  wortgleich mit dem bereits zweifach belegten CSP/Wheel-Fund) — trotz '
+ *  Guardrail-Regel mit zwei Beispielen erneut aufgetreten, deshalb jetzt '
+ *  zusätzlich direkt in Abschnitt 5's eigenem Template verankert '
+ *  (Proximity-Fix), nicht nur in der allgemeinen Guardrail. NEUE '
+ *  ALLGEMEINE META-REGEL ergänzt: die bereits seit laengerem bestehende '
+ *  abstrakte Klausel ("auch neue, hier nicht genannte Formulierungen mit '
+ *  demselben Sinn sind verboten") wurde nachweislich zweimal am selben '
+ *  Tag durch Synonym-Wahl umgangen — jetzt mit den zwei konkreten '
+ *  Belegfällen und einer expliziten Selbstpruef-Frage verstärkt '
+ *  ("dieselbe Bedeutung mit anderem Wortstamm?"). Scanner-Nachzug in '
+ *  ko-ai.js: drei neue COMPLIANCE_PATTERNS (verdichtet, gehemmt, Strike-'
+ *  Annäherung/-Niveau). ATM/NA-Lauf zusätzlich bestätigt: kein '
+ *  faelschliches "ATM-orientiert"-Verbot ausgeloest (korrekt, da der '
+ *  Strategienname selbst "ATM" enthaelt) — die stratName-Kopplung der '
+ *  Regel funktioniert wie vorgesehen.
+ *
  *  Version: 2.19.4 (03.09.2026) — ZWEITE STRATEGIE AUF 9-PUNKTE-SCHEMA
  *  MIGRIERT: atmna (Public-Zweig) von _publicOptionsPrompt() auf
  *  _publicNinePointPrompt() umgestellt (csp_wheel bereits seit v2.19.0,
@@ -969,7 +994,16 @@ Das bedeutet konkret:
     'kein vollstaendiger Filter. Die Grundregeln (KEINE Handlungsaufforderung, ' +
     'KEINE konkreten Ausfuehrungsparameter, s.u.) gelten unabhaengig davon, ' +
     'ob das exakte Wort hier aufgelistet ist — auch neue, hier nicht ' +
-    'genannte Formulierungen mit demselben Sinn sind verboten.\n' +
+    'genannte Formulierungen mit demselben Sinn sind verboten. KONKRET ' +
+    'BELEGT, dass diese abstrakte Klausel allein nicht zuverlaessig ' +
+    'befolgt wird (03.09.2026, zwei unabhaengige Faelle am selben Tag): ' +
+    '"verdichtete Volatilitaetsbedingungen" statt "komprimiert" (gleiche ' +
+    'verbotene Bedeutung, anderes Wort), und "wird ... nicht strukturell ' +
+    'gehemmt" statt "keine strukturellen Hemmnisse" (gleiche verbotene ' +
+    'Bedeutung, Verb statt Nomen). Vor jeder Formulierung explizit pruefen: ' +
+    '"Habe ich denselben Gedanken wie ein verbotenes Wort/eine verbotene ' +
+    'Phrase nur mit anderen Wortstaemmen/Wortarten ausgedrueckt?" — falls ' +
+    'ja, ebenfalls verboten.\n' +
     '- ZWEI BESONDERS HARTNAECKIGE BEGRIFFE — DIREKTES NIEMALS/STATTDESSEN-PAAR ' +
     '(belegter Wiederholungsfund trotz Wortverbot in der Liste oben, zuletzt ' +
     '01.09.2026 vierfach "Praemienerwartung" und zweifach "attraktiv"/' +
@@ -1212,7 +1246,11 @@ Das bedeutet konkret:
     '"Kompression" ist eine RELATIVE, HISTORISCHE Aussage (reserviert fuer ' +
     'HVP-Vergleiche zur eigenen 252-Tage-Historie) — ein aktueller VIX-' +
     'Absolutwert allein ist NIEMALS "komprimiert", sondern hoechstens ' +
-    '"niedrig" oder "moderat". STATTDESSEN woertlich: "Der VIX liegt mit ' +
+    '"niedrig" oder "moderat". ZWEITER Fund, SYNONYM-UMGEHUNG (belegt ' +
+    '03.09.2026, paralleler CSP/Wheel-Test): "moderaten, verdichteten ' +
+    'Volatilitaetsbedingungen" — "verdichtet" ist bedeutungsgleich mit ' +
+    '"komprimiert" und daher GENAUSO VERBOTEN, obwohl das Wort selbst ' +
+    'nicht explizit genannt war. STATTDESSEN woertlich: "Der VIX liegt mit ' +
     '[Wert] auf einem moderaten/niedrigen Niveau; ein ausgepraegtes ' +
     'systemisches Volatilitaetsregime ist aktuell nicht erkennbar."\n' +
     '- BEGRIFFS-INTEGRITAET (Strategy Fit ≠ Strike-Moneyness, belegter ' +
@@ -1383,7 +1421,16 @@ Das bedeutet konkret:
     var abschnitt5 = '5. GEGENARGUMENTE/RISIKEN: EIN gemeinsamer Absatz, der '
       + 'die wichtigsten Risikofaktoren/Gegenargumente für die in Abschnitt 3 '
       + 'genannten Titel zusammen einordnet (datenbasiert, als Modellsignal '
-      + 'formuliert), NICHT pro Titel separat wiederholt.'
+      + 'formuliert), NICHT pro Titel separat wiederholt. DRITTER BELEGTER '
+      + 'WIEDERHOLUNGSFUND 03.09.2026 — trotz Guardrail-Regel mit zwei '
+      + 'Beispielen (RSI, D200) erneut aufgetreten, deshalb hier zusätzlich '
+      + 'direkt verankert: KEIN Underlying-Indikator (RSI, D200, ATR etc.) '
+      + 'darf mit "Strike" in irgendeiner Form verknüpft werden (z.B. '
+      + '"Strike-Annäherung", "Strike-Niveau") — auch nicht konditional '
+      + '("bei einer Korrektur zu ... führen kann"). Underlying-Risiko und '
+      + 'Strike-Bezug bleiben immer zwei getrennte Sätze, der zweite endet '
+      + 'mit dem Kenntnis-Vorbehalt "kann UIQ ohne Optionskettendaten nicht '
+      + 'beurteilen".'
       + (istOptions
           ? (' Ergänzend, ebenfalls im selben Absatz: Earnings-Termine, IV-'
              + 'Veränderungen (IV-Crush) und Optionsketten-Liquidität als '
@@ -2608,7 +2655,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.19.4',
+    VERSION: '2.19.5',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
