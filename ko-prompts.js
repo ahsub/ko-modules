@@ -1,6 +1,38 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.19.0 (03.09.2026) — 9-PUNKTE-SCHEMA-SPRINT GESTARTET
+ *  (externes Reviewer-Feedback, Axel-Entscheidung 02.09.: Scope auf alle
+ *  14 Strategien statt nur der 5 Options-Strategien erweitert). Neue
+ *  gemeinsame Funktion _publicNinePointPrompt() ersetzt schrittweise
+ *  _publicOptionsPrompt() UND _publicEquityPrompt() (beide bleiben
+ *  vorerst als Fallback fuer noch nicht migrierte Strategien bestehen).
+ *  Zwei zentrale Design-Entscheidungen (Axel, 03.09.2026): (1) EIN
+ *  gemeinsamer Block je Abschnitt (4-8) fuer ALLE genannten Kandidaten
+ *  zusammen (Reviewer-Referenzmodell) — NICHT pro Kandidat wiederholt wie
+ *  im bisherigen a-d-Schema, haelt den Output ueber alle 14 Strategien
+ *  handhabbar in der Laenge. (2) "Geringer Fit"/"Beobachtungsliste"
+ *  (Ausschluss-Kandidaten) als kurzer Absatz am Ende von Abschnitt 3
+ *  integriert, kein eigener 10. Abschnitt — Begruendung: das eigene
+ *  Konsistenz-Versprechen des Sprints ("wie ein konsistentes DSS"), nicht
+ *  9-oder-manchmal-10. Struktur: 1. Markt-/Regime-Kontext (neu, generisch,
+ *  strategieunabhaengig) → 2. Strategy Fit (bisheriges "MARKTUMFELD"/
+ *  o.marktumfeldFrage hierher verschoben — war strategiespezifisch, gehoert
+ *  strukturell zu Strategy Fit, nicht zu Punkt 1) → 3. Kandidaten (inkl.
+ *  Ausschluss-Absatz) → 4. Positive Modellfaktoren → 5. Gegenargumente/
+ *  Risiken → 6. Strategischer Trade-off → 7. Was UIQ ableiten kann (NEU —
+ *  existierte bisher nicht explizit) → 8. Modell-Grenze (bisher "d)") →
+ *  9. Entscheidungsrahmen. Alle bestehenden BEGRIFFS-INTEGRITAET-Regeln
+ *  (HVP, RSI, Andienungswahrscheinlichkeit), das maximiert-/optimiert-
+ *  Beispielpaar und die Ranking-Vermeidungs-Pflichtformulierung
+ *  ("Reihenfolge ohne Wertung") wurden uebernommen bzw. — bei Equity, wo
+ *  sie bisher fehlten — erstmals ergaenzt. istOptionsStrategie-Flag
+ *  steuert die wenigen inhaltlichen Unterschiede (Options-Risikobegriffe
+ *  vs. Markt-/Sektor-/Datenrisiko bei Equity). ERSTER MIGRATIONSTEST:
+ *  csp_wheel (Public-Zweig) auf _publicNinePointPrompt() umgestellt —
+ *  naechster Schritt: Live-Test, dann schrittweise Migration der
+ *  restlichen 13 Strategien.
+ *
  *  Version: 2.18.3 (03.09.2026) — ZWEI FUNDE AUS RE-REVIEW DES CSP-ATM/NA-
  *  LIVE-TESTS VOM 02.09. GEHÄRTET (Priorität 0 + 1 des Zyklus): (1) NEUE
  *  REGEL "KEINE ABGELEITETE ANDIENUNGS-/AUSUEBUNGSWAHRSCHEINLICHKEIT AUS
@@ -1089,6 +1121,189 @@ Das bedeutet konkret:
       + 'Positionsgrößen nennen — nur den Erfüllungsgrad der Kriterien beschreiben.';
   }
 
+  // ── 9-PUNKTE-SCHEMA (03.09.2026, externes Reviewer-Feedback, Axel-
+  // Entscheidung: gemeinsamer Sprint fuer alle 14 Strategien statt nur der
+  // 5 Options-Strategien) ─────────────────────────────────────────────────
+  // Ersetzt schrittweise _publicOptionsPrompt() UND _publicEquityPrompt()
+  // (beide bleiben vorerst als Fallback bestehen, bis alle 14 Strategien
+  // umgezogen sind). EIN gemeinsamer Block je Abschnitt (4-8) fuer ALLE
+  // genannten Kandidaten zusammen (Reviewer-Referenzmodell, Abschnitt 11
+  // seines Feedbacks) — NICHT pro Kandidat wiederholt wie im bisherigen
+  // a-d-Schema. "Geringer Fit"/"Beobachtungsliste" (Ausschluss-Kandidaten)
+  // als kurzer Absatz am Ende von Abschnitt 3 integriert, kein eigener
+  // 10. Abschnitt (Axel-Entscheidung 03.09.2026 — Begruendung: das
+  // Konsistenz-Versprechen des Reviewers, "wie ein konsistentes DSS", nicht
+  // 9-oder-manchmal-10). Alle woertlichen BEGRIFFS-INTEGRITAET-Regeln
+  // (HVP, RSI, Andienungswahrscheinlichkeit) sowie das attraktiv-/
+  // Praemienerwartung-Wortverbot wirken bereits global ueber
+  // PUBLIC_REGULATORY_GUARDRAIL — hier NICHT dupliziert.
+  function _publicNinePointPrompt(ctx, o) {
+    var mode = o.mode || 'scan';
+    var istOptions = !!o.istOptionsStrategie;
+
+    if (mode === 'holding_review') {
+      o.rolle += ' UIQ kennt deine tatsächlichen Positionen nicht — '
+        + 'formuliere durchgehend hypothetisch ("falls du eine Position hältst"), '
+        + 'niemals "deine Position" oder "deine Aktien".';
+    }
+
+    var abschnitt2, abschnitt3;
+    if (mode === 'holding_review') {
+      abschnitt2 = '2. STRATEGY FIT: Ist das aktuelle Regime UND die '
+        + 'Kriterienlage grundsätzlich geeignet, um bestehende Positionen '
+        + 'auf Absicherungsbedarf zu prüfen? (2-3 Sätze, KEINE Aussage über '
+        + 'tatsächlich gehaltene Positionen, rein hypothetisch)\n';
+      abschnitt3 = '3. TITEL MIT MODELLBASIERTEM ABSICHERUNGS-HINWEIS: '
+        + '(niemals "Kandidaten", "Top-Kandidaten", "Ranking" oder ähnliche '
+        + 'Ranking-Wörter in der Überschrift — hier wird keine Kaufgelegenheit '
+        + 'gerankt, sondern ein hypothetischer Absicherungsbedarf geprüft). '
+        + 'Direkt zu Beginn dieses Abschnitts, VOR der Titelliste, folgender '
+        + 'PFLICHT-SATZ wörtlich (Trennung Marktrisiko/Positionsrisiko, '
+        + 'externes Reviewer-Feedback 30.08.2026, staerkster bislang '
+        + 'ungenutzter Satz): "Der Absicherungs-Hinweis stellt keine Aussage '
+        + 'darüber dar, dass eine Position verkauft oder abgesichert werden '
+        + 'sollte. Er beschreibt ausschließlich eine vom Modell erkannte '
+        + 'Konstellation, bei der eine bestehende Position hinsichtlich ihres '
+        + 'individuellen Downside-Risikos überprüft werden kann." Für welche '
+        + 'bis zu 3 Titel aus dem Universum liefern die Modellkriterien einen '
+        + 'Hinweis, eine — falls gehaltene — Position hinsichtlich Absicherung '
+        + 'zu überprüfen? Die Titel NIEMALS als bloße Aufzählung nennen (z.B. '
+        + '"LMT / PH / NUE") — das erzeugt allein durch die Listenform einen '
+        + 'Ranking-Eindruck, auch ohne Ranking-Wörter. Stattdessen in einen '
+        + 'Satzrahmen einbetten, PFLICHT-FORMULIERUNG sinngemäß: "Folgende '
+        + 'Titel erfüllen die definierten Modellkriterien für eine '
+        + 'Absicherungsüberprüfung (Reihenfolge ohne Wertung): [Titel 1], '
+        + '[Titel 2], [Titel 3]." Danach in einem kurzen Absatz: Titel, für '
+        + 'die die Modellkriterien AKTUELL KEINEN Absicherungs-Hinweis '
+        + 'liefern, formuliert als "erfüllt die Kriterien für eine '
+        + 'Absicherungsüberprüfung nicht" — NIEMALS als "ist für dich nicht '
+        + 'geeignet" und NIEMALS als "Ausschluss".\n';
+    } else {
+      abschnitt2 = '2. STRATEGY FIT: ' + o.marktumfeldFrage + ' (2-3 Sätze, '
+        + 'direkt auf die in Abschnitt 1 genannte Marktlage bezogen, '
+        + 'Modellsignale explizit als Modellsignale kennzeichnen)\n';
+      abschnitt3 = '3. Überschrift EXAKT "HÖCHSTE ' + o.stratName.toUpperCase() + ' STRATEGY-FITS" '
+        + '(niemals "Kandidaten", "Top-Kandidaten" oder ähnliche Ranking-Wörter '
+        + 'in der Überschrift). Welche bis zu 3 Titel weisen die höchste '
+        + 'Kriterien-Übereinstimmung mit ' + o.stratName + ' auf? Die Titel '
+        + 'NIEMALS als bloße Aufzählung nennen — stattdessen in einen '
+        + 'Satzrahmen einbetten, PFLICHT-FORMULIERUNG sinngemäß: "Folgende '
+        + 'Titel weisen im betrachteten Snapshot den höchsten Strategy Fit '
+        + 'auf (Reihenfolge ohne Wertung): [Titel 1], [Titel 2], [Titel 3]." '
+        + 'Danach in einem kurzen Absatz: Titel, die die Kriterien für ' + o.stratName
+        + ' NICHT erfüllen, formuliert als "erfüllt die Kriterien nicht" — '
+        + 'NIEMALS als "ist für dich nicht geeignet" und NIEMALS als '
+        + '"Ausschluss".\n';
+    }
+
+    var abschnitt4 = '4. POSITIVE MODELLFAKTOREN: EIN gemeinsamer Absatz, der '
+      + 'die wichtigsten Modellfaktoren nennt, die für die in Abschnitt 3 '
+      + 'genannten Titel sprechen (datenbasiert, aus den Bewertungskriterien), '
+      + 'NICHT pro Titel als separater Unterpunkt wiederholt — Titel dürfen '
+      + 'im Fließtext genannt werden, wo es der Lesbarkeit dient.\n';
+
+    var abschnitt5 = '5. GEGENARGUMENTE/RISIKEN: EIN gemeinsamer Absatz, der '
+      + 'die wichtigsten Risikofaktoren/Gegenargumente für die in Abschnitt 3 '
+      + 'genannten Titel zusammen einordnet (datenbasiert, als Modellsignal '
+      + 'formuliert), NICHT pro Titel separat wiederholt.'
+      + (istOptions
+          ? (' Ergänzend, ebenfalls im selben Absatz: IV-Crush, Earnings-'
+             + 'Überraschung und Liquiditätsrisiko als weitere Downside-'
+             + 'Risikoindikatoren des Modells nennen, formuliert als '
+             + '"erhöht innerhalb des UIQ-Modells die Downside-Risiko-'
+             + 'indikatoren" statt "' + (o.risikoBegriff || 'Andienungs') + 'risiko erhöht".'
+             + (o.risikenText ? ' ' + o.risikenText : ''))
+          : ' Ergänzend: was könnte diese Modellbewertung entwerten (Markt-, Sektor- oder Datenrisiko)?')
+      + '\n';
+
+    var abschnitt6, abschnitt8;
+    var zielkonfliktKontext = (mode === 'holding_review')
+      ? '(z.B. einfacher Protective Put vs. voller Collar, Strike-Nähe)'
+      : (istOptions ? '(z.B. Strike-Nähe, Laufzeit)'
+                    : '(z.B. stärkeres Signal vs. höheres Rückschlagrisiko, engere Konsolidierung vs. dünnere Liquidität)');
+    abschnitt6 = '6. STRATEGISCHER TRADE-OFF: IMMER beide Seiten eines '
+      + 'zentralen Zielkonflikts der genannten Titel gemeinsam neutral '
+      + 'gegenüberstellen ' + zielkonfliktKontext + ' — EIN gemeinsamer '
+      + 'Absatz für alle genannten Titel, NICHT pro Titel wiederholt. '
+      + 'NIEMALS eine Seite als stärker/besser/optimaler darstellen. '
+      + 'Verboten: "maximiert", "optimiert" oder ähnliche Superlative — '
+      + 'stattdessen neutral "ist typischerweise verbunden mit X, während '
+      + 'Y typischerweise Z bedeutet". Konkretes Beispiel (belegter Fund '
+      + '02.09.2026, CSP-ATM/NA-Live-Test — Wortverbot bereits seit 29.08. '
+      + 'vorhanden, trotzdem verwendet): NIEMALS "Ein näherer Strike '
+      + 'maximiert die verfügbare Prämie" — STATTDESSEN "Ein näherer Strike '
+      + 'ist typischerweise mit einer höheren Optionsprämie verbunden, '
+      + 'während ein weiterer Strike-Abstand typischerweise einen größeren '
+      + 'Kurspuffer bedeutet".\n';
+
+    var modellGrenzeZusatz = istOptions
+      ? (' Zusätzlich: keine konkrete Strike-, Delta-, DTE-, Prämien- oder '
+         + 'Verfallsangabe — Optionskette, Liquidität und Earnings-Termine '
+         + 'sind außerhalb von UIQ im Broker zu prüfen.')
+      : ' Zusätzlich: Einstiegszeitpunkt, Positionsgröße und individuelle Risikolage sind außerhalb von UIQ zu prüfen.';
+    abschnitt8 = '8. WAS UIQ NICHT ABLEITEN KANN ("Modell-Grenze"): wenn der '
+      + 'Trade-off aus Abschnitt 6 nicht durch die Modelldaten zugunsten '
+      + 'einer Seite auflösbar ist (Regelfall), PFLICHT-SATZMUSTER wörtlich: '
+      + '"Das Modell liefert hier keinen eindeutigen Hinweis, diesen '
+      + 'Zielkonflikt zugunsten eines aggressiveren oder konservativeren '
+      + 'Ansatzes aufzulösen." NIEMALS "beide Richtungen sind haltbar" oder '
+      + 'ähnliche Formulierungen, die wie eine versteckte Freigabe beider '
+      + 'Optionen klingen könnten.' + modellGrenzeZusatz + ' OHNE jede '
+      + 'Exit-/Stop-/Roll-/Timing-Regel (solche Regeln sind EIC-exklusiv, '
+      + 'Grundgesetz #11, nie Teil dieser Antwort).\n';
+
+    var abschnitt7 = '7. WAS UIQ ABLEITEN KANN: EIN kurzer, präziser Satz, '
+      + 'was sich aus den vorliegenden Modelldaten für die genannten Titel '
+      + 'TATSÄCHLICH ableiten lässt (z.B. "Die genannten Titel weisen '
+      + 'innerhalb des analysierten Universums die höchste Übereinstimmung '
+      + 'mit den definierten ' + o.stratName + '-Kriterien auf."). Strikt '
+      + 'von Abschnitt 8 getrennt halten — Abschnitt 7 sagt, was das Modell '
+      + 'WEISS, Abschnitt 8 sagt, was es NICHT weiß/entscheiden kann. '
+      + 'Niemals vermischen (Kernanliegen des externen Reviewer-Feedbacks '
+      + '02.09.2026).\n';
+
+    var abschnitt9 = '9. ENTSCHEIDUNGSRAHMEN: max. 3 Sätze. Wiederholung der '
+      + 'in Abschnitt 3 genannten Titel als Ausgangspunkt für eine weitere '
+      + 'Prüfung (NIEMALS als Handlungsanweisung), plus dem Pflichthinweis, '
+      + 'dass ' + (istOptions
+          ? 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle Risikoparameter'
+          : 'Einstiegszeitpunkt, Positionsgröße und individuelle Risikolage')
+      + ' außerhalb von UIQ zu prüfen sind. Keine neue Präferenz, keine '
+      + 'Handlungsanweisung.\n';
+
+    return KI_ANTI_HALLUZINATION
+      + PUBLIC_REGULATORY_GUARDRAIL
+      + '⚠️ Diese Analyse ist eine statistische Kontext-Analyse gem. §1 WpHG — '
+      + 'keine Anlageberatung, keine Kauf-/Verkaufsempfehlung. Es werden '
+      + 'ausschließlich vorliegende Messdaten anhand transparenter, unten '
+      + 'genannter Kriterien eingeordnet.\n\n'
+      + o.rolle + '\n\n'
+      + (ctx.marktkontext || '')
+      + '\n\nBEWERTUNGSKRITERIEN ' + o.stratName.toUpperCase() + ':\n'
+      + _publicKriterienBlock(o.focus) + '\n\n'
+      + 'AUFGABE (9-Punkte-Schema, 03.09.2026 — externes Reviewer-Feedback, '
+      + 'gemeinsam für alle 14 UIQ-Strategien):\n'
+      + '1. MARKT-/REGIME-KONTEXT: Fasse das aktuelle Marktregime anhand der '
+      + 'vorliegenden Kontextdaten (Regime-Klassifikation, Volatilität, '
+      + 'Breadth, Distribution Days) neutral zusammen — unabhängig von der '
+      + 'betrachteten Strategie. 2-3 Sätze, Modellsignale explizit als '
+      + 'Modellsignale kennzeichnen, keine Risikoreduktions-'
+      + 'Tatsachenbehauptung.\n'
+      + abschnitt2
+      + abschnitt3
+      + abschnitt4
+      + abschnitt5
+      + abschnitt6
+      + abschnitt7
+      + abschnitt8
+      + abschnitt9
+      + '\nAntworte auf Deutsch, strukturiert 1-9, wortwörtlich nummeriert. '
+      + 'Max. ' + (o.maxWords || 450) + ' Wörter. KEINE konkreten Strikes, '
+      + 'Deltas, DTE-Zahlen, Prämien, Kursziele, Stop-Loss-Werte oder '
+      + 'Positionsgrößen nennen — nur qualitative, gehedgte Parameterbereiche '
+      + 'und Kriterien-Einordnung.';
+  }
+
   function _publicOptionsPrompt(ctx, o) {
     // MODE-ACHSE (30.08.2026, Axel-Entscheidung — Collar-Framing-Frage
     // strukturell anders als Scan-Kandidatensuche): 'scan' (Default) = Kandidat
@@ -1566,13 +1781,14 @@ Das bedeutet konkret:
         var _pt = (rules.profitTaking && rules.profitTaking[0]) ? rules.profitTaking[0].pct : 50;
         var _sl = rules.stopLoss ? rules.stopLoss.pct : -200;
         if (!ctx.isEic) {
-          return _publicOptionsPrompt(ctx, {
+          return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für eine Cash-Secured-Put/Covered-Call-Wheel-Strategie (Theta-Einkommen).',
             stratName: 'CSP/Wheel-Setups',
             marktumfeldFrage: 'Ist das aktuelle Volatilitätsniveau (VIX) strukturell günstig für Prämien-Strategien?',
             focus: STRATEGIES.csp_wheel.focus,
-            maxWords: 400,
-            mode: mode
+            maxWords: 450,
+            mode: mode,
+            istOptionsStrategie: true
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -2199,7 +2415,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.18.3',
+    VERSION: '2.19.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
