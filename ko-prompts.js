@@ -1,6 +1,27 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.18.3 (03.09.2026) — ZWEI FUNDE AUS RE-REVIEW DES CSP-ATM/NA-
+ *  LIVE-TESTS VOM 02.09. GEHÄRTET (Priorität 0 + 1 des Zyklus): (1) NEUE
+ *  REGEL "KEINE ABGELEITETE ANDIENUNGS-/AUSUEBUNGSWAHRSCHEINLICHKEIT AUS
+ *  INDIKATORWERTEN" ergänzt (belegter Fund: "RSI 75 ... deutet eine
+ *  erhoehte Andienungswahrscheinlichkeit an") — ein Indikatorwert
+ *  beschreibt ein Kursrisiko, niemals direkt eine Assignment-
+ *  Wahrscheinlichkeit; Kausal-Konditional-Pflichtformulierung ergänzt,
+ *  direkt neben der bestehenden Ausuebungs-/Andienungsrisiko-Regel. (2)
+ *  KONKRETES BEISPIELPAAR für das bereits seit 29.08. bestehende
+ *  "maximiert"/"optimiert"-Wortverbot in Abschnitt c) "Strategischer
+ *  Zielkonflikt" ergänzt (beide Zweige: holding_review UND scan) —
+ *  belegter Fund 02.09.: das Verbot existierte bereits im Prompt, wurde
+ *  aber trotzdem live verletzt ("Ein näherer ATM-Strike maximiert die
+ *  verfügbare Prämie") — strukturell derselbe "Wortverbot allein reicht
+ *  nicht"-Befund wie attraktiv/Prämienerwartung am 01.09., gleiche
+ *  Gegenmaßnahme (Salienz durch konkretes NIEMALS/STATTDESSEN-Beispiel
+ *  direkt an der Stelle, nicht nur als abstraktes Verbot). Scanner-
+ *  Nachzug in ko-ai.js parallel: COMPLIANCE_PATTERNS um Verbform
+ *  maximiert/optimiert (bisher nur Adjektiv "optimal" erfasst) sowie
+ *  Andienungs-/Ausübungswahrscheinlichkeit ergänzt.
+ *
  *  Version: 2.18.2 (02.09.2026) — RSI-BEGRIFFS-INTEGRITAET (externes
  *  Reviewer-Feedback zum CSP-ATM/NA-Live-Test 02.09.): zweifacher belegter
  *  Fund im selben Output (COP, LPG) — RSI 70/77 (UEBERKAUFT) wurde als
@@ -944,6 +965,22 @@ Das bedeutet konkret:
     'wird durch die im Modell beruecksichtigten Faktoren nicht ' +
     'ausgeschlossen." NIEMALS "Andienung" fuer das Covered-Call-Ereignis ' +
     'verwenden — es ist begrifflich das falsche (entgegengesetzte) Konzept.\n' +
+    '- KEINE ABGELEITETE ANDIENUNGS-/AUSUEBUNGSWAHRSCHEINLICHKEIT AUS ' +
+    'INDIKATORWERTEN (belegter Fund 02.09.2026, CSP-ATM/NA-Live-Test: "RSI ' +
+    '75 ... deutet eine erhoehte Andienungswahrscheinlichkeit an"): ein ' +
+    'RSI-Wert (oder ein anderer technischer Indikator) beschreibt ein ' +
+    'Kurs-/Rueckschlagrisiko, NIEMALS direkt eine Assignment-/Andienungs- ' +
+    'oder Ausuebungswahrscheinlichkeit — die tatsaechliche ITM-/Assignment-' +
+    'Wahrscheinlichkeit einer konkreten Option kann UIQ ohne Optionsketten-' +
+    'daten (Delta, Restlaufzeit) nicht bestimmen. Formulierungen wie "RSI ' +
+    '75 deutet eine erhoehte Andienungswahrscheinlichkeit an" sind ' +
+    'VERBOTEN. Stattdessen woertlich (Kausal-Konditional-Format, keine ' +
+    'direkte Wahrscheinlichkeitsaussage): "RSI 75 signalisiert eine ' +
+    'ausgepraegte kurzfristige Ueberkauftheit und damit ein erhoehtes ' +
+    'Rueckschlagrisiko. Dies kann den Abstand zu einem moeglichen ' +
+    'Andienungsniveau schneller reduzieren; die tatsaechliche Assignment-' +
+    'Wahrscheinlichkeit der konkreten Option kann UIQ ohne ' +
+    'Optionskettendaten nicht bestimmen."\n' +
     '- Ausschlussgruende als "erfuellt die Kriterien der [Strategie] nicht" ' +
     'formulieren (IMMER auf die betrachtete Strategie skalieren, nie auf den ' +
     'Titel insgesamt), NIEMALS als "ist fuer dich nicht geeignet" (UIQ ' +
@@ -1121,7 +1158,13 @@ Das bedeutet konkret:
         + 'staerker/besser/optimaler darstellen. Verboten: "maximiert", '
         + '"optimiert" oder aehnliche Superlative in dieser Gegenueberstellung '
         + '— stattdessen neutral "ist typischerweise verbunden mit X, waehrend '
-        + 'Y typischerweise Z bedeutet".\n'
+        + 'Y typischerweise Z bedeutet". Konkretes Beispiel (belegter Fund '
+        + '02.09.2026, CSP-ATM/NA-Live-Test — Wortverbot bereits seit 29.08. '
+        + 'vorhanden, trotzdem verwendet): NIEMALS "Ein naeherer Strike '
+        + 'maximiert die verfuegbare Praemie" — STATTDESSEN "Ein naeherer '
+        + 'Strike ist typischerweise mit einer hoeheren Optionspraemie '
+        + 'verbunden, waehrend ein weiterer Strike-Abstand typischerweise '
+        + 'einen groesseren Kurspuffer bedeutet".\n'
         + '   d) "Modell-Grenze:" — wenn der Zielkonflikt aus c) nicht durch '
         + 'die Modelldaten zugunsten einer Seite auflösbar ist (Regelfall), '
         + 'PFLICHT-SATZMUSTER wörtlich: "Das Modell liefert hier keinen '
@@ -1170,7 +1213,13 @@ Das bedeutet konkret:
         + 'NIEMALS eine Seite als staerker/besser/optimaler darstellen. '
         + 'Verboten: "maximiert", "optimiert" oder aehnliche Superlative in '
         + 'dieser Gegenueberstellung — stattdessen neutral "ist typischerweise '
-        + 'verbunden mit X, waehrend Y typischerweise Z bedeutet".\n'
+        + 'verbunden mit X, waehrend Y typischerweise Z bedeutet". Konkretes '
+        + 'Beispiel (belegter Fund 02.09.2026, CSP-ATM/NA-Live-Test — '
+        + 'Wortverbot bereits seit 29.08. vorhanden, trotzdem verwendet): '
+        + 'NIEMALS "Ein naeherer Strike maximiert die verfuegbare Praemie" — '
+        + 'STATTDESSEN "Ein naeherer Strike ist typischerweise mit einer '
+        + 'hoeheren Optionspraemie verbunden, waehrend ein weiterer Strike-'
+        + 'Abstand typischerweise einen groesseren Kurspuffer bedeutet".\n'
         + '   d) "Modell-Grenze:" — wenn der Zielkonflikt aus c) nicht durch '
         + 'die Modelldaten zugunsten einer Seite auflösbar ist (Regelfall), '
         + 'PFLICHT-SATZMUSTER wörtlich: "Das Modell liefert hier keinen '
@@ -2150,7 +2199,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.18.2',
+    VERSION: '2.18.3',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
