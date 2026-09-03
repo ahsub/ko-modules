@@ -1,6 +1,71 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.21.2 (03.09.2026) — CC-KRITERIEN DEUTLICH PRÄZISIERT (Axel-
+ *  Vorgabe, detaillierte Praxis-Screening-Beschreibung: "goldene Regel"
+ *  Halteeignung, Blue-Chip-Stabilität, IV/Prämienqualität, Strike-Trade-
+ *  off). ZWEI KOLLISIONEN mit bestehender Architektur gefunden und
+ *  aufgelöst, bevor uebernommen wurde: (1) Marktkapitalisierung (Blue-
+ *  Chip-Kriterium) — KEIN Datenfeld im Aggregator vorhanden (geprüft,
+ *  0 Treffer für marketCap/market_cap/Marktkapitalisierung) — ersetzt
+ *  durch Grade-Einstufung/D200-Position als verfügbare Näherung für
+ *  "etablierter Kursverlauf", echte Marktkap/Spread/Liquidität explizit
+ *  als Broker-Check gekennzeichnet, nicht als UIQ-Kriterium behauptet.
+ *  (2) "IV"/"IV-Perzentil-Rang" als Screening-Kriterium — kollidiert
+ *  direkt mit der bestehenden BEGRIFFS-INTEGRITAET-Regel vom 29.08.2026
+ *  (HVP und IV/IVR/IVP sind zwei verschiedene Größen aus unterschiedlichen
+ *  Datenquellen; UIQ hat keine Live-Optionsketten-IV) — ersetzt durch HVP
+ *  als tatsächlich verfügbaren Proxy, mit explizitem Verweis, dass echte
+ *  IV/IV-Rank im Broker zu prüfen sind. ZUSÄTZLICH: konkrete Delta-Bereiche
+ *  (0,30-0,35 OTM vs. 0,45-0,70 ATM) bewusst NICHT in den Public-Prompt
+ *  übernommen (kollidiert mit der bestehenden Public/EIC-Trennung — Public
+ *  verbietet konkrete Delta-/Strike-Werte) — stattdessen der zugrunde-
+ *  liegende QUALITATIVE Trade-off (näherer Strike = höhere Prämie + höhere
+ *  Ausübungswahrscheinlichkeit, passend zu seitwärts/fallenden Erwartungen;
+ *  weiterer Strike = geringere Prämie + mehr Kursspielraum, passend zu
+ *  moderat steigenden Erwartungen) ins bestehende Strike-Kompromiss-
+ *  Kriterium integriert. focus[] von 4 auf 6 Kriterien erweitert
+ *  (Halteeignung + Dividenden-/Cashflow-Qualität neu vorangestellt),
+ *  principle-Text um die "goldene Regel" und Etabliertheits-Aspekt ergänzt.
+ *
+ *  Version: 2.21.1 (03.09.2026) — CC-FOKUSKRITERIEN UM DIVIDENDEN-/
+ *  CASHFLOW-QUALITAET ERGAENZT (Axel-Vorgabe, Praxis-Auswahlkriterium):
+ *  bisherige 4 focus-Kriterien waren rein technisch (Strike-Kompromiss,
+ *  HVP, Roll-Wahrscheinlichkeit, Cap-Risiko) — Dividendenqualitaet/
+ *  Cashflow-Stabilitaet fehlte komplett, obwohl das laut Axel das
+ *  tatsaechliche Praxis-Auswahlkriterium ist (CC meist auf bereits
+ *  gehaltene oder gezielt zur Wheel-Fortfuehrung erworbene "buy-to-open"-
+ *  Positionen, typischerweise Qualitaetstitel mit stabilem Cashflow und
+ *  Dividende >=3%, nicht primaer reine Momentum-Kandidaten). Datenfelder
+ *  (divYield, payoutRatio) bereits im Aggregator vorhanden — von der
+ *  'dividend'-Strategie genutzt, hier erstmals fuer 'cc' aktiviert. Neues
+ *  Kriterium in STRATEGIES.cc.focus[0] ergaenzt, principle-Text um das
+ *  gehaltene-Position/Wheel-Fortfuehrung/Qualitaetstitel-Profil erweitert.
+ *  WICHTIGE SCOPE-KLARSTELLUNG: diese Aenderung wirkt nur auf der Prompt-/
+ *  Erklaerungsebene (wie die KI bereits ausgewaehlte Kandidaten in
+ *  Abschnitt 4 beschreibt) — sie aendert NICHT die serverseitige
+ *  Scanner-/Grade-Score-Logik in market_aggregator.py, die weiterhin
+ *  bestimmt, WELCHE Titel ueberhaupt als Top-Kandidaten in Abschnitt 3
+ *  auftauchen. Falls Dividendenqualitaet auch das Ranking/die Auswahl
+ *  selbst beeinflussen soll (nicht nur die Beschreibung), waere das ein
+ *  separater Scanner-seitiger Punkt, kein Prompt-Fix.
+ *
+ *  Version: 2.21.0 (03.09.2026) — VIERTE UND FÜNFTE STRATEGIE MIGRIERT:
+ *  cc und collar (Public-Zweig) von _publicOptionsPrompt() auf
+ *  _publicNinePointPrompt() umgestellt. Damit sind ALLE 5 Options-
+ *  Strategien migriert (csp_wheel, atmna, weekly_income, cc, collar) —
+ *  _publicOptionsPrompt() wird von keiner Strategie mehr aufgerufen,
+ *  bleibt aber vorerst im Code (kein Cleanup in diesem Zyklus). BESONDERE
+ *  RELEVANZ collar: einzige Strategie im holding_review-Modus — erster
+ *  Live-Test dieses Zweigs im neuen 9-Punkte-Schema steht noch aus (bisher
+ *  nur der scan-Zweig über die anderen 4 Strategien gehärtet). Beide
+ *  Migrationen inkl. principle-Text (Buy-Write-Mechanik fuer cc; Put-Boden/
+ *  Call-Finanzierung fuer collar, inkl. Klarstellung "keine Aussage ueber
+ *  tatsaechlich gehaltene Position") sowie bestehender risikoBegriff/
+ *  risikenText-Anpassungen (Ausuebung/Assignment statt Andienung, beide
+ *  bereits vor der Migration korrekt) unveraendert uebernommen. maxWords
+ *  cc 450→500, collar 350→400 (Puffer fuer principle-Block).
+ *
  *  Version: 2.20.2 (03.09.2026) — TERMINOLOGIEFRAGE AUS v2.20.1 GEKLÄRT:
  *  Axel legte die Quelle vor (T.R. Lawrence, "Options Trading — How to
  *  Turn Every Friday Into Payday Using Weekly Options", Kap. 7 "The
@@ -2399,8 +2464,11 @@ Das bedeutet konkret:
       hint:  '📝 Covered Call: Call-Writing auf Bestandspositionen · Buy-Write · Prämieneinnahme',
       color: '#f59e0b',
       focus: [
-        "Strike-Kompromiss: aggressiver (mehr Praemie, 5-8% OTM) oder konservativer Strike (mehr Upside, 10-15% OTM) sinnvoller?",
-        "HVP-Praemienqualitaet: rechtfertigt der HVP-Wert einen Covered Call auf diesen Titel?",
+        "Langfristige Halteeignung: das Modell bewertet KEINE Aktienqualitaet — CC ersetzt keine eigene Aktienanalyse. Goldene Regel: nur auf Titel Calls schreiben, die man auch ohne die Optionsstrategie langfristig halten wuerde. UIQ liefert hierzu nur die Bewertungskriterien dieser Strategie, keine fundamentale Investment-Empfehlung.",
+        "Dividenden-/Cashflow-Qualitaet: regelmaessige, stabile Dividende (Richtwert divYield >=3%) und solider Cashflow als Indiz fuer einen Titel, den man auch bei gedeckeltem Upside gerne haelt (typisches CC-Auswahlkriterium: bereits gehaltene oder gezielt fuer Wheel-Fortfuehrung erworbene Qualitaetstitel, nicht primaer reine Kursmomentum-Kandidaten)",
+        "Stabilitaet/Etabliertheit: Grade-Einstufung und D200-Position als Naeherung fuer einen etablierten, vorhersehbaren Kursverlauf (echte Marktkapitalisierung, Spread-Enge und Liquiditaet liegen UIQ nicht vor — Broker-Check).",
+        "Praemienqualitaet (HVP als Proxy fuer implizite Volatilitaet — UIQ hat keine Live-Optionsketten-IV, echte IV/IV-Perzentil-Rang sind im Broker zu pruefen): rechtfertigt der HVP-Wert einen Covered Call auf diesen Titel?",
+        "Strike-Kompromiss (qualitativ, keine konkreten Delta-Werte — Public-Modus): ein naeher am Kurs liegender Strike ist typischerweise mit hoeherer Praemie UND hoeherer Ausuebungswahrscheinlichkeit verbunden (passt eher zu seitwaerts/leicht fallenden Erwartungen), ein weiter entfernter Strike mit geringerer Praemie aber mehr Kursspielraum (passt eher zu moderat steigenden Erwartungen).",
         "Rollstrategie: wie wahrscheinlich ist ein Aufwaerts-Roll noetig, wenn der Kurs sich dem Strike naehert?",
         "Risiko eines gekappten Gewinns bei ueberraschend starkem Kursanstieg"
       ],
@@ -2409,13 +2477,15 @@ Das bedeutet konkret:
         var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 300, minHvp: 30, goodHvp: 45, idealHvp: 60, erDays: 30, dte: 30 };
         var rules = getEffectiveRules('cc', cfg) || { deltaRange: [0.20, 0.30], dteRange: [cfg.dte, 45] };
         if (!ctx.isEic) {
-          return _publicOptionsPrompt(ctx, {
+          return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für Covered-Call-Writing (Call-Verkauf auf bestehende oder neu erworbene Aktienpositionen, Buy-Write).',
             stratName: 'Covered-Call-Setups',
             marktumfeldFrage: 'Ist das aktuelle Umfeld (VIX-Niveau, Trendstärke) für Covered Calls günstig?',
             focus: STRATEGIES.cc.focus,
-            maxWords: 450,
+            maxWords: 500,
             mode: mode,
+            istOptionsStrategie: true,
+            principle: 'Covered Call (Buy-Write) ist eine Prämien-Einkommensstrategie auf bestehende oder neu erworbene Aktienpositionen (100 Aktien pro Kontrakt): auf die gehaltenen Aktien wird ein Call out-of-the-money verkauft und dafür Prämie vereinnahmt. Im Gegenzug wird das weitere Aufwärtspotenzial der Aktie bis zum Strike gedeckelt — steigt der Kurs über den Strike, kann der Call ausgeübt werden und die Aktien werden zum Strike-Preis abgegeben. Goldene Regel: Calls nur auf Titel schreiben, die man auch ohne die Optionsstrategie langfristig halten würde — CC ersetzt keine eigene Aktienanalyse, die Rendite kommt primär von der Aktie selbst. In der Praxis betrifft CC meist bereits gehaltene Positionen oder Positionen, die gezielt zur Fortführung der Wheel-Strategie erworben werden ("buy-to-open") — typischerweise etablierte, liquide Titel mit stabilem Cashflow und einer regelmäßigen, verlässlichen Dividende (Richtwert ≥3%), da der gedeckelte Upside bei solchen Qualitätstiteln weniger ins Gewicht fällt als bei reinen Kursmomentum-Kandidaten.',
             // BEGRIFFS-INTEGRITAET (29.08.2026, Reviewer-Punkt 6): "Andienung"
             // ist CSP-spezifisch (Kursbewegung UNTER den Put-Strike loest sie
             // aus). Bei Covered Call ist das relevante Risiko-Ereignis
@@ -2482,13 +2552,15 @@ Das bedeutet konkret:
       prompt: function(ctx) {
         var mode = 'holding_review';  // gilt fuer Public UND EIC — s. Kommentar in _publicOptionsPrompt
         if (!ctx.isEic) {
-          return _publicOptionsPrompt(ctx, {
+          return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Bestandspositionen auf strukturellen Absicherungsbedarf (Collar/Protective Put) in einem fragilen Bull-Regime. UIQ hat KEINEN Zugriff auf echte Optionsketten oder Bestandspositionen — alle Einordnungen sind ATR/HVP-basierte Näherungen.',
             stratName: 'Collar/Protective-Put-Setups',
             marktumfeldFrage: 'Spricht das aktuelle Regime (BULL_FRAGILE o.ä.) grundsätzlich für Absicherungsüberlegungen?',
             focus: STRATEGIES.collar.focus,
-            maxWords: 350,
+            maxWords: 400,
             mode: mode,
+            istOptionsStrategie: true,
+            principle: 'Collar/Protective Put ist eine Absicherungsstrategie für bestehende Aktienpositionen: durch den Kauf eines Put wird ein Mindestverkaufspreis ("Boden") für die gehaltene Position abgesichert — die einzigen Kosten sind die gezahlte Put-Prämie. Beim vollen Collar wird zusätzlich ein Call verkauft, um die Put-Prämie ganz oder teilweise zu finanzieren; im Gegenzug wird das Aufwärtspotenzial der Position bis zum Call-Strike gedeckelt. UIQ hat keinen Zugriff auf echte Optionsketten oder tatsächliche Bestandspositionen — alle Einordnungen sind ATR-/HVP-basierte Näherungen zur hypothetischen Prüfung, keine Aussage über eine tatsächlich gehaltene Position.',
             // BEGRIFFS-INTEGRITAET (31.08.2026, Prioritaet 3 aus Uebergabe-
             // protokoll 30.08. §8 — analog zum CC-Fund vom 29.08.). Collar
             // nutzte bislang den generischen Fallback "Andienung" — begrifflich
@@ -2851,7 +2923,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.20.2',
+    VERSION: '2.21.2',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
