@@ -1,6 +1,54 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.20.0 (03.09.2026) — STATISCHES STRATEGIEPRINZIP + ABSCHNITT-
+ *  2-SCHÄRFUNG (Axel-Idee: UIQ als dediziertes Coaching-Tool soll die
+ *  Trading-Strategie am Anfang kurz vom Prinzip her erklären UND
+ *  regelbasiert begründen, warum sie im aktuellen Regime mehr/weniger
+ *  sinnvoll ist). Bewusst NICHT als KI-generierter 10. Abschnitt umgesetzt
+ *  (Begründung: unnötige Tokens für etwas strukturell Statisches,
+ *  Halluzinationsrisiko bei jedem Lauf neu, neue Angriffsflaeche fuer
+ *  Compliance-Muster) — stattdessen zweigeteilt: (1) NEUER `principle`-
+ *  Parameter in `_publicNinePointPrompt()`: statischer, von Axel/Claude
+ *  einmal formulierter 2-3-Satz-Text pro Strategie, als PFLICHT-
+ *  EINLEITUNG woertlich (NIEMALS umformulieren) vor Abschnitt 1 platziert,
+ *  Ueberschrift "STRATEGIEPRINZIP". Fuer csp_wheel/atmna/weekly_income
+ *  ergaenzt (die 3 bereits migrierten Strategien); die restlichen 11
+ *  folgen mit ihrer jeweiligen Migration. Hinweis: eine echte, 100%
+ *  driftfreie Loesung waere clientseitige Anzeige in index.html ausserhalb
+ *  des LLM-Aufrufs — hier stattdessen nach dem bereits bewaehrten "PFLICHT-
+ *  SATZMUSTER woertlich"-Muster umgesetzt (wie die Modell-Grenze-Regel),
+ *  das in allen bisherigen Live-Tests zuverlaessig funktioniert hat, aber
+ *  technisch nicht 100% garantiert ist. (2) Abschnitt 2 (Strategy Fit) um
+ *  MECHANIK-BEZUG-Pflicht erweitert: "kompatibel"/"nicht ausgeschlossen" '
+ *  allein reicht nicht mehr — die Antwort muss unter Rueckgriff auf das '
+ *  STRATEGIEPRINZIP explizit benennen, WARUM das Regime die Strategie '
+ *  mehr/weniger begünstigt (z.B. Volatilitaetsniveau → strukturelle '
+ *  Praemienbasis), nicht nur das Gate-Ergebnis wiederholen. maxWords fuer '
+ *  die 3 betroffenen Strategien von 450 auf 500 angehoben (Puffer fuer '
+ *  den zusaetzlichen statischen Block).
+ *
+ *  Version: 2.19.8 (03.09.2026) — ERSTER WEEKLY_INCOME-LIVE-TEST: SEHR
+ *  SAUBERER LAUF, keine neuen Rule-Violations. Wichtigste Bestätigung: die
+ *  am 01.09. gefundene Model-Boundary/External-Validation-Vertauschung
+ *  (damals als Output-Stochastik eingeordnet) tritt im neuen 9-Punkte-
+ *  Schema NICHT wieder auf — Abschnitt 7/8 sauber getrennt, stützt die
+ *  Hypothese aus dem v2.19.7-Changelog, dass die striktere Struktur diese
+ *  Verwechslung strukturell verhindert. EIGENER FEHLER GEFUNDEN UND
+ *  KORRIGIERT: die "Kein direkter Strike-Bezug"-Regel (seit v2.19.3/5)
+ *  verbot "Strike-Niveau"-Erwaehnung bei Underlying-Indikatoren "auch in
+ *  gehedgter/verneinter Form" — widersprach aber dem eigenen STATTDESSEN-
+ *  Beispiel, das genau diese gehedgte Form nutzt ("...kann UIQ ohne
+ *  Optionskettendaten nicht beurteilen"). Der Live-Output nutzte exakt
+ *  dieses korrekte, gehedgte Muster — waere vom alten Scanner-Regex
+ *  faelschlich als Verstoss geloggt worden. Regel klargestellt: verboten
+ *  ist die KAUSALE/ASSERTIVE Verknuepfung (Indikator → Wirkung auf
+ *  Strike), PFLICHT ist der explizite Kenntnis-Vorbehalt (Indikator →
+ *  Risiko, getrennter Satz: "kann UIQ nicht beurteilen"). Scanner-Regex
+ *  in ko-ai.js entsprechend praezisiert (negative Lookahead auf
+ *  "beurteilen" im selben Satz) — gegen alle drei bekannten Faelle
+ *  (2× Verstoss, 1× korrektes Muster) verifiziert.
+ *
  *  Version: 2.19.7 (03.09.2026) — DRITTE STRATEGIE AUF 9-PUNKTE-SCHEMA
  *  MIGRIERT: weekly_income (Public-Zweig) von _publicOptionsPrompt() auf
  *  _publicNinePointPrompt() umgestellt (csp_wheel und atmna bereits
@@ -1188,10 +1236,19 @@ Das bedeutet konkret:
     'kurzfristiges Rueckschlagpotenzial — eine Kursbewegung unterhalb ' +
     'eines gewaehlten Strike-Niveaus kann damit nicht ausgeschlossen ' +
     'werden"): ein RSI-Wert (oder ein anderer technischer Indikator auf ' +
-    'Underlying-Ebene) darf sich NIEMALS direkt auf ein "Strike-Niveau" ' +
-    'beziehen — UIQ kennt keinen konkreten Strike, also kann kein ' +
-    'Underlying-Signal direkt zu einer Aussage ueber "den Strike" fuehren, ' +
-    'auch nicht in verneinter/gehedgter Form. STATTDESSEN zweistufig UND ' +
+    'Underlying-Ebene) darf sich NIEMALS mit einer KAUSALEN/ASSERTIVEN ' +
+    'Formulierung auf "Strike" beziehen (verboten: "kann zu ... Strike-' +
+    'Annaeherung fuehren", "kann Andienung ... nicht ausschliessen" — ' +
+    'jede Formulierung, die eine Wirkung auf den Strike behauptet, auch ' +
+    'gehedgt/verneint). ERLAUBT und AUSDRUECKLICH ERWUENSCHT ist dagegen ' +
+    'der EXPLIZITE KENNTNIS-VORBEHALT, der klarstellt, dass UIQ dies NICHT ' +
+    'beurteilen kann — das ist der Unterschied zwischen einer Kausal-' +
+    'behauptung (verboten) und einem Nichtwissen-Eingestaendnis (Pflicht). ' +
+    'KORREKTES Beispiel, live bestaetigt 03.09.2026, CSP-Weekly-Test: "Der ' +
+    'niedrige RSI-Wert ... koennte ein kurzfristiges Rueckschlagrisiko ' +
+    'signalisieren; ob dies ein bestimmtes Strike-Niveau schneller ' +
+    'erreicht, kann UIQ ohne Optionskettendaten nicht beurteilen." — DAS ' +
+    'ist die Pflichtform, keine Ausnahme. STATTDESSEN zweistufig UND ' +
     'strikt getrennt formulieren: (1) Underlying-Risiko ohne Strike-Bezug ' +
     '— "Die relativ niedrigen RSI-Werte weisen auf kurzfristige Schwaeche ' +
     'hin und erhoehen damit das Risiko einer weiteren Kursbewegung gegen '  +
@@ -1201,7 +1258,8 @@ Das bedeutet konkret:
     '03.09.2026 (gleicher Fehlertyp, anderer Indikator — bestaetigt: die ' +
     'Regel gilt fuer JEDEN Underlying-Indikator, nicht nur RSI): "D200-' +
     'Abstand von +26,2%, was bei einer Korrektur zu schnellerer Strike-' +
-    'Annaeherung fuehren koennte" ist ebenso VERBOTEN — auch D200, ATR, ' +
+    'Annaeherung fuehren koennte" ist ebenso VERBOTEN (Kausalbehauptung) — ' +
+    'auch D200, ATR, ' +
     'Trendindikatoren etc. duerfen niemals direkt mit "Strike" verknuepft ' +
     'werden.\n' +
     '- Ausschlussgruende als "erfuellt die Kriterien der [Strategie] nicht" ' +
@@ -1434,7 +1492,15 @@ Das bedeutet konkret:
         + 'NIEMALS "ATM-orientiert"/"ATM-Strategien" (außer der '
         + 'Strategienname enthält wörtlich "ATM") — ' + o.stratName + ' ist '
         + 'KEINE ATM-benannte Strategie, ein Strategy Fit impliziert keine '
-        + 'Strike-Moneyness-Präferenz.)\n';
+        + 'Strike-Moneyness-Präferenz. MECHANIK-BEZUG PFLICHT (03.09.2026, '
+        + 'Axel-Vorgabe): "kompatibel"/"nicht ausgeschlossen" allein reicht '
+        + 'NICHT — die Antwort muss explizit benennen, WARUM das aktuelle '
+        + 'Regime die Strategie mehr/weniger begünstigt, mit Rückgriff auf '
+        + 'das oben genannte STRATEGIEPRINZIP (z.B. bei einer prämien-'
+        + 'basierten Strategie: wie wirkt sich das aktuelle Volatilitäts-'
+        + 'niveau auf die strukturelle Prämienbasis aus — unabhängig vom '
+        + 'reinen Gate-Status). Datenbasiert, als Modellsignal formuliert, '
+        + 'nicht als Tatsachenbehauptung.)\n';
       abschnitt3 = '3. Überschrift EXAKT "HÖCHSTE ' + o.stratName.toUpperCase() + ' STRATEGY-FITS" '
         + '(niemals "Kandidaten", "Top-Kandidaten" oder ähnliche Ranking-Wörter '
         + 'in der Überschrift). Welche bis zu 3 Titel weisen die höchste '
@@ -1563,6 +1629,14 @@ Das bedeutet konkret:
       + (ctx.marktkontext || '')
       + '\n\nBEWERTUNGSKRITERIEN ' + o.stratName.toUpperCase() + ':\n'
       + _publicKriterienBlock(o.focus) + '\n\n'
+      + (o.principle
+          ? ('PFLICHT-EINLEITUNG (03.09.2026, Axel-Entscheidung — statisches '
+             + 'Strategieprinzip, NIEMALS umformulieren/paraphrasieren/'
+             + 'kuerzen/ergaenzen, WOERTLICH wie folgt an den Anfang der '
+             + 'Antwort setzen, VOR Abschnitt 1, als eigener Absatz ohne '
+             + 'Nummerierung, Ueberschrift EXAKT "STRATEGIEPRINZIP"):\n'
+             + '"' + o.principle + '"\n\n')
+          : '')
       + 'AUFGABE (9-Punkte-Schema, 03.09.2026 — externes Reviewer-Feedback, '
       + 'gemeinsam für alle 14 UIQ-Strategien):\n'
       + '1. MARKT-/REGIME-KONTEXT: Fasse das aktuelle Marktregime anhand der '
@@ -2068,9 +2142,10 @@ Das bedeutet konkret:
             stratName: 'CSP/Wheel-Setups',
             marktumfeldFrage: 'Ist das aktuelle Volatilitätsniveau (VIX) strukturell günstig für Prämien-Strategien?',
             focus: STRATEGIES.csp_wheel.focus,
-            maxWords: 450,
+            maxWords: 500,
             mode: mode,
-            istOptionsStrategie: true
+            istOptionsStrategie: true,
+            principle: 'CSP/Wheel ist eine Theta-Einkommensstrategie: durch den Verkauf abgesicherter Puts (Cash-Secured Puts) wird Optionsprämie vereinnahmt; bei Andienung geht die Position in Aktien über, auf die anschließend Covered Calls verkauft werden können. Die Strategie lebt strukturell von der vereinnahmten Prämie, die maßgeblich von der impliziten/realisierten Volatilität abhängt — bei niedriger Volatilität ist die Prämienbasis strukturell kleiner, unabhängig vom übrigen Marktregime.'
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -2130,9 +2205,10 @@ Das bedeutet konkret:
             stratName: 'CSP (ATM/NA)-Setups',
             marktumfeldFrage: 'Ist das aktuelle Volatilitätsniveau (VIX) strukturell günstig für ATM-CSPs?',
             focus: STRATEGIES.atmna.focus,
-            maxWords: 450,
+            maxWords: 500,
             mode: mode,
-            istOptionsStrategie: true
+            istOptionsStrategie: true,
+            principle: 'CSP (ATM/NA) ist eine systematische Variante der Cash-Secured-Put-Strategie: der Put wird bewusst nahe am Geld (At-The-Money) verkauft, um den Zeitwert zu maximieren, mit definierten Gewinnmitnahme-Schwellen (50/60/70%) und einer mehrstufigen Rolllogik zur Andienungsvermeidung. Die Strategie ist auf regelmäßige Wiederholung (~30-Tage-Zyklen) ausgelegt und reagiert empfindlicher auf Volatilitätsschwankungen als klassisches CSP/Wheel, da die ATM-Positionierung strukturell näher am Andienungsrisiko liegt.'
           });
         }
         return '⛔⛔⛔ EIC-MODUS — ABSOLUTES HALLUZINATIONS-VERBOT ⛔⛔⛔\n'
@@ -2199,9 +2275,10 @@ Das bedeutet konkret:
             stratName: 'CSP (Weekly)-Setups',
             marktumfeldFrage: 'Ist das aktuelle Umfeld (VIX, Trend) für wöchentliche Einkommensstrategien günstig?',
             focus: STRATEGIES.weekly_income.focus,
-            maxWords: 450,
+            maxWords: 500,
             mode: mode,
-            istOptionsStrategie: true
+            istOptionsStrategie: true,
+            principle: 'CSP (Weekly) ist eine Diagonal-Put-Spread-Strategie: eine langfristige Long-Put-Position (~120 Tage) dient als Verlustabsicherung, während wöchentlich kurzfristige Short-Puts (7 Tage, ATM) zur Prämieneinnahme verkauft und gerollt werden. Der maximale Verlust ist durch die Spread-Breite strukturell begrenzt. Die Strategie hängt von verlässlicher wöchentlicher Liquidität (Weekly Options, enge Spreads) ab und ist entsprechend empfindlich gegenüber Liquiditätsverschlechterungen im gewählten Titel.'
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -2699,7 +2776,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.19.7',
+    VERSION: '2.20.0',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
