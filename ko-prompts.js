@@ -1,6 +1,36 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.19.2 (03.09.2026) — FÜNF FUNDE AUS DEM ZWEITEN 9-PUNKTE-
+ *  LIVE-TEST (csp_wheel, nach v2.19.1) GEHÄRTET, externes Reviewer-
+ *  Feedback bestätigt 4/5 der v2.19.1-Fixes als wirksam (HVP, Grade,
+ *  Ranking-Attribution, D200 — alle sauber). Fünf neue, kleinere Funde:
+ *  (1) Gate-Regel erweitert um "keine strukturellen Hemmnisse" (zweiter
+ *  belegter Fund trotz erster Guardrail-Runde — klingt weiterhin zu
+ *  positiv/absolut), Pflichtformulierung "wird vom aktuellen Regime nicht
+ *  ausgeschlossen" ergänzt. (2) NEUE REGEL VIX-Niveau ≠ "komprimiert" (Fund:
+ *  "VIX 15.42 ... komprimierter Volatilitätszustand" — "komprimiert" ist
+ *  reserviert für HVP-relative Aussagen, nicht für einen VIX-Absolutwert).
+ *  (3) NEUE REGEL "Kein direkter Strike-Bezug aus reinen Underlying-
+ *  Signalen" (Fund: "RSI ... eine Kursbewegung unterhalb eines gewählten
+ *  Strike-Niveaus kann damit nicht ausgeschlossen werden" — RSI beschreibt
+ *  Underlying-Risiko, UIQ kennt keinen konkreten Strike; zweistufige
+ *  Pflichtformulierung mit explizitem Kenntnis-Vorbehalt ergänzt). (4)
+ *  Abschnitt 5 (Gegenargumente/Risiken) für Options-Strategien umformuliert:
+ *  IV-Crush/Earnings/Liquidität jetzt als EXTERNE, von UIQ nicht bewertete
+ *  Risikofaktoren gekennzeichnet statt als "Downside-Risiko-Indikatoren des
+ *  Modells, die sich erhöhen, wenn X auftritt" (UIQ hat keine Live-IV-/
+ *  Optionskettendaten und kann einen künftigen IV-Crush nicht erkennen —
+ *  die alte Formulierung implizierte das Gegenteil). (5) Abschnitt 9
+ *  (Entscheidungsrahmen) um einen leichten Hinweis auf differenzierende
+ *  Kurzsynthese je Titel ergänzt (weiche Qualitätsverbesserung, kein
+ *  Regelverstoß — Reviewer empfand den bisherigen Text als "noch zu
+ *  generisch"). BEWUSST NICHT ANGEFASST: die vom Reviewer beschriebene
+ *  "hohe HVP → attraktive Prämien → hoher CSP-Fit"-Kausalitätsfrage — auf
+ *  seinen eigenen ausdrücklichen Rat zurückgestellt, bis alle 14 Strategien
+ *  im 9-Punkte-Schema laufen und sich zeigt, ob es ein systemisches
+ *  Aggregator- oder ein rein sprachliches Interpretationsproblem ist.
+ *
  *  Version: 2.19.1 (03.09.2026) — SECHS FUNDE AUS DEM ERSTEN 9-PUNKTE-
  *  LIVE-TEST (csp_wheel) GEHÄRTET, externes Reviewer-Feedback: (1) NEUE
  *  REGEL Grade ≠ Fundamentals (Fund: "B-Einstufung deutet auf stabile
@@ -1041,6 +1071,21 @@ Das bedeutet konkret:
     'Andienungsniveau schneller reduzieren; die tatsaechliche Assignment-' +
     'Wahrscheinlichkeit der konkreten Option kann UIQ ohne ' +
     'Optionskettendaten nicht bestimmen."\n' +
+    '- KEIN DIREKTER STRIKE-BEZUG AUS REINEN UNDERLYING-SIGNALEN (belegter ' +
+    'Fund 03.09.2026, CSP/Wheel-Live-Test: "RSI-Werte ... signalisieren ein ' +
+    'kurzfristiges Rueckschlagpotenzial — eine Kursbewegung unterhalb ' +
+    'eines gewaehlten Strike-Niveaus kann damit nicht ausgeschlossen ' +
+    'werden"): ein RSI-Wert (oder ein anderer technischer Indikator auf ' +
+    'Underlying-Ebene) darf sich NIEMALS direkt auf ein "Strike-Niveau" ' +
+    'beziehen — UIQ kennt keinen konkreten Strike, also kann kein ' +
+    'Underlying-Signal direkt zu einer Aussage ueber "den Strike" fuehren, ' +
+    'auch nicht in verneinter/gehedgter Form. STATTDESSEN zweistufig UND ' +
+    'strikt getrennt formulieren: (1) Underlying-Risiko ohne Strike-Bezug ' +
+    '— "Die relativ niedrigen RSI-Werte weisen auf kurzfristige Schwaeche ' +
+    'hin und erhoehen damit das Risiko einer weiteren Kursbewegung gegen '  +
+    'eine CSP-Position." (2) EXPLIZITER Kenntnis-Vorbehalt — "Ob diese ' +
+    'Bewegung fuer einen konkreten Strike relevant ist, kann UIQ ohne ' +
+    'Optionskettendaten nicht beurteilen."\n' +
     '- Ausschlussgruende als "erfuellt die Kriterien der [Strategie] nicht" ' +
     'formulieren (IMMER auf die betrachtete Strategie skalieren, nie auf den ' +
     'Titel insgesamt), NIEMALS als "ist fuer dich nicht geeignet" (UIQ ' +
@@ -1114,7 +1159,21 @@ Das bedeutet konkret:
     'Strategie im aktuellen Modellkontext nicht strukturell ausgeschlossen ' +
     'wird — NIEMALS, dass eine hohe Gewinnwahrscheinlichkeit oder optimale ' +
     'Praemienrendite vorliegt. Formulierungen, die aus einer Gate-Farbe ' +
-    'eine Ergebnis-/Renditeerwartung ableiten, sind VERBOTEN.\n' +
+    'eine Ergebnis-/Renditeerwartung ableiten, sind VERBOTEN. Auch NIEMALS ' +
+    '"keine strukturellen Hemmnisse" (zweiter belegter Fund 03.09.2026, ' +
+    'trotz erster Guardrail-Runde erneut aufgetreten — klingt weiterhin zu ' +
+    'positiv/absolut) — STATTDESSEN woertlich: "[Strategie] wird vom '  +
+    'aktuellen Regime nicht ausgeschlossen." Green Gate = ' +
+    'strategiekompatibel, NICHT automatisch attraktiv oder ueberlegen.\n' +
+    '- BEGRIFFS-INTEGRITAET (VIX-Niveau ≠ "komprimiert", belegter Fund ' +
+    '03.09.2026, CSP/Wheel-Live-Test: "VIX notiert mit 15.42 ... was einem ' +
+    'komprimierten Volatilitaetszustand entspricht"): "komprimiert"/' +
+    '"Kompression" ist eine RELATIVE, HISTORISCHE Aussage (reserviert fuer ' +
+    'HVP-Vergleiche zur eigenen 252-Tage-Historie) — ein aktueller VIX-' +
+    'Absolutwert allein ist NIEMALS "komprimiert", sondern hoechstens ' +
+    '"niedrig" oder "moderat". STATTDESSEN woertlich: "Der VIX liegt mit ' +
+    '[Wert] auf einem moderaten/niedrigen Niveau; ein ausgepraegtes ' +
+    'systemisches Volatilitaetsregime ist aktuell nicht erkennbar."\n' +
     '- BEGRIFFS-INTEGRITAET (Strategy Fit ≠ Strike-Moneyness, belegter ' +
     'Fund 03.09.2026, CSP/Wheel-Live-Test: "keine strukturellen Hemmnisse ' +
     'fuer ATM-orientierte Theta-Setups" — CSP/Wheel ist NICHT die ATM-' +
@@ -1276,11 +1335,18 @@ Das bedeutet konkret:
       + 'genannten Titel zusammen einordnet (datenbasiert, als Modellsignal '
       + 'formuliert), NICHT pro Titel separat wiederholt.'
       + (istOptions
-          ? (' Ergänzend, ebenfalls im selben Absatz: IV-Crush, Earnings-'
-             + 'Überraschung und Liquiditätsrisiko als weitere Downside-'
-             + 'Risikoindikatoren des Modells nennen, formuliert als '
-             + '"erhöht innerhalb des UIQ-Modells die Downside-Risiko-'
-             + 'indikatoren" statt "' + (o.risikoBegriff || 'Andienungs') + 'risiko erhöht".'
+          ? (' Ergänzend, ebenfalls im selben Absatz: Earnings-Termine, IV-'
+             + 'Veränderungen (IV-Crush) und Optionsketten-Liquidität als '
+             + 'EXTERNE Risikofaktoren kennzeichnen, die UIQ in diesem Setup '
+             + 'NICHT direkt bewertet (belegte Korrektur 03.09.2026 — UIQ '
+             + 'hat keine Live-Optionskette/IV-Daten und kann einen '
+             + 'zukünftigen IV-Crush nicht erkennen; NIEMALS so formulieren, '
+             + 'als würde das Modell diese Faktoren aktiv einpreisen oder '
+             + 'einen "Downside-Risiko-Indikator erhöhen, wenn X auftritt"). '
+             + 'Pflichtformulierung sinngemäß: "Earnings-Termine, IV-'
+             + 'Veränderungen und Optionsketten-Liquidität sind externe '
+             + 'Risikofaktoren und werden von UIQ in diesem Setup nicht '
+             + 'direkt bewertet."'
              + (o.risikenText ? ' ' + o.risikenText : ''))
           : ' Ergänzend: was könnte diese Modellbewertung entwerten (Markt-, Sektor- oder Datenrisiko)?')
       + '\n';
@@ -1336,10 +1402,12 @@ Das bedeutet konkret:
       + 'Niemals vermischen (Kernanliegen des externen Reviewer-Feedbacks '
       + '02.09.2026).\n';
 
-    var abschnitt9 = '9. ENTSCHEIDUNGSRAHMEN: max. 3 Sätze. Wiederholung der '
-      + 'in Abschnitt 3 genannten Titel als Ausgangspunkt für eine weitere '
-      + 'Prüfung (NIEMALS als Handlungsanweisung), plus dem Pflichthinweis, '
-      + 'dass ' + (istOptions
+    var abschnitt9 = '9. ENTSCHEIDUNGSRAHMEN: max. 4 Sätze. Statt die in '
+      + 'Abschnitt 3 genannten Titel nur als reine Liste zu wiederholen: wo '
+      + 'sinnvoll, je Titel EIN kurzer, differenzierender Halbsatz, worin '
+      + 'sich sein Profil innerhalb der Bewertungskriterien von den anderen '
+      + 'genannten Titeln unterscheidet (rein datenbasiert, keine Wertung, '
+      + 'keine Präferenz). Danach der Pflichthinweis, dass ' + (istOptions
           ? 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle Risikoparameter'
           : 'Einstiegszeitpunkt, Positionsgröße und individuelle Risikolage')
       + ' außerhalb von UIQ zu prüfen sind. Keine neue Präferenz, keine '
@@ -2489,7 +2557,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.19.1',
+    VERSION: '2.19.2',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
