@@ -1,6 +1,71 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.22.1 (03.09.2026) — SICHERHEITSHINWEIS + STOP-LOSS-EMPFEHLUNG
+ *  FÜR ko (Axel-Vorgabe, "verantwortungsvoller Coach"): (1) ARCHITEKTUR-
+ *  LÜCKE BEHOBEN: o.risikenText war in _publicNinePointPrompt() bislang
+ *  NUR im istOptions-Zweig von Abschnitt 5 verdrahtet — Equity-/
+ *  Zertifikate-Strategien (istOptionsStrategie:false) hatten keinen Hook
+ *  für strategiespezifische Risikohinweise. Jetzt fuer beide Zweige
+ *  verfuegbar. (2) ko nutzt den neuen Hook: Totalverlust-Charakteristik
+ *  von KO-Ereignissen (sofortiger, vollstaendiger Kapitalverlust in der
+ *  Position — anderes Risikoprofil als Aktienbesitz) jetzt explizit in
+ *  principle, focus[]-Hauptrisiko-Kriterium UND risikenText verankert
+ *  (dreifache Platzierung fuer Salienz, analog zum bewaehrten Proximity-
+ *  Muster). (3) SAUBERE ABGRENZUNG zum bestehenden Verbot: die generelle
+ *  Empfehlung, vor Positionseroeffnung eine EIGENE Risikobegrenzung
+ *  festzulegen, ist KEINE konkrete Exit-/Stop-Regel (die bleibt laut
+ *  Grundgesetz #11 EIC-exklusiv verboten) — beide risikenText-Instanzen
+ *  formulieren das explizit so ("OHNE einen konkreten Stop-Loss-Wert oder
+ *  eine konkrete Regel zu nennen"), um eine Kollision mit dem bestehenden
+ *  Verbot zu vermeiden.
+ *
+ *  Version: 2.22.0 (03.09.2026) — ERSTE EQUITY-STRATEGIE MIGRIERT: ko
+ *  (KO-Zertifikate, Public-Zweig) von _publicEquityPrompt() auf
+ *  _publicNinePointPrompt() umgestellt — Meilenstein: erster Equity-
+ *  Migrationstest nach 5/5 abgeschlossenen Options-Strategien. Axel-Input
+ *  zu Marktzugangs-Charakteristik eingearbeitet: (1) US-Emissions-
+ *  beschraenkung seit 2017 (US-Steuerregeln) macht DE/EU-Markt strukturell
+ *  breiter/liquider fuer diese Produktklasse — als neues focus[]-Kriterium
+ *  UND im principle-Text. (2) Open-End-Praeferenz (unbegrenzte Laufzeit)
+ *  als Produktwahl-Hinweis ergaenzt. (3) Trend-vs-Seitwaerts-Regime-
+ *  Eignung geschaerft — marktumfeldFrage jetzt explizit auf "klarer
+ *  Trendimpuls vs. Seitwaertsumfeld" fokussiert statt allgemein
+ *  "strukturell geeignet". BEWUSST NICHT UEBERNOMMEN: die von Axel
+ *  genannten konkreten "idealen" Einzeltitel/Sektoren (SAP/ASML/Infineon,
+ *  Rheinmetall/Renk/Siemens Energy, Nvidia/Tesla/Alphabet) — Begruendung:
+ *  (a) zeitlich instabil ("Ruestung als Dauerbrenner" ist eine 2025/26-
+ *  Momentaufnahme, keine strukturelle Wahrheit, wuerde im Prompt veralten),
+ *  (b) regulatorisch naeher an einer Empfehlung konkreter Wertpapiere als
+ *  eine Sektor-/Volatilitaets-Charakteristik — widerspraeche der gesamten
+ *  bisherigen Public-Mode-Philosophie (kein Named-Securities-Bias). Die
+ *  strukturellen, zeitlosen Fakten (Marktzugang, Open-End, Regime-Fit)
+ *  wurden uebernommen, die vergaenglichen Sektor-Hypes nicht. Bestaetigt:
+ *  lbKey 'ko_long' zeigt, es gibt aktuell nur die Long-Variante — von Axel
+ *  explizit erwaehnt, keine ko_short-Strategie im Scope dieser Aenderung.
+ *
+ *  Version: 2.21.3 (03.09.2026) — VIER FUNDE AUS DEM ERSTEN CC-LIVE-TEST
+ *  MIT ERWEITERTEN KRITERIEN GEHÄRTET, externes Reviewer-Feedback (relativ
+ *  wohlwollend, 9-Punkte-Schema als stabil bestätigt — "Prompt-Freeze für
+ *  die Struktur" empfohlen, nur noch Fehler/Guardrails korrigieren): (1)
+ *  Dividenden-Kriterium entschärft — war faelschlich als Voraussetzung
+ *  formuliert ("Richtwert divYield >=3%" klang zwingend), macht aus CC
+ *  ungewollt eine Income-/Dividend-Strategie; jetzt "KANN relevant sein,
+ *  ist KEINE zwingende Voraussetzung" in focus[] UND principle. (2)
+ *  WICHTIGSTER FUND: expliziter Klarstellungssatz ergänzt — "Der CC-
+ *  Strategy-Fit bewertet ausschließlich die Eignung einer Aktie zum
+ *  Ueberschreiben ... keine Empfehlung zum erstmaligen Erwerb". Bewusst
+ *  NICHT durch Umstellung auf mode:'holding_review' geloest (wuerde die
+ *  30.08.2026-Entscheidung revidieren, CC nicht in den Collar-Absicherungs-
+ *  Modus zu verschieben) — stattdessen als Klarstellung im principle-Text,
+ *  konsistent mit der bestehenden Architektur. (3) HVP-Kriterium
+ *  praezisiert: "Kontextsignal, kein Praemienmass" (Reviewer-Wortlaut
+ *  uebernommen). (4) CC-spezifische D200-Logik verstaerkt: hoher D200-
+ *  Abstand ist bei CC NICHT automatisch positiv wie bei CSP (Opportunitaets-
+ *  verlust durch gedeckelten Call bei starkem Aufwaertstrend) — als neues
+ *  focus[]-Kriterium UND zusaetzlich in risikenText verankert (doppelte
+ *  Platzierung fuer Salienz, analog zum bewaehrten Proximity-Muster).
+ *
  *  Version: 2.21.2 (03.09.2026) — CC-KRITERIEN DEUTLICH PRÄZISIERT (Axel-
  *  Vorgabe, detaillierte Praxis-Screening-Beschreibung: "goldene Regel"
  *  Halteeignung, Blue-Chip-Stabilität, IV/Prämienqualität, Strike-Trade-
@@ -1685,7 +1750,9 @@ Das bedeutet konkret:
              + 'Risikofaktoren und werden von UIQ in diesem Setup nicht '
              + 'direkt bewertet."'
              + (o.risikenText ? ' ' + o.risikenText : ''))
-          : ' Ergänzend: was könnte diese Modellbewertung entwerten (Markt-, Sektor- oder Datenrisiko)?')
+          : (' Ergänzend: was könnte diese Modellbewertung entwerten (Markt-, '
+             + 'Sektor- oder Datenrisiko)?'
+             + (o.risikenText ? ' ' + o.risikenText : '')))
       + '\n';
 
     var abschnitt6, abschnitt8;
@@ -1995,17 +2062,28 @@ Das bedeutet konkret:
       focus: [
         "Hebel-Eignung: Passt die Volatilitaet (ATR) des Titels zu einem 3-8x-Hebel, ohne durch normales Kursrauschen ausgeknockt zu werden?",
         "KO-Abstand: Sinnvoller Sicherheitsabstand zwischen Kurs und KO-Barriere, ATR-basiert eingeordnet",
+        "Trend-Regime-Eignung: KO-Zertifikate sind Hebel-/Momentum-Instrumente fuer kurzfristiges Trading (Tage bis wenige Wochen) in KLAREN Trendphasen — NICHT fuer Seitwaertsmaerkte oder Buy-and-Hold geeignet. Liegt aktuell ein klarer, starker Trendimpuls vor (z.B. nach Kurstreibern wie starken Quartalszahlen) oder eher ein Seitwaertsumfeld?",
+        "Marktzugang: fuer viele US-Aktien ist die Emission entsprechender Hebelprodukte fuer Privatanleger seit einer US-Steuerregeländerung 2017 eingeschraenkt bzw. gar nicht verfuegbar — der deutsche/europaeische Markt (DE/EU-Titel) bietet strukturell das breitere, liquidere Angebot. Bei US-Titeln zusaetzlich Quellensteuer-Aspekte und typischerweise geringeres Emittenten-Angebot beachten. Dies ist eine allgemeine Marktzugangs-Charakteristik, keine Empfehlung einzelner Titel oder Sektoren durch UIQ.",
         "Positionsgroessen-Passung: Wie fuegt sich der Titel ins Limit von max. 2.000 EUR ein (Starter- vs. Aufstockungs-Groesse)?",
-        "Hauptrisiko fuer die Long-These: was koennte kurzfristig zum KO-Ereignis fuehren?"
+        "Hauptrisiko fuer die Long-These: was koennte kurzfristig zum KO-Ereignis fuehren? WICHTIG: ein KO-Ereignis fuehrt in der Regel zum sofortigen Totalverlust des in dieser Position eingesetzten Kapitals — ein grundlegend anderes Risikoprofil als der Besitz der Aktie selbst. Eine eigene, vor Positionseroeffnung festgelegte Risikobegrenzung wird generell empfohlen (OHNE dass UIQ einen konkreten Stop-Loss-Wert vorgibt — das bleibt individuelle Festlegung bzw. EIC-exklusiv)."
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
-          return _publicEquityPrompt(ctx, {
-            rolle: 'Du analysierst Hebelprodukte (KO-Zertifikate, EUR-basiert) auf Basis technischer Kennzahlen.',
+          return _publicNinePointPrompt(ctx, {
+            rolle: 'Du analysierst Hebelprodukte (KO-Zertifikate, EUR-basiert, Long-Richtung — UIQ deckt aktuell nur KO-Long ab, keine Short-Zertifikate) auf Basis technischer Kennzahlen.',
             stratName: 'KO-Zertifikat-Setups',
-            marktumfeldFrage: 'Ist das aktuelle Regime strukturell für Hebelprodukte auf Long-Titel geeignet (Volatilität, Trend)?',
+            marktumfeldFrage: 'Liegt aktuell ein klarer, starker Trendimpuls vor, der für Hebelprodukte auf Long-Titel strukturell geeignet ist — oder eher ein Seitwärtsumfeld, das für KO-Zertifikate strukturell ungeeignet ist?',
             focus: STRATEGIES.ko.focus,
-            maxWords: 350
+            maxWords: 500,
+            istOptionsStrategie: false,
+            principle: 'KO-Zertifikate (Knock-Out) sind gehebelte Hebelprodukte (typisch 3-8x) auf einen Basiswert: sie ermöglichen überproportionale Gewinne bei Kursbewegungen in die gewählte Richtung, verfallen aber wertlos, wenn der Kurs die KO-Barriere berührt. Sie sind reine kurzfristige Trading-Instrumente (Tage bis wenige Wochen) für klare Trendphasen — kein Buy-and-Hold-Instrument. Wichtig bei der Produktwahl: unbegrenzte Laufzeit (Open End) bevorzugen. Für viele US-Aktien ist die Emission solcher Hebelprodukte für Privatanleger seit einer US-Steuerregeländerung 2017 eingeschränkt oder gar nicht verfügbar; der deutsche/europäische Markt bietet daher strukturell das breitere Angebot. UIQ deckt aktuell ausschließlich die Long-Richtung ab. Besonderer Risikohinweis: Ein KO-Ereignis führt in der Regel zum sofortigen Totalverlust des in der Position eingesetzten Kapitals — verantwortungsvoller Umgang mit Hebelprodukten setzt eine eigene, im Vorfeld festgelegte Risikobegrenzung voraus.',
+            risikenText: 'Zusätzlich IMMER auf das besondere Totalverlust-Risiko von Hebelprodukten '
+              + 'hinweisen: ein KO-Ereignis führt in der Regel zum sofortigen und vollständigen '
+              + 'Verlust des in dieser Position eingesetzten Kapitals — ein grundlegend anderes '
+              + 'Risikoprofil als der Besitz der zugrunde liegenden Aktie. Ergänzend die generelle '
+              + 'Empfehlung aussprechen, vor Positionseröffnung eine eigene Risikobegrenzung '
+              + 'festzulegen — OHNE einen konkreten Stop-Loss-Wert oder eine konkrete Regel zu '
+              + 'nennen (das bleibt individuelle Festlegung bzw. EIC-exklusiv, Grundgesetz #11).'
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -2465,10 +2543,11 @@ Das bedeutet konkret:
       color: '#f59e0b',
       focus: [
         "Langfristige Halteeignung: das Modell bewertet KEINE Aktienqualitaet — CC ersetzt keine eigene Aktienanalyse. Goldene Regel: nur auf Titel Calls schreiben, die man auch ohne die Optionsstrategie langfristig halten wuerde. UIQ liefert hierzu nur die Bewertungskriterien dieser Strategie, keine fundamentale Investment-Empfehlung.",
-        "Dividenden-/Cashflow-Qualitaet: regelmaessige, stabile Dividende (Richtwert divYield >=3%) und solider Cashflow als Indiz fuer einen Titel, den man auch bei gedeckeltem Upside gerne haelt (typisches CC-Auswahlkriterium: bereits gehaltene oder gezielt fuer Wheel-Fortfuehrung erworbene Qualitaetstitel, nicht primaer reine Kursmomentum-Kandidaten)",
+        "Dividendenrendite (divYield) und Cashflow-Stabilitaet KOENNEN bei der Auswahl relevant sein (z.B. bei bereits gehaltenen oder gezielt fuer Wheel-Fortfuehrung erworbenen Qualitaetstiteln), sind aber KEINE zwingende Voraussetzung fuer einen Covered Call — ein CC kann auch auf einem nicht-dividendenstarken Titel sinnvoll sein, wenn die Aktie bewusst gehalten wird und Upside gegen Praemieneinnahme getauscht werden soll.",
         "Stabilitaet/Etabliertheit: Grade-Einstufung und D200-Position als Naeherung fuer einen etablierten, vorhersehbaren Kursverlauf (echte Marktkapitalisierung, Spread-Enge und Liquiditaet liegen UIQ nicht vor — Broker-Check).",
-        "Praemienqualitaet (HVP als Proxy fuer implizite Volatilitaet — UIQ hat keine Live-Optionsketten-IV, echte IV/IV-Perzentil-Rang sind im Broker zu pruefen): rechtfertigt der HVP-Wert einen Covered Call auf diesen Titel?",
+        "Praemienqualitaet: HVP beschreibt die historische realisierte Volatilitaet und kann einen Hinweis auf ein bewegteres Kursumfeld geben — die tatsaechlich erzielbare Call-Praemie laesst sich daraus allein NICHT ableiten (Kontextsignal, kein Praemienmass; UIQ hat keine Live-Optionsketten-IV, echte IV/IV-Perzentil-Rang sind im Broker zu pruefen).",
         "Strike-Kompromiss (qualitativ, keine konkreten Delta-Werte — Public-Modus): ein naeher am Kurs liegender Strike ist typischerweise mit hoeherer Praemie UND hoeherer Ausuebungswahrscheinlichkeit verbunden (passt eher zu seitwaerts/leicht fallenden Erwartungen), ein weiter entfernter Strike mit geringerer Praemie aber mehr Kursspielraum (passt eher zu moderat steigenden Erwartungen).",
+        "CC-spezifischer D200-Zielkonflikt (Unterschied zu CSP wichtig): ein hoher positiver D200-Abstand ist bei CC NICHT per se guenstig wie bei CSP — je staerker ein Titel strukturell steigt, desto groesser der potenzielle Opportunitaetsverlust durch den gedeckelten Short Call (Risiko, zu frueh aus einer guten Position herausgerufen zu werden). Bei CSP kann ein starker Aufwaertstrend dagegen unproblematischer sein, da eine Andienung dort grundsaetzlich in eine gewuenschte Aktienposition fuehrt.",
         "Rollstrategie: wie wahrscheinlich ist ein Aufwaerts-Roll noetig, wenn der Kurs sich dem Strike naehert?",
         "Risiko eines gekappten Gewinns bei ueberraschend starkem Kursanstieg"
       ],
@@ -2485,7 +2564,7 @@ Das bedeutet konkret:
             maxWords: 500,
             mode: mode,
             istOptionsStrategie: true,
-            principle: 'Covered Call (Buy-Write) ist eine Prämien-Einkommensstrategie auf bestehende oder neu erworbene Aktienpositionen (100 Aktien pro Kontrakt): auf die gehaltenen Aktien wird ein Call out-of-the-money verkauft und dafür Prämie vereinnahmt. Im Gegenzug wird das weitere Aufwärtspotenzial der Aktie bis zum Strike gedeckelt — steigt der Kurs über den Strike, kann der Call ausgeübt werden und die Aktien werden zum Strike-Preis abgegeben. Goldene Regel: Calls nur auf Titel schreiben, die man auch ohne die Optionsstrategie langfristig halten würde — CC ersetzt keine eigene Aktienanalyse, die Rendite kommt primär von der Aktie selbst. In der Praxis betrifft CC meist bereits gehaltene Positionen oder Positionen, die gezielt zur Fortführung der Wheel-Strategie erworben werden ("buy-to-open") — typischerweise etablierte, liquide Titel mit stabilem Cashflow und einer regelmäßigen, verlässlichen Dividende (Richtwert ≥3%), da der gedeckelte Upside bei solchen Qualitätstiteln weniger ins Gewicht fällt als bei reinen Kursmomentum-Kandidaten.',
+            principle: 'Covered Call (Buy-Write) ist eine Prämien-Einkommensstrategie auf bestehende oder neu erworbene Aktienpositionen (100 Aktien pro Kontrakt): auf die gehaltenen Aktien wird ein Call out-of-the-money verkauft und dafür Prämie vereinnahmt. Im Gegenzug wird das weitere Aufwärtspotenzial der Aktie bis zum Strike gedeckelt — steigt der Kurs über den Strike, kann der Call ausgeübt werden und die Aktien werden zum Strike-Preis abgegeben. Goldene Regel: Calls nur auf Titel schreiben, die man auch ohne die Optionsstrategie langfristig halten würde — CC ersetzt keine eigene Aktienanalyse, die Rendite kommt primär von der Aktie selbst. In der Praxis betrifft CC meist bereits gehaltene Positionen oder Positionen, die gezielt zur Fortführung der Wheel-Strategie erworben werden ("buy-to-open"). Dividendenrendite und Cashflow-Stabilität können bei der Titelauswahl relevant sein, sind aber keine zwingende Voraussetzung — ein CC kann auch auf einem nicht-dividendenstarken Titel sinnvoll sein, wenn die Aktie bewusst gehalten und Upside gezielt gegen Prämieneinnahme getauscht werden soll. Wichtiger Rahmen: Der CC-Strategy-Fit bewertet ausschließlich die Eignung einer Aktie zum Überschreiben mit einem Call — er setzt eine bereits gehaltene oder bewusst geplante Aktienposition voraus und ist keine Empfehlung zum erstmaligen Erwerb der zugrunde liegenden Aktie.',
             // BEGRIFFS-INTEGRITAET (29.08.2026, Reviewer-Punkt 6): "Andienung"
             // ist CSP-spezifisch (Kursbewegung UNTER den Put-Strike loest sie
             // aus). Bei Covered Call ist das relevante Risiko-Ereignis
@@ -2498,7 +2577,11 @@ Das bedeutet konkret:
               + 'benennen: Prämieneinnahme steht der Begrenzung des weiteren Aufwärtspotenzials '
               + 'gegenüber (Upside-Cap durch den Short Call) — das ist der zentrale strukturelle '
               + 'Zielkonflikt dieser Strategie und darf ausdrücklich erklärt werden, nicht nur als '
-              + 'Randrisiko erwähnt.'
+              + 'Randrisiko erwähnt. Bei Titeln mit hohem positivem D200-Abstand ausdrücklich '
+              + 'benennen: ein starker struktureller Aufwärtstrend erhöht bei CC den potenziellen '
+              + 'Opportunitätsverlust durch den gedeckelten Call — anders als bei CSP, wo ein '
+              + 'starker Aufwärtstrend unproblematischer sein kann, weil eine Andienung dort in eine '
+              + 'gewünschte Aktienposition führt. Diesen Unterschied nicht mit CSP-Logik vermischen.'
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -2923,7 +3006,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.21.2',
+    VERSION: '2.22.1',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
