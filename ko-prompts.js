@@ -1,6 +1,80 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.22.4 (03.09.2026) — FÜNF KO-SPEZIFISCHE GUARDRAILS ERGÄNZT,
+ *  externes Reviewer-Feedback zum ersten echten KO-9-Punkte-Live-Test
+ *  (über den richtigen Code-Pfad, s. v2.22.3-Aufklärung): (1) KO-1
+ *  Underlying ≠ Produkt (WICHTIGSTER FUND) — UIQ bewertet den Basiswert,
+ *  NICHT ein konkretes KO-Zertifikat (Barriere/Hebel/Spread/
+ *  Finanzierungskosten/Emittent/Liquidität unbekannt); neuer generischer
+ *  Erweiterungspunkt `o.modellGrenzeText` in Abschnitt 8 ergänzt (analog
+ *  risikenText für Abschnitt 5) und für ko mit explizitem Pflicht-Satz
+ *  belegt. (2) KO-2 EMA200 ≠ KO-Abstand — EMA200-Distanz ist ein
+ *  Underlying-Trendindikator, niemals mit dem tatsächlichen Puffer zur
+ *  Barriere gleichzusetzen; "Rückkehr-/Korrekturrisiko"/"KO-Barriere
+ *  schneller erreichen" verboten, präzisere Alternativformulierung
+ *  vorgegeben. (3) KO-3 HVP ≠ Hebel/Produktvolatilität/KO-Wahrscheinlich-
+ *  keit — neues focus[]-Kriterium. (4) KO-4 Score/Strategy-Fit ≠
+ *  Gewinnwahrscheinlichkeit — klärt die vom Reviewer bemängelte
+ *  Ungereimtheit (Top-3-Kandidat gleichzeitig als "weniger geeignet"
+ *  markiert): explizit als KEIN Widerspruch gekennzeichnet, beide Ebenen
+ *  (Ranking vs. Risiko) klar getrennt zu halten. (5) KO-5/Gap-Risiko —
+ *  neues focus[]-Kriterium zu Zeitzonen-Versatz DE/US und Overnight-
+ *  Bewegungen als KO-spezifisch verschärftes Risiko. ZUSÄTZLICH:
+ *  "Open End bevorzugen" von einer kategorischen Regel auf eine
+ *  Prüfliste (Laufzeit, Finanzierungskosten, Barriere, Abstand,
+ *  Emittentenbedingungen, Liquidität) umformuliert (war zu absolut).
+ *  2.000-EUR-Positionslimit explizit als Totalverlust-Obergrenze
+ *  geklärt, NICHT als Stop-Loss-Mechanismus. rolle-Text ergänzt um
+ *  "UIQ bewertet ausschließlich den Basiswert" als zusätzliche
+ *  Verstärkung von KO-1 direkt am Anfang des Prompts. maxWords 500→550
+ *  (Puffer für die fünf neuen Guardrail-Inhalte). Funktional per Node-
+ *  Smoke-Test verifiziert: alle fünf Guardrail-Marker im generierten
+ *  Prompt vorhanden, Open-End-Absolutheit entfernt.
+ *
+ *  Version: 2.22.3 (03.09.2026) — LABEL-BUG BEHOBEN: alle 14 STRATEGIES-
+ *  Eintraege hatten kein `label`-Feld (nur `hint`, deutlich laenger/Icon-
+ *  behaftet) — Ursache fuer "KI-basierte Markt-Einschätzung — undefined"
+ *  im Alpha-Desk-Leaderboard-KI-Modal (index.html Zeile ~25569,
+ *  stratCfg.label). Vorbestehender Bug, betraf alle 14 Strategien in
+ *  diesem Modal, nicht erst durch die heutigen Aenderungen entstanden.
+ *  `label` fuer jede Strategie ergaenzt, Wert identisch zum bereits
+ *  verwendeten `stratName` aus dem jeweiligen prompt()-Aufruf (konsistente
+ *  Benennung zwischen 9-Punkte-Prompt und Leaderboard-Modal-Titel).
+ *  Funktional verifiziert: stratFromLb('ko_long') → 'ko' →
+ *  STRATEGIES.ko.label = "KO-Zertifikat-Setups (Long)", alle 14 Eintraege
+ *  auf fehlendes label geprueft (keine Luecke mehr).
+ *
+ *  Version: 2.22.2 (03.09.2026) — SICHERHEITSLÜCKE GESCHLOSSEN:
+ *  _getSystemPrompt() (via getSystemPrompt(), von getKiSystemPrompt() in
+ *  index.html aufgerufen) speist mindestens 6 "Quick-Take"-Features
+ *  (Alpha-Desk-Leaderboard-KI, Einzeltitel-Deep-Dive, Beste Options-
+ *  Kombination, Beste Chancen über alle Strategien, Dark Pool) — laut
+ *  Axel "general", also auch fuer Beta-/Public-User zugaenglich. Diese
+ *  Funktion enthielt BISLANG KEINE der heutigen 9-Punkte-Guardrail-
+ *  Haertungen (kein PUBLIC_REGULATORY_GUARDRAIL, kein KI_ANTI_
+ *  HALLUZINATION) — nur 5 generische Basisregeln. Live-Beleg 03.09.2026
+ *  (Leaderboard-KI, KO-Strategie): Output enthielt trotz bestehender
+ *  "keine direkten Kauf-/Verkaufsempfehlungen"-Regel eine direkte
+ *  Handlungsempfehlung ("Auf Break-Signal warten... Positionsgröße
+ *  minimal halten"). FIX: PUBLIC_REGULATORY_GUARDRAIL + KI_ANTI_
+ *  HALLUZINATION jetzt BEDINGUNGSLOS ergaenzt (unabhaengig vom eic-
+ *  Parameter — konsistent mit dem 28.08.2026-Sicherheits-Fix, Client-
+ *  Flags sind nicht vertrauenswuerdig, nur ko-ai.js entscheidet
+ *  serverseitig wirklich ueber Owner-Status). Bewusst NICHT auf das
+ *  volle 9-Punkte-Schema umgestellt (Axel-Entscheidung, "Option C"
+ *  verfeinert) — diese 6 Features sind bewusst kompakte Quick-Takes,
+ *  kein vollstaendiger Bericht; stattdessen die EINE gemeinsame
+ *  Basisfunktion gehaertet, die bereits alle 6 speist (Single Source of
+ *  Truth, kein 6-facher Umbau noetig). Einleitungssatz entschaerft:
+ *  "ob ein Setup heute handlungswuerdig ist" widersprach der neuen
+ *  Guardrail direkt (gleiches Widerspruchs-Muster wie der HÖCHSTE/
+ *  "Reihenfolge ohne Wertung"-Fund von vorhin). Funktional verifiziert
+ *  (Node-Smoke-Test: Guardrail vorhanden, identisch fuer eic=true/false).
+ *  NOCH OFFEN: serverseitige SYSTEM_PROMPTS.ki_briefing_public() in
+ *  ko-ai.js ist ebenfalls minimal (5 Regeln) — zweite Verteidigungslinie,
+ *  separates Thema, heute nicht angefasst.
+ *
  *  Version: 2.22.1 (03.09.2026) — SICHERHEITSHINWEIS + STOP-LOSS-EMPFEHLUNG
  *  FÜR ko (Axel-Vorgabe, "verantwortungsvoller Coach"): (1) ARCHITEKTUR-
  *  LÜCKE BEHOBEN: o.risikenText war in _publicNinePointPrompt() bislang
@@ -1044,10 +1118,28 @@ Das bedeutet konkret:
   // Abwaertskompatibilitaet der Call-Sites, wird aber ignoriert.
 
   function _getSystemPrompt(context, eic) {
-    return 'Du bist ein Investment-Coach, der Investoren dabei hilft, bessere Entscheidungen zu treffen. '
-      + 'Deine Aufgabe: erkläre klar und direkt, ob ein Setup heute handlungswürdig ist — '
-      + 'oder warum es heute besser ist abzuwarten. '
-      + 'Schreibe wie ein erfahrener Mentor: konkret, ohne Umschweife, aber nie bevormundend.\n\n'
+    // 03.09.2026 (Axel-Entscheidung, "Option C"): PUBLIC_REGULATORY_GUARDRAIL +
+    // KI_ANTI_HALLUZINATION bedingungslos ergänzt (unabhaengig vom eic-Parameter,
+    // konsistent mit dem 28.08.2026-Sicherheits-Fix — Client-Flags sind nicht
+    // vertrauenswuerdig, nur ko-ai.js entscheidet serverseitig wirklich ueber
+    // Owner/Expert-Status). Hintergrund: diese Funktion ist ueber
+    // getKiSystemPrompt() die GEMEINSAME Basis fuer mindestens 6 kompakte
+    // "Quick-Take"-Features (Alpha-Desk-Leaderboard-KI, Einzeltitel-Deep-Dive,
+    // Beste Options-Kombination, Beste Chancen ueber alle Strategien, Dark
+    // Pool) — bislang OHNE jede der 9-Punkte-Guardrail-Haertungen von heute,
+    // obwohl diese Features laut Axel "general", also auch fuer Beta-/Public-
+    // User zugaenglich sind. Bewusst NICHT auf das volle 9-Punkte-Schema
+    // umgestellt (waere ein deutlich groesserer, fuer diese kompakten Formate
+    // unpassender Umbau) — stattdessen die eine gemeinsame Funktion gehaertet,
+    // die bereits alle 6 Stellen speisen. Einleitungssatz entschaerft: "ob ein
+    // Setup heute handlungswuerdig ist" widersprach sonst direkt der nun
+    // ergaenzten Guardrail-Regel "keine direkten Kauf-/Verkaufsempfehlungen".
+    return KI_ANTI_HALLUZINATION
+      + 'Du bist ein quantitativer Markt-Analyst und Coach, der Investoren hilft, '
+      + 'Marktdaten besser zu verstehen. Deine Aufgabe: ordne ein Setup anhand der '
+      + 'gegebenen Kriterien ein — welche Modellfaktoren dafür, welche dagegen '
+      + 'sprechen — OHNE eine Handlungsempfehlung fuer heute auszusprechen. '
+      + 'Schreibe klar und direkt, aber nie als Kauf-/Verkaufsaufforderung.\n\n'
       + 'STIL-REGELN:\n'
       + '- Klare, direkte Sprache. Kein akademischer Stil, keine Schachtelsätze.\n'
       + '- Erkläre jede Metrik in einem Halbsatz: "ADX 15 — kein etablierter Trend" statt nur "ADX 15".\n'
@@ -1059,7 +1151,8 @@ Das bedeutet konkret:
       + '- Keine direkten Kauf-/Verkaufsempfehlungen (BaFin §1 WpHG). '
       + 'Stattdessen: "Die Datenlage spricht für..." oder "Das Risiko überwiegt heute, weil...".\n'
       + '- Kein Markdown, kein "Ich".\n'
-      + (context ? '\nKONTEXT: ' + context : '');
+      + (context ? '\nKONTEXT: ' + context : '')
+      + '\n\n' + PUBLIC_REGULATORY_GUARDRAIL;
   }
 
   // ── MORNING BRIEFING PROMPT ────────────────────────────────────────────────
@@ -1792,7 +1885,9 @@ Das bedeutet konkret:
       + 'Zielkonflikt zugunsten eines aggressiveren oder konservativeren '
       + 'Ansatzes aufzulösen." NIEMALS "beide Richtungen sind haltbar" oder '
       + 'ähnliche Formulierungen, die wie eine versteckte Freigabe beider '
-      + 'Optionen klingen könnten.' + modellGrenzeZusatz + ' OHNE jede '
+      + 'Optionen klingen könnten.' + modellGrenzeZusatz
+      + (o.modellGrenzeText ? ' ' + o.modellGrenzeText : '')
+      + ' OHNE jede '
       + 'Exit-/Stop-/Roll-/Timing-Regel (solche Regeln sind EIC-exklusiv, '
       + 'Grundgesetz #11, nie Teil dieser Antwort).\n';
 
@@ -2057,33 +2152,47 @@ Das bedeutet konkret:
 
     ko: {
       lbKey: 'ko_long',
+      label: 'KO-Zertifikat-Setups (Long)',
       hint:  '⚡ KO-Zertifikat: Hebel 3–8x · KO-Abstand · Positionsgröße max. €2.000',
       color: '#818cf8',
       focus: [
-        "Hebel-Eignung: Passt die Volatilitaet (ATR) des Titels zu einem 3-8x-Hebel, ohne durch normales Kursrauschen ausgeknockt zu werden?",
-        "KO-Abstand: Sinnvoller Sicherheitsabstand zwischen Kurs und KO-Barriere, ATR-basiert eingeordnet",
+        "Hebel-Eignung: Passt die Volatilitaet (ATR) des Titels zu einem 3-8x-Hebel, ohne durch normales Kursrauschen ausgeknockt zu werden? WICHTIG: HVP beschreibt die historische realisierte Volatilitaet des Basiswerts und ist KEIN Mass fuer den Hebel, die Produktvolatilitaet oder die KO-Wahrscheinlichkeit eines konkreten Zertifikats — diese haengen ausschliesslich vom gewaehlten Produkt ab.",
+        "KO-Abstand (Underlying-Ebene, NICHT das konkrete Produkt): ATR-basierte Naeherung fuer die Kursbeweglichkeit des Basiswerts. WICHTIG: der Abstand zur EMA200 ist NIEMALS mit dem Abstand zur tatsaechlichen KO-Barriere gleichzusetzen — die EMA200 ist ein technischer Trendindikator des Basiswerts, die KO-Barriere ist ein Produktparameter des konkreten Zertifikats. Ein grosser EMA200-Abstand kann auf eine fortgeschrittene Kursbewegung hinweisen und damit das Rueckschlagrisiko im Modell erhoehen — das ist unabhaengig vom tatsaechlichen Puffer bis zur KO-Barriere, der ausschliesslich vom konkreten Produkt abhaengt.",
         "Trend-Regime-Eignung: KO-Zertifikate sind Hebel-/Momentum-Instrumente fuer kurzfristiges Trading (Tage bis wenige Wochen) in KLAREN Trendphasen — NICHT fuer Seitwaertsmaerkte oder Buy-and-Hold geeignet. Liegt aktuell ein klarer, starker Trendimpuls vor (z.B. nach Kurstreibern wie starken Quartalszahlen) oder eher ein Seitwaertsumfeld?",
         "Marktzugang: fuer viele US-Aktien ist die Emission entsprechender Hebelprodukte fuer Privatanleger seit einer US-Steuerregeländerung 2017 eingeschraenkt bzw. gar nicht verfuegbar — der deutsche/europaeische Markt (DE/EU-Titel) bietet strukturell das breitere, liquidere Angebot. Bei US-Titeln zusaetzlich Quellensteuer-Aspekte und typischerweise geringeres Emittenten-Angebot beachten. Dies ist eine allgemeine Marktzugangs-Charakteristik, keine Empfehlung einzelner Titel oder Sektoren durch UIQ.",
-        "Positionsgroessen-Passung: Wie fuegt sich der Titel ins Limit von max. 2.000 EUR ein (Starter- vs. Aufstockungs-Groesse)?",
+        "Gap-/Overnight-Risiko: bei US-Titeln besteht ein Zeitzonen-Versatz zwischen deutscher und US-Handelszeit — eine schnelle Kursbewegung oder ein Gap kann die KO-Barriere erreichen, bevor eine manuelle Reaktion moeglich ist. Dieses Risiko ist bei gehebelten Produkten strukturell staerker ausgepraegt als bei der Aktie selbst.",
+        "Positionsgroessen-Passung: Wie fuegt sich der Titel ins Limit von max. 2.000 EUR ein (Starter- vs. Aufstockungs-Groesse)? WICHTIG: die 2.000-EUR-Grenze ist eine Obergrenze fuer den maximalen Kapitaleinsatz/potenziellen Totalverlust — KEIN Stop-Loss-Mechanismus und keine Risikobegrenzung waehrend der Positionslaufzeit.",
+        "UIQ-Score/Strategy-Fit ≠ Gewinnwahrscheinlichkeit: ein hoher Score beschreibt die Uebereinstimmung des Basiswerts mit den technischen Kriterien, NICHT die Erfolgswahrscheinlichkeit eines konkreten KO-Trades. Ein Titel kann gleichzeitig hohen Strategy Fit UND ein erhoehtes Korrekturrisiko aufweisen (z.B. hoher Score bei gleichzeitig grossem EMA200-Abstand) — beides klar getrennt darstellen, nicht als Widerspruch behandeln.",
         "Hauptrisiko fuer die Long-These: was koennte kurzfristig zum KO-Ereignis fuehren? WICHTIG: ein KO-Ereignis fuehrt in der Regel zum sofortigen Totalverlust des in dieser Position eingesetzten Kapitals — ein grundlegend anderes Risikoprofil als der Besitz der Aktie selbst. Eine eigene, vor Positionseroeffnung festgelegte Risikobegrenzung wird generell empfohlen (OHNE dass UIQ einen konkreten Stop-Loss-Wert vorgibt — das bleibt individuelle Festlegung bzw. EIC-exklusiv)."
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
-            rolle: 'Du analysierst Hebelprodukte (KO-Zertifikate, EUR-basiert, Long-Richtung — UIQ deckt aktuell nur KO-Long ab, keine Short-Zertifikate) auf Basis technischer Kennzahlen.',
+            rolle: 'Du analysierst Hebelprodukte (KO-Zertifikate, EUR-basiert, Long-Richtung — UIQ deckt aktuell nur KO-Long ab, keine Short-Zertifikate) auf Basis technischer Kennzahlen DES BASISWERTS. UIQ bewertet ausschliesslich den Basiswert, NICHT ein konkretes KO-Produkt (Barriere, Hebel, Spread, Finanzierungskosten, Emittent und Liquiditaet sind UIQ nicht bekannt).',
             stratName: 'KO-Zertifikat-Setups',
             marktumfeldFrage: 'Liegt aktuell ein klarer, starker Trendimpuls vor, der für Hebelprodukte auf Long-Titel strukturell geeignet ist — oder eher ein Seitwärtsumfeld, das für KO-Zertifikate strukturell ungeeignet ist?',
             focus: STRATEGIES.ko.focus,
-            maxWords: 500,
+            maxWords: 550,
             istOptionsStrategie: false,
-            principle: 'KO-Zertifikate (Knock-Out) sind gehebelte Hebelprodukte (typisch 3-8x) auf einen Basiswert: sie ermöglichen überproportionale Gewinne bei Kursbewegungen in die gewählte Richtung, verfallen aber wertlos, wenn der Kurs die KO-Barriere berührt. Sie sind reine kurzfristige Trading-Instrumente (Tage bis wenige Wochen) für klare Trendphasen — kein Buy-and-Hold-Instrument. Wichtig bei der Produktwahl: unbegrenzte Laufzeit (Open End) bevorzugen. Für viele US-Aktien ist die Emission solcher Hebelprodukte für Privatanleger seit einer US-Steuerregeländerung 2017 eingeschränkt oder gar nicht verfügbar; der deutsche/europäische Markt bietet daher strukturell das breitere Angebot. UIQ deckt aktuell ausschließlich die Long-Richtung ab. Besonderer Risikohinweis: Ein KO-Ereignis führt in der Regel zum sofortigen Totalverlust des in der Position eingesetzten Kapitals — verantwortungsvoller Umgang mit Hebelprodukten setzt eine eigene, im Vorfeld festgelegte Risikobegrenzung voraus.',
+            principle: 'KO-Zertifikate (Knock-Out) sind gehebelte Hebelprodukte (typisch 3-8x) auf einen Basiswert: sie ermöglichen überproportionale Gewinne bei Kursbewegungen in die gewählte Richtung, verfallen aber wertlos, wenn der Kurs die KO-Barriere berührt. Sie sind reine kurzfristige Trading-Instrumente (Tage bis wenige Wochen) für klare Trendphasen — kein Buy-and-Hold-Instrument. Bei der Produktauswahl sind Laufzeit, Finanzierungskosten, KO-Barriere, Abstand zur Barriere, Emittentenbedingungen und Liquidität des konkreten Produkts zu prüfen. Für viele US-Aktien ist die Emission solcher Hebelprodukte für Privatanleger seit einer US-Steuerregeländerung 2017 eingeschränkt oder gar nicht verfügbar; der deutsche/europäische Markt bietet daher strukturell das breitere Angebot. UIQ deckt aktuell ausschließlich die Long-Richtung ab. Besonderer Risikohinweis: Ein KO-Ereignis führt in der Regel zum sofortigen Totalverlust des in der Position eingesetzten Kapitals — verantwortungsvoller Umgang mit Hebelprodukten setzt eine eigene, im Vorfeld festgelegte Risikobegrenzung voraus. Wichtige Abgrenzung: UIQ bewertet die technische Eignung des Basiswerts (Underlying) — die Eignung eines konkreten KO-Zertifikats kann ohne produktspezifische Daten nicht beurteilt werden.',
             risikenText: 'Zusätzlich IMMER auf das besondere Totalverlust-Risiko von Hebelprodukten '
               + 'hinweisen: ein KO-Ereignis führt in der Regel zum sofortigen und vollständigen '
               + 'Verlust des in dieser Position eingesetzten Kapitals — ein grundlegend anderes '
-              + 'Risikoprofil als der Besitz der zugrunde liegenden Aktie. Ergänzend die generelle '
-              + 'Empfehlung aussprechen, vor Positionseröffnung eine eigene Risikobegrenzung '
-              + 'festzulegen — OHNE einen konkreten Stop-Loss-Wert oder eine konkrete Regel zu '
-              + 'nennen (das bleibt individuelle Festlegung bzw. EIC-exklusiv, Grundgesetz #11).'
+              + 'Risikoprofil als der Besitz der zugrunde liegenden Aktie. Bei einem grossen EMA200-'
+              + 'Abstand NIEMALS von "Rückkehr-/Korrekturrisiko" oder "KO-Barriere schneller '
+              + 'erreichen" sprechen (impliziert, UIQ kenne die tatsächliche Barriere) — STATTDESSEN: '
+              + '"kann auf eine fortgeschrittene Kursbewegung bzw. erhöhte Distanz zum langfristigen '
+              + 'Trendmittel hinweisen und damit das Rückschlagrisiko im Modell erhöhen." Bei US-'
+              + 'Titeln IMMER das Gap-/Overnight-Risiko durch den Zeitzonen-Versatz zwischen '
+              + 'deutscher und US-Handelszeit benennen. Ergänzend die generelle Empfehlung '
+              + 'aussprechen, vor Positionseröffnung eine eigene Risikobegrenzung festzulegen — OHNE '
+              + 'einen konkreten Stop-Loss-Wert oder eine konkrete Regel zu nennen (das bleibt '
+              + 'individuelle Festlegung bzw. EIC-exklusiv, Grundgesetz #11).',
+            modellGrenzeText: 'PFLICHT-ZUSATZ speziell für KO-Zertifikate, wörtlich sinngemäß: "UIQ '
+              + 'kann ohne produktspezifische Zertifikatedaten nicht beurteilen, welches konkrete '
+              + 'KO-Zertifikat hinsichtlich Hebel, KO-Abstand, Spread, Finanzierungskosten, '
+              + 'Emittentenrisiko und Liquidität geeignet ist — UIQ bewertet ausschließlich die '
+              + 'technische Eignung des Basiswerts, nicht die Eignung eines konkreten Produkts."'
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -2102,6 +2211,7 @@ Das bedeutet konkret:
 
     momentum: {
       lbKey: 'long_minervini',
+      label: 'Momentum/SEPA-Setups',
       hint:  '📈 Momentum: SEPA/Minervini Stage-2 · Direktinvestment ohne Hebel',
       color: 'var(--green)',
       focus: [
@@ -2139,6 +2249,7 @@ Das bedeutet konkret:
 
     breakout: {
       lbKey: 'long_breakout',
+      label: 'Breakout-Setups',
       hint:  '🚀 Breakout: Pivot/52W-Hoch · Volumen-Bestätigung · OBV-Akkumulation · Stage-2',
       color: 'var(--green)',
       focus: [
@@ -2206,6 +2317,7 @@ Das bedeutet konkret:
 
     vcp: {
       lbKey: 'vcp_setups',
+      label: 'VCP-Setups',
       hint:  '📐 VCP-Setup: Volatility Contraction Pattern · Minervini · Direktinvestment',
       color: '#a855f7',
       focus: [
@@ -2262,6 +2374,7 @@ Das bedeutet konkret:
 
     swing: {
       lbKey: 'long_swing',
+      label: 'Swing-Setups',
       hint:  '🔄 Swing-Trading: 5–20 Tage Haltedauer · Technische Muster',
       color: '#06b6d4',
       focus: [
@@ -2296,6 +2409,7 @@ Das bedeutet konkret:
 
     meanrev: {
       lbKey: 'long_mr',
+      label: 'Mean-Reversion-Setups',
       hint:  '↩️ Mean Reversion: Rückkehr zum Mittelwert · Überverkauft/Überhitzt · ATR-Abstand',
       color: 'var(--yellow)',
       focus: [
@@ -2331,6 +2445,7 @@ Das bedeutet konkret:
 
     csp_wheel: {
       lbKey: 'options_csp',
+      label: 'CSP/Wheel-Setups',
       hint:  '⚙️ CSP/Wheel: Cash Secured Put + Covered Call · CapTrader/IBKR · Theta-Strategie',
       color: 'var(--amber)',
       focus: [
@@ -2406,6 +2521,7 @@ Das bedeutet konkret:
 
     atmna: {
       lbKey: null,
+      label: 'CSP (ATM/NA)-Setups',
       hint:  '🎯 CSP (ATM/NA): ATM-CSP · 50-70% Frühausstieg · 3-Stufen-Roll · Andienungs-Vermeidung',
       color: '#a371f7',
       focus: [
@@ -2476,6 +2592,7 @@ Das bedeutet konkret:
 
     weekly_income: {
       lbKey: null,
+      label: 'CSP (Weekly)-Setups',
       hint:  '💰 CSP (Weekly): Diagonal Put-Spread · ATM-Short 7 DTE + Long-Versicherung 120 DTE · 4×/Monat',
       color: '#34d399',
       focus: [
@@ -2539,6 +2656,7 @@ Das bedeutet konkret:
 
     cc: {
       lbKey: 'options_cc',
+      label: 'Covered-Call-Setups',
       hint:  '📝 Covered Call: Call-Writing auf Bestandspositionen · Buy-Write · Prämieneinnahme',
       color: '#f59e0b',
       focus: [
@@ -2624,6 +2742,7 @@ Das bedeutet konkret:
 
     collar: {
       lbKey: null,
+      label: 'Collar/Protective-Put-Setups',
       hint:  '🛡️ Collar/Protective Put: Absicherung Bestandsposition · BULL_FRAGILE · Proxy-Strikes',
       color: '#0ea5e9',
       focus: [
@@ -2703,6 +2822,7 @@ Das bedeutet konkret:
 
     dividend: {
       lbKey: 'long_dividend',
+      label: 'Dividend-Growth-Setups',
       hint:  '💰 Dividend Growth: Qualitäts-Dividendentitel · Income + optionale CSP-Unterlegung',
       color: '#f59e42',
       focus: [
@@ -2751,6 +2871,7 @@ Das bedeutet konkret:
 
     value: {
       lbKey: 'long_value',
+      label: 'Value-Setups',
       hint:  '📊 Value Investing: Günstig bewertete Qualitätstitel · peForward, P/B, FCF-Yield',
       color: '#94a3b8',
       focus: [
@@ -2834,6 +2955,7 @@ Das bedeutet konkret:
 
     fading_short: {
       lbKey: 'short_fading_ko',
+      label: 'Fading-Short-Setups (experimentell)',
       hint:  '🔻 Fading Short (experimentell): KO-Short · Gegentrend · BULL_FRAGILE/STRESS',
       color: 'var(--red)',
       focus: [
@@ -3006,7 +3128,7 @@ Das bedeutet konkret:
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.22.1',
+    VERSION: '2.22.4',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
