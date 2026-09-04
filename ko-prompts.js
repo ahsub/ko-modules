@@ -1,6 +1,35 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.28.0 (05.09.2026) — DREI GEBÜNDELTE FIXES aus adversarialem '
+ *  Test csp_wheel (2x) + CSP-ATM/NA (1x), alle mehrfach belegt. WICHTIGSTER '
+ *  FUND: Regelkonflikt zwischen ALTER `PUBLIC_REGULATORY_GUARDRAIL`-Regel '
+ *  (02.09.2026, "Andienungswahrscheinlichkeit") und dem NEUEN REASONING-'
+ *  GUARDRAILS-Block (04.-05.09.2026) — die alte Regel gab als KORREKTES '
+ *  Beispiel exakt die Formulierung vor ("RSI 75 ... erhoehtes Rueckschlag-'
+ *  risiko"), die die neue Regel a/d/e inzwischen verbietet; erklärt den '
+ *  dreifachen Wiederholungsfund ("Rückschlagpotenziale"/"Risiko für '
+ *  weitere Abwärtsbewegung"/"erhöhtem ... Rückgangspotenzial"/"Rückschlags-'
+ *  risiken"). FIX 1: beide betroffenen Altstellen in '
+ *  `PUBLIC_REGULATORY_GUARDRAIL` (Andienungswahrscheinlichkeit-Beispiel + '
+ *  Beobachtung-vs-Einordnung-bei-Extremwerten-Beispiel) auf reine Ebene-1-'
+ *  Beschreibung umgestellt, keine Risiko-/Rückschlags-/Wahrscheinlichkeits-'
+ *  Formulierung mehr. FIX 2: REASONING-GUARDRAILS Punkt (e) um "stabil"/'
+ *  "Stabilität" erweitert (dreifach belegt: "strukturelle Stabilität", '
+ *  "stabile Trenddefinition", "stabiles ... Aufwärtstrending", "stabilem '
+ *  EMA200-Abstand") — Kategorienfehler benannt: ein Snapshot-Wert ohne '
+ *  Zeitreihen-Vergleich kann per Definition nicht "stabil" sein; neue '
+ *  Bedingung (iii) erlaubt das Wort nur bei echtem Mehrpunkt-/Zeitreihen-'
+ *  Vergleich. FIX 3: Kohorte-Pro-Einzelwert-Regel (Abschnitt 9) explizit '
+ *  auf Buchstaben-/Kategorie-Werte (Modellgrades) ausgeweitet, nicht nur '
+ *  Zahlen — Fund: AMZN wurde als "beste Kriterien-Erfüllung (Grade A)" '
+ *  hervorgehoben, obwohl ENGIY im selben Text ebenfalls Grade A hatte. '
+ *  Alle drei Fixes wirken rückwirkend auf alle 7 migrierten Strategien. '
+ *  Noch NICHT erneut live/smoke-getestet — nächster Test sollte gezielt '
+ *  prüfen, ob die RSI-Risiko-Sprache jetzt tatsächlich verschwindet (die '
+ *  Regel-Kollision war strukturell, ein einfacher Wortverbot-Zusatz hätte '
+ *  vermutlich nicht gereicht).
+ *
  *  Version: 2.27.0 (05.09.2026) — SOFORTFIX aus adversarialem Retest von
  *  csp_wheel (Alphadesk, erste der 6 bereits migrierten Strategien im
  *  Reviewer-Adversarial-Testkatalog): STRUKTURELLER SCOPE-LECK gefunden,
@@ -1621,16 +1650,20 @@ Das bedeutet konkret:
     'Gewinnsicherungs- oder Risikomanagementziele werden durch das Modell ' +
     'nicht abgebildet."\n' +
     '- BEOBACHTUNG VS. EINORDNUNG BEI EXTREMWERTEN (belegter Fund ' +
-    '29.08.2026): ein Extremwert (z.B. RSI 11) darf NIEMALS direkt zu einer ' +
-    'einseitigen strategischen Interpretation fuehren wie "klassisches ' +
-    'taktisches Absicherungs-Setup" (das liest sich wie eine Kaufempfehlung ' +
-    'fuer genau diese Struktur). PFLICHT: Beobachtung und Einordnung ' +
-    'trennen UND die Einordnung zweiseitig halten — z.B. "RSI 11 zeigt eine ' +
-    'ausgepraegte kurzfristige Schwaeche. Dies kann im Modellkontext auf ' +
-    'erhoehten kurzfristigen Bedarf fuer die betrachtete Strategie ' +
-    'hindeuten; gleichzeitig kann eine solche Extremsituation auch mit ' +
-    'erhoehter Wahrscheinlichkeit einer Gegenbewegung einhergehen." Niemals ' +
-    'nur die eine Lesart nennen, die fuer die Strategie spricht.\n' +
+    '29.08.2026, aktualisiert 05.09.2026 — Formulierung an REASONING-' +
+    'GUARDRAILS a/d/e angepasst): ein Extremwert (z.B. RSI 11) darf NIEMALS ' +
+    'direkt zu einer einseitigen strategischen Interpretation fuehren wie ' +
+    '"klassisches taktisches Absicherungs-Setup" (das liest sich wie eine ' +
+    'Kaufempfehlung fuer genau diese Struktur). PFLICHT: Beobachtung und ' +
+    'Einordnung trennen UND die Einordnung zweiseitig halten — z.B. "RSI 11 ' +
+    'beschreibt eine ausgepraegte kurzfristige Schwaeche (reine ' +
+    'Beobachtung). Dies kann im Modellkontext auf einen kurzfristigen ' +
+    'Anwendungsfall fuer die betrachtete Strategie hindeuten, sofern als ' +
+    'UIQ-Kriterium definiert; eine Aussage darueber, ob und wann eine ' +
+    'Gegenbewegung folgt, macht UIQ nicht." Niemals nur die eine Lesart ' +
+    'nennen, die fuer die Strategie spricht — und niemals eine ' +
+    'Wahrscheinlichkeitsaussage ueber eine Gegenbewegung oder sonstige ' +
+    'kuenftige Kursentwicklung treffen (Ebene 3, kein Backtesting-Beleg).\n' +
     '- Konkrete Optionsparameter (Strike, Delta, Praemie, PoP, Break-even, ' +
     'Assignment Risk) werden NICHT von UIQ bestimmt, sondern sind im Broker ' +
     'zu pruefen — das immer so benennen, nie als UIQ-Wert ausgeben. Formu- ' +
@@ -1663,19 +1696,30 @@ Das bedeutet konkret:
     '- KEINE ABGELEITETE ANDIENUNGS-/AUSUEBUNGSWAHRSCHEINLICHKEIT AUS ' +
     'INDIKATORWERTEN (belegter Fund 02.09.2026, CSP-ATM/NA-Live-Test: "RSI ' +
     '75 ... deutet eine erhoehte Andienungswahrscheinlichkeit an"): ein ' +
-    'RSI-Wert (oder ein anderer technischer Indikator) beschreibt ein ' +
-    'Kurs-/Rueckschlagrisiko, NIEMALS direkt eine Assignment-/Andienungs- ' +
+    'RSI-Wert (oder ein anderer technischer Indikator) beschreibt einen ' +
+    'reinen Kurs-Datenpunkt, NIEMALS direkt eine Assignment-/Andienungs- ' +
     'oder Ausuebungswahrscheinlichkeit — die tatsaechliche ITM-/Assignment-' +
     'Wahrscheinlichkeit einer konkreten Option kann UIQ ohne Optionsketten-' +
     'daten (Delta, Restlaufzeit) nicht bestimmen. Formulierungen wie "RSI ' +
     '75 deutet eine erhoehte Andienungswahrscheinlichkeit an" sind ' +
-    'VERBOTEN. Stattdessen woertlich (Kausal-Konditional-Format, keine ' +
-    'direkte Wahrscheinlichkeitsaussage): "RSI 75 signalisiert eine ' +
-    'ausgepraegte kurzfristige Ueberkauftheit und damit ein erhoehtes ' +
-    'Rueckschlagrisiko. Dies kann den Abstand zu einem moeglichen ' +
-    'Andienungsniveau schneller reduzieren; die tatsaechliche Assignment-' +
-    'Wahrscheinlichkeit der konkreten Option kann UIQ ohne ' +
-    'Optionskettendaten nicht bestimmen."\n' +
+    'VERBOTEN. AKTUALISIERT (05.09.2026, dreifach belegter Wiederholungs-' +
+    'fund ueber csp_wheel/CSP-ATM-NA-Live-Tests: "Rueckschlagpotenziale", ' +
+    '"Risiko fuer weitere Abwaertsbewegung", "erhoehtem kurzfristigen ' +
+    'Rueckgangspotenzial", "Rueckschlagsrisiken hindeutet" — das vormals ' +
+    'hier als KORREKT vorgegebene Beispiel "erhoehtes Rueckschlagrisiko" ' +
+    'stand im Widerspruch zu REASONING-GUARDRAILS a/d/e, die genau diese ' +
+    'Formulierung inzwischen verbieten; das Modell befolgte beide Regeln ' +
+    'gleichzeitig, die aeltere gewann): das frühere Beispiel ist NICHT MEHR '+
+    'gueltig. Stattdessen woertlich (reine Ebene-1-Beobachtung, KEINE ' +
+    'Risiko-/Rueckschlags-Formulierung mehr): "RSI 75 beschreibt eine ' +
+    'ausgepraegte kurzfristige Ueberkauftheit. Ob und wie schnell dadurch ' +
+    'ein moegliches Andienungsniveau erreicht wird, sowie die tatsaechliche ' +
+    'Assignment-Wahrscheinlichkeit der konkreten Option, kann UIQ ohne ' +
+    'Optionskettendaten nicht bestimmen." Der reine Datenpunkt (RSI-Wert) ' +
+    'wird benannt, OHNE ihn selbst als "Risiko"/"Rueckschlagpotenzial"/' +
+    '"Rueckgangspotenzial" zu framen — das bleibt Ebene 1, keine Ebene-3-' +
+    'Prognose (siehe REASONING-GUARDRAILS a/d/e fuer die vollstaendige ' +
+    'Begruendung und Wortliste).\n' +
     '- KEIN DIREKTER STRIKE-BEZUG AUS REINEN UNDERLYING-SIGNALEN (belegter ' +
     'Fund 03.09.2026, CSP/Wheel-Live-Test: "RSI-Werte ... signalisieren ein ' +
     'kurzfristiges Rueckschlagpotenzial — eine Kursbewegung unterhalb ' +
@@ -2129,7 +2173,18 @@ Das bedeutet konkret:
       + 'sondern beide/alle Titel mit dem Gleichstand gemeinsam nennen (z.B. '
       + '"DE und BE weisen mit jeweils +21,7% die größten EMA200-Abstände '
       + 'auf", NIEMALS "DE weist den höchsten EMA200-Abstand auf", wenn BE '
-      + 'denselben Wert hat).\n'
+      + 'denselben Wert hat). GILT AUSDRÜCKLICH AUCH FÜR BUCHSTABEN-/'
+      + 'KATEGORIE-WERTE, NICHT NUR ZAHLEN (belegter Fund 05.09.2026, CSP-'
+      + 'ATM/NA-Retest — Wiederholungsfund: "AMZN zeigt die beste Kriterien-'
+      + 'Erfüllung (Grade A)" bzw. "AMZN weist das stabilste kombinierte '
+      + 'Profil auf", obwohl ENGIY im selben Text ebenfalls Grade A hat): '
+      + 'ein Modellgrade (z.B. "Grade A") ist ein Gleichstand-Wert wie eine '
+      + 'Zahl — bevor ein Titel als "bester"/"stabilstes Profil"/"höchste '
+      + 'Kriterien-Erfüllung" hervorgehoben wird, IMMER prüfen, ob ein anderer '
+      + 'genannter Titel denselben Grade-Buchstaben teilt; wenn ja, beide '
+      + 'gemeinsam als Kohorte nennen (z.B. "AMZN und ENGIY teilen sich Grade '
+      + 'A", NIEMALS AMZN allein als "beste Kriterien-Erfüllung" hervorheben, '
+      + 'wenn ENGIY denselben Grade hat).\n'
       + 'Danach der '
       + 'Pflichthinweis, dass ' + (istOptions
           ? 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle Risikoparameter'
@@ -2216,19 +2271,30 @@ Das bedeutet konkret:
       + 'spricht für, deutet … hin, erhöht die Sensitivität, erhöht die '
       + 'Wahrscheinlichkeit, begünstigt, unterstützt, fragiler, robuster, '
       + 'aggressiver, konservativer, überhitzt, anfällig, gefährdet, '
-      + 'Korrektur, Erholung, Fortsetzung, Fehlausbruch, prolongiert. Diese '
+      + 'Korrektur, Erholung, Fortsetzung, Fehlausbruch, prolongiert, '
+      + 'STABIL/STABILITÄT (05.09.2026 ergänzt, dreifach belegter Fund CSP-'
+      + 'Live-Tests: "strukturelle Stabilität", "stabile Trenddefinition", '
+      + '"stabiles ... Aufwärtstrending", "stabilem EMA200-Abstand" — ein '
+      + 'einzelner Snapshot-Wert OHNE Zeitreihen-Vergleich kann per Definition '
+      + 'nicht "stabil" sein, das ist ein Kategorienfehler: Stabilität ist eine '
+      + 'Aussage über Veränderung/Konstanz ÜBER ZEIT, ein Momentaufnahme-Wert '
+      + 'zeigt nur einen Zustand zu EINEM Zeitpunkt). Diese '
       + 'Wörter sind NICHT pauschal verboten, aber jede Verwendung muss EINE '
       + 'der folgenden Bedingungen erfüllen: (i) sie beschreibt eine explizit '
       + 'definierte Übereinstimmung mit einem benannten UIQ-Kriterium/Score '
       + '(Ebene 2, z.B. "SEPA-Score signalisiert Übereinstimmung mit den '
       + 'definierten Stage-2-Kriterien"), ODER (ii) sie folgt unmittelbar aus '
       + 'dem Vergleich konkreter, im Text bereits genannter Zahlenwerte '
-      + '(Ebene 1). NIEMALS als eigenständige Aussage über künftige '
-      + 'Kursentwicklung, Robustheit, Fragilität oder Ausbruchsrisiko OHNE '
-      + 'dass die zugrunde liegende Eigenschaft explizit als UIQ-Kriterium '
-      + 'benannt ist — Maßstab: könnte das Wort ersatzlos gestrichen werden, '
-      + 'ohne dass eine belegte Aussage verloren geht? Dann gehört es nicht '
-      + 'in den Satz.\n'
+      + '(Ebene 1). Für "stabil"/"Stabilität" gilt zusätzlich (iii): NUR '
+      + 'verwenden, wenn tatsächlich mehrere Zeitpunkte/eine Zeitreihe '
+      + 'verglichen werden (z.B. ein mehrfach bestätigter Trendverlauf) — '
+      + 'NIEMALS für einen einzelnen Snapshot-Wert (Kurs, EMA-Abstand, RSI '
+      + 'etc.) zu einem Zeitpunkt. NIEMALS als eigenständige Aussage über '
+      + 'künftige Kursentwicklung, Robustheit, Fragilität oder Ausbruchsrisiko '
+      + 'OHNE dass die zugrunde liegende Eigenschaft explizit als UIQ-'
+      + 'Kriterium benannt ist — Maßstab: könnte das Wort ersatzlos gestrichen '
+      + 'werden, ohne dass eine belegte Aussage verloren geht? Dann gehört es '
+      + 'nicht in den Satz.\n'
       + 'f) TICKER-SCOPE-SPERRE (05.09.2026, belegter Fund CSP/Wheel-Live-'
       + 'Test — GILT FÜR JEDEN Abschnitt AB Abschnitt 4): der Datenkontext '
       + 'enthält bis zu 10 Kandidaten mit vollständigen Kennzahlen (RSI, '
