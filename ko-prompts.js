@@ -1,6 +1,27 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.24.0 (04.09.2026) — RETEST des Momentum-9-Punkte-Live-Tests
+ *  (04.09.2026, nach v2.23.1) zeigte deutliche Verbesserung (RSI-Problem
+ *  behoben, Trennung Modellbefund/Trade-off/Entscheidung funktioniert),
+ *  Reviewer fand aber vier neue Stellen, davon eine KRITISCH: numerischer
+ *  Interpretationsfehler (BE mit -31,89% Abstand zum 52W-Hoch fälschlich
+ *  als "extreme Nähe" bezeichnet, identisch zu DE mit -0,57% — ein Daten-/
+ *  Mappingproblem, kein reines Wortverbot). GENERISCH (neuer REASONING-
+ *  GUARDRAILS-Block, direkt vor AUFGABE im gemeinsamen Builder, gilt für
+ *  ALLE Abschnitte 1-9 aller 14 Strategien): (a) Kausalitäts-/
+ *  Wahrscheinlichkeitsverbot ("macht wahrscheinlicher"/"führt zu" etc. →
+ *  "ist konsistent mit"/"signalisiert" etc.), (b) numerische
+ *  Plausibilitätsprüfung VOR sprachlicher Interpretation (Vorzeichen/
+ *  Einheit/Größenordnung, mit dem BE/DE-Beispiel als Anker), (c) keine
+ *  automatische Extremwert-Wertung ("Überdehnung" etc. ohne Einschränkung
+ *  verboten). MOMENTUM-SPEZIFISCH: neuer optionaler Erweiterungspunkt
+ *  `o.tradeoffKontext` in Abschnitt 6 (überschreibt das generische
+ *  Zielkonflikt-Beispiel, wenn gesetzt) — für momentum auf Reviewer-
+ *  Vorschlag "Trendbestätigung ↔ Einstiegs-/Rückschlagrisiko" umgestellt,
+ *  inkl. explizitem Verbot der falschen "Kurspuffer"-Übertragung aus dem
+ *  Options-Kontext. Noch NICHT erneut live/smoke-getestet.
+ *
  *  Version: 2.23.1 (04.09.2026) — REVIEWER-FEEDBACK ZUM MOMENTUM-9-PUNKTE-
  *  LIVE-TEST (04.09.2026) eingearbeitet, vier Funde, zwei Kategorien:
  *  GENERISCH (gemeinsamer Builder, wirkt rückwirkend auf alle 7 migrierten
@@ -1938,7 +1959,7 @@ Das bedeutet konkret:
       + '\n';
 
     var abschnitt6, abschnitt8;
-    var zielkonfliktKontext = (mode === 'holding_review')
+    var zielkonfliktKontext = o.tradeoffKontext || ((mode === 'holding_review')
       ? '(z.B. einfacher Protective Put vs. voller Collar, Strike-Nähe)'
       : (istOptions ? '(z.B. Strike-Nähe zum aktuellen Kurs, Laufzeit — '
                     + 'Strike-Abstand ist der Abstand zwischen Strike und '
@@ -1946,7 +1967,7 @@ Das bedeutet konkret:
                     + 'Abstand; beide Konzepte niemals vermischen oder als '
                     + '"Puffer zur EMA200" bezeichnen, auch wenn ein EMA200-'
                     + 'Bezug in den Bewertungskriterien vorkommt)'
-                    : '(z.B. stärkeres Signal vs. höheres Rückschlagrisiko, engere Konsolidierung vs. dünnere Liquidität)');
+                    : '(z.B. stärkeres Signal vs. höheres Rückschlagrisiko, engere Konsolidierung vs. dünnere Liquidität)'));
     abschnitt6 = '6. STRATEGISCHER TRADE-OFF: IMMER beide Seiten eines '
       + 'zentralen Zielkonflikts der genannten Titel gemeinsam neutral '
       + 'gegenüberstellen ' + zielkonfliktKontext + ' — EIN gemeinsamer '
@@ -2034,6 +2055,37 @@ Das bedeutet konkret:
              + 'Nummerierung, Ueberschrift EXAKT "STRATEGIEPRINZIP"):\n'
              + '"' + o.principle + '"\n\n')
           : '')
+      + 'REASONING-GUARDRAILS (04.09.2026, Reviewer-Feedback zum Momentum-'
+      + '9-Punkte-Live-Test — gelten für ALLE Abschnitte 1-9 der folgenden '
+      + 'Antwort, nicht nur für einen davon):\n'
+      + 'a) KAUSALITÄTS-/WAHRSCHEINLICHKEITSVERBOT: keine Wahrscheinlichkeits-, '
+      + 'Kausalitäts- oder Prognoseaussagen aus Einzelindikatoren oder '
+      + 'Regimeinformationen ableiten, sofern diese Beziehung nicht durch ein '
+      + 'explizites, quantifiziertes Modell/Backtesting belegt ist. VERBOTEN: '
+      + '"macht wahrscheinlicher", "erhöht die Wahrscheinlichkeit", "führt zu", '
+      + '"verhindert", "spricht für eine bevorstehende Korrektur" o.ä. '
+      + 'STATTDESSEN NEUTRAL: "ist konsistent mit", "signalisiert", "zeigt", '
+      + '"steht im Modell im Zusammenhang mit", "kann als Risikofaktor '
+      + 'betrachtet werden".\n'
+      + 'b) NUMERISCHE PLAUSIBILITÄTSPRÜFUNG (belegter Fund 04.09.2026, '
+      + 'Momentum-Live-Test — Daten-/Mappingfehler, kein reines Wortverbot): '
+      + 'numerische Werte IMMER vor ihrer sprachlichen Interpretation auf '
+      + 'Vorzeichen, Einheit UND Größenordnung prüfen. Aussagen wie "nahe an '
+      + 'X", "weit entfernt von X", "stärkster/größter/kleinster Wert" dürfen '
+      + 'NUR verwendet werden, wenn sie unmittelbar aus dem konkreten '
+      + 'Zahlenwert folgen — NICHT aus oberflächlicher Ähnlichkeit (z.B. '
+      + 'gleiches Vorzeichen) oder weil mehrere Werte in derselben Aufzählung '
+      + 'genannt werden. KONKRETES BEISPIEL: ein Abstand von -0,57% zu einem '
+      + 'Referenzwert (z.B. 52-Wochen-Hoch) beschreibt nahezu vollständige '
+      + 'Nähe; ein Abstand von -31,89% zum SELBEN Referenzwert beschreibt '
+      + 'dagegen einen erheblichen Abstand — beide NIEMALS gleich '
+      + 'charakterisieren (z.B. beide als "extreme Nähe"), obwohl beide Werte '
+      + 'negativ sind.\n'
+      + 'c) KEINE AUTOMATISCHE EXTREMWERT-WERTUNG: eine große Distanz (z.B. '
+      + 'großer EMA200- oder 52W-Abstand) ist zunächst ein reines Distanz-/'
+      + 'Trendsignal — NIEMALS automatisch als "Überdehnung", "bevorstehende '
+      + 'Korrektur" o.ä. wertend labeln, ohne die Einschränkung zu ergänzen, '
+      + 'dass daraus allein keine Korrektur-Aussage folgt.\n\n'
       + 'AUFGABE (9-Punkte-Schema, 03.09.2026 — externes Reviewer-Feedback, '
       + 'gemeinsam für alle 14 UIQ-Strategien):\n'
       + '1. MARKT-/REGIME-KONTEXT: Fasse das aktuelle Marktregime anhand der '
@@ -2353,7 +2405,18 @@ Das bedeutet konkret:
               + 'identische Composite-/SEPA-Scores aufweisen, NICHT daraus schließen, dass '
               + 'auch alle übrigen (niedriger bewerteten) Titel im Universum die Kriterien '
               + 'gleichwertig erfüllen — Score-Gleichstand unter den Top-Titeln ist etwas '
-              + 'anderes als Kriterien-Gleichstand über das gesamte Universum.'
+              + 'anderes als Kriterien-Gleichstand über das gesamte Universum.',
+            tradeoffKontext: '(Trendbestätigung ↔ Einstiegs-/Rückschlagrisiko — der '
+              + 'eigentliche Zielkonflikt bei Momentum: ein geringer Abstand zum '
+              + '52-Wochen-Hoch bestätigt im Modell tendenziell die Stärke des '
+              + 'bestehenden Trends, bedeutet aber zugleich einen Einstieg in '
+              + 'unmittelbarer Nähe eines Hochs; ein größerer Abstand kann auf eine '
+              + 'laufende Korrektur innerhalb des Trends oder eine geringere '
+              + 'Trendstärke hinweisen. Die Gewichtung dieser Merkmale ist eine '
+              + 'strategische Abwägung, keine Aussage über den zukünftigen '
+              + 'Kursverlauf — NIEMALS einen größeren Hoch-Abstand als '
+              + '"Kurspuffer" im Risikosinn framen, das ist keine korrekte '
+              + 'Übertragung des Konzepts.)'
           });
         }
         return KI_ANTI_HALLUZINATION
