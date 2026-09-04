@@ -1,6 +1,33 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.23.1 (04.09.2026) — REVIEWER-FEEDBACK ZUM MOMENTUM-9-PUNKTE-
+ *  LIVE-TEST (04.09.2026) eingearbeitet, vier Funde, zwei Kategorien:
+ *  GENERISCH (gemeinsamer Builder, wirkt rückwirkend auf alle 7 migrierten
+ *  Strategien): (1) Abschnitt-9-Wortverbot "profitiert von [Kennzahl]" war
+ *  zu eng gefasst — Live-Test zeigte Umgehung über sinnverwandte Formu-
+ *  lierungen ("könnte ... ein breiteres technisches Spielraum-Profil
+ *  darstellen"), die denselben impliziten Vorteil transportieren ohne die
+ *  wörtliche Phrase zu nutzen; Verbot auf die BEDEUTUNG statt nur den
+ *  Wortlaut erweitert, mit Beispielen und einem "klingt es wie eine
+ *  Kaufbegründung?"-Prüfmaßstab. (2) Neuer optionaler Erweiterungspunkt
+ *  `o.kriterienDifferenzierungText` in Abschnitt 3 (analog risikenText/
+ *  modellGrenzeText) + generisches Verbot, bei Score-Gleichstand unter
+ *  den Top-Titeln pauschal zu behaupten, "alle übrigen Titel erfüllen die
+ *  Kriterien ebenfalls" — verwässert den Strategy-Fit-Gedanken; künftig
+ *  klare Trennung "qualifiziert" vs. "Top-Fit" gefordert.
+ *  MOMENTUM-SPEZIFISCH: (3) neues focus[]-Kriterium zum bullCount-Feld
+ *  (X/3 MACD/OBV/MA50) — Live-Test zeigte unbelegte Verdichtung zu
+ *  "bullische Signalquintessenz" ohne zu erklären, was der Zähler misst/
+ *  nicht misst. (4) risikenText NEU gesetzt: 52W-Hoch-Nähe fälschlich als
+ *  "erhöhtes Realisierungsrisiko" geframt — fachlich falsch für Momentum
+ *  (Minervini-Logik: Hoch-Nähe ist Trendbestätigung, kein Warnsignal);
+ *  korrigierte Formulierung ("bestätigt Trendstärke, erhöht Fehlausbruchs-
+ *  Sensitivität") jetzt vorgegeben, inkl. Verbot der Umkehr-Fehldeutung
+ *  (größerer Hoch-Abstand ≠ automatisch "günstigerer" Einstieg).
+ *  kriterienDifferenzierungText für momentum gesetzt. Noch NICHT erneut
+ *  live/smoke-getestet.
+ *
  *  Version: 2.23.0 (04.09.2026) — EQUITY-MIGRATION FORTGESETZT (P1):
  *  `momentum` als erste von 8 verbleibenden Equity-Strategien von
  *  `_publicEquityPrompt()` auf `_publicNinePointPrompt()` umgestellt
@@ -1857,7 +1884,19 @@ Das bedeutet konkret:
         + 'Danach in einem kurzen Absatz: Titel, die die Kriterien für ' + o.stratName
         + ' NICHT erfüllen, formuliert als "erfüllt die Kriterien nicht" — '
         + 'NIEMALS als "ist für dich nicht geeignet" und NIEMALS als '
-        + '"Ausschluss".\n';
+        + '"Ausschluss". WICHTIG (belegter Fund 04.09.2026, Momentum-Live-'
+        + 'Test — Reviewer-Feedback): NIEMALS pauschal behaupten, "alle '
+        + 'übrigen Titel erfüllen die Kriterien ebenfalls" oder sinngemäß '
+        + '"unterscheiden sich nicht in der Kriterien-Stärke", wenn die in '
+        + 'Abschnitt 3 genannten Top-Titel tatsächlich die höchsten Scores '
+        + 'im Snapshot aufweisen — das verwässert den eigentlichen '
+        + 'Strategy-Fit-Gedanken. Stattdessen klar zwischen "erfüllt die '
+        + 'Mindestkriterien" (qualifiziert) und "zeigt die stärkste '
+        + 'Kriterien-Übereinstimmung" (Top-Fit) unterscheiden — beide Ebenen '
+        + 'nicht gleichsetzen, auch wenn mehrere Titel denselben Score-Wert '
+        + 'teilen.'
+        + (o.kriterienDifferenzierungText ? ' ' + o.kriterienDifferenzierungText : '')
+        + '\n';
     }
 
     var abschnitt4 = '4. POSITIVE MODELLFAKTOREN: EIN gemeinsamer Absatz, der '
@@ -1959,7 +1998,18 @@ Das bedeutet konkret:
       + 'keine Präferenz). NIEMALS "profitiert von [Kennzahl]" (belegter '
       + 'Fund 03.09.2026, CSP-Weekly-Live-Test — impliziert einen Vorteil, '
       + 'den UIQ nicht bewertet) — STATTDESSEN rein deskriptiv: "[Titel] '
-      + 'weist die höchste/niedrigste [Kennzahl] auf." Danach der '
+      + 'weist die höchste/niedrigste [Kennzahl] auf." VERBOT GILT AUCH FÜR '
+      + 'SINNVERWANDTE UMSCHREIBUNGEN, die denselben impliziten Vorteil '
+      + 'transportieren, ohne die wörtliche Phrase zu verwenden — z.B. '
+      + '"könnte davon profitieren", "bietet dadurch mehr Spielraum", '
+      + '"stellt ein attraktiveres/breiteres Profil dar", "ist dadurch '
+      + 'günstiger positioniert" (belegter Umgehungsfund 04.09.2026, '
+      + 'Momentum-Live-Test: "könnte ... ein breiteres technisches '
+      + 'Spielraum-Profil darstellen" — fachlich zusätzlich fragwürdig, da '
+      + 'ein reiner Abstandswert zum 52W-Hoch für sich genommen keinen '
+      + 'vorteilhafteren Einstieg belegt). Maßstab: wenn der Halbsatz beim '
+      + 'Lesen wie eine Kaufbegründung oder ein Vorteilsversprechen klingt, '
+      + 'ist er zu überarbeiten — rein deskriptiv bleiben. Danach der '
       + 'Pflichthinweis, dass ' + (istOptions
           ? 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle Risikoparameter'
           : 'Einstiegszeitpunkt, Positionsgröße und individuelle Risikolage')
@@ -2274,7 +2324,8 @@ Das bedeutet konkret:
         "SEPA/Stage-2-Qualitaet: Erfuellt der Titel die Kernkriterien (Trend, relative Staerke) aus den Scandaten?",
         "Buy-Point/Timing: Steht der Titel am Pivot oder eher im Ruecksetzer zum EMA50 bei steigendem OBV?",
         "Stop-Loss-Sensitivitaet (rein qualitativ, KEIN konkreter Prozentwert/Kursniveau nennen — das ist EIC-exklusiv, Grundgesetz #11): tendiert der HVP-Wert eher zu einer engeren oder weiteren sinnvollen Risikotoleranz fuer eine individuell festzulegende Absicherung (hoeherer HVP tendenziell engere Toleranz sinnvoll, niedrigerer HVP tendenziell weitere)?",
-        "Sektor- oder Makro-Risiko, das die Momentum-These aktuell am ehesten gefaehrden wuerde"
+        "Sektor- oder Makro-Risiko, das die Momentum-These aktuell am ehesten gefaehrden wuerde",
+        "Bullish-Signalzaehler (X/3, aus MACD/OBV/MA50 zusammengesetzt): WICHTIG, dieser Zaehler ist ein grober interner UIQ-Aggregationswert, KEIN eigenstaendiges, erklaertes Signal mit definierter Bedeutung pro Stufe (0/1/2/3). NIEMALS daraus eine zusammenfassende Bewertung wie 'bullische Signalquintessenz' oder aehnliche pauschale Charakterisierungen ableiten, ohne zu benennen, was der Zaehler konkret misst (Anzahl der drei erfuellten Einzelindikatoren) und was er NICHT aussagt (keine Gewichtung, keine Staerke-Einordnung zwischen den drei Komponenten)."
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
@@ -2285,7 +2336,24 @@ Das bedeutet konkret:
             focus: STRATEGIES.momentum.focus,
             maxWords: 450,
             istOptionsStrategie: false,
-            principle: 'Momentum/SEPA-Setups folgen der Minervini-Methode (Stage-2-Analyse): gesucht werden Aktien in einer bereits bestätigten Aufwärtsphase (Stage 2) — erkennbar an einer bullischen Anordnung der gleitenden Durchschnitte, starker relativer Stärke gegenüber dem Gesamtmarkt und einem Volumenmuster, das eher Akkumulation als Distribution zeigt. Die Strategie kauft keine fallenden Kurse, sondern bereits etablierte Trends — idealerweise beim ersten Rücksetzer zum EMA50 statt am ersten Ausbruchsimpuls selbst. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.'
+            principle: 'Momentum/SEPA-Setups folgen der Minervini-Methode (Stage-2-Analyse): gesucht werden Aktien in einer bereits bestätigten Aufwärtsphase (Stage 2) — erkennbar an einer bullischen Anordnung der gleitenden Durchschnitte, starker relativer Stärke gegenüber dem Gesamtmarkt und einem Volumenmuster, das eher Akkumulation als Distribution zeigt. Die Strategie kauft keine fallenden Kurse, sondern bereits etablierte Trends — idealerweise beim ersten Rücksetzer zum EMA50 statt am ersten Ausbruchsimpuls selbst. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.',
+            risikenText: 'WICHTIG (belegter Fund 04.09.2026, Momentum-Live-Test — Reviewer-'
+              + 'Feedback): Nähe zum 52-Wochen-Hoch ist bei Momentum/SEPA-Setups KEIN '
+              + 'eigenständiges Warnsignal — im Gegenteil, ein Titel nahe am Hoch kann ein '
+              + 'sehr starkes Trendsignal sein (Minervini-Logik: Stärke zeigt sich gerade '
+              + 'nahe an neuen Hochs). NIEMALS pauschal von "erhöhtem Realisierungsrisiko" '
+              + 'bei Hoch-Nähe sprechen — STATTDESSEN differenzierter: "ein begrenzter '
+              + 'Abstand zum 52-Wochen-Hoch bestätigt tendenziell die Trendstärke, erhöht '
+              + 'aber gleichzeitig die Sensitivität gegenüber einem Fehlausbruch bzw. einer '
+              + 'Marktkorrektur." Umgekehrt NIEMALS einen größeren Abstand zum Hoch als '
+              + 'automatisch "günstigeren"/"breiteren" Einstieg framen (der reine '
+              + 'Abstandswert allein belegt keinen vorteilhafteren Einstieg) — beide '
+              + 'Ausprägungen bleiben Trade-off-Seiten, keine Wertung.',
+            kriterienDifferenzierungText: 'Speziell für Momentum/SEPA: falls mehrere Titel '
+              + 'identische Composite-/SEPA-Scores aufweisen, NICHT daraus schließen, dass '
+              + 'auch alle übrigen (niedriger bewerteten) Titel im Universum die Kriterien '
+              + 'gleichwertig erfüllen — Score-Gleichstand unter den Top-Titeln ist etwas '
+              + 'anderes als Kriterien-Gleichstand über das gesamte Universum.'
           });
         }
         return KI_ANTI_HALLUZINATION
