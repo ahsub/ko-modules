@@ -1,6 +1,32 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.27.0 (05.09.2026) — SOFORTFIX aus adversarialem Retest von
+ *  csp_wheel (Alphadesk, erste der 6 bereits migrierten Strategien im
+ *  Reviewer-Adversarial-Testkatalog): STRUKTURELLER SCOPE-LECK gefunden,
+ *  kein reines Formulierungsproblem — Abschnitt 4 nannte "Die RSI-Werte '
+ *  bei ENGIY, NTAP, BA, HII und LHX zeigen kurzfristige Schwäche", obwohl '
+ *  BA/HII/LHX nie in Abschnitt 3 als Kandidaten benannt wurden. Root '
+ *  Cause (index.html, `openKiBriefing()`): der Datenkontext (tickerList/'
+ *  poolData) enthält für ALLE Strategien den vollen Pool von bis zu 10 '
+ *  Kandidaten mit vollständigen Kennzahlen — die Auswahl der Top-3 aus '
+ *  Abschnitt 3 passiert erst im Modell selbst, nicht vorher in JS. Die '
+ *  bisherige rein textuelle Scope-Anweisung in Abschnitt 4 ("die in '
+ *  Abschnitt 3 genannten Titel") reichte nicht aus, um zu verhindern, '
+ *  dass das Modell bei plausibler Erzählung (mehrere Titel mit ähnlichem '
+ *  RSI-Muster) in den vollen Datenpool zurückgreift. Da derselbe '
+ *  Datenfluss-Mechanismus für ALLE 14 Strategien gilt, sofort als '
+ *  generischer Fix umgesetzt statt erst weiter zu sammeln: NEU Punkt (f) '
+ *  TICKER-SCOPE-SPERRE im REASONING-GUARDRAILS-Block — ab Abschnitt 4 '
+ *  ausschließlich die in Abschnitt 3 wörtlich genannten Titel erlaubt, '
+ *  mit Prüfpflicht-Anweisung vor jeder Ticker-Nennung; zusätzlich lokal '
+ *  in Abschnitt 4 verstärkt (Doppelverankerung, analog zum bewährten '
+ *  Muster bei wiederholt verletzten Regeln). Wirkt rückwirkend auf alle '
+ *  7 migrierten Strategien. Noch NICHT erneut live/smoke-getestet — '
+ *  nächster adversarialer Test (atmna/weekly_income/cc/collar/ko) sollte '
+ *  gezielt prüfen, ob der Scope-Leck dort ebenfalls auftrat und ob er '
+ *  jetzt verhindert wird.
+ *
  *  Version: 2.26.0 (04.09.2026) — GEZIELTER GUARDRAIL-PATCH nach zweitem
  *  Momentum-Retest (04.09.2026, Reviewer-Bewertung ≈9/10, Architektur als
  *  weitgehend "eingefroren" markiert). Kernbefund: die Drei-Ebenen-Regel
@@ -1977,7 +2003,10 @@ Das bedeutet konkret:
       + 'die wichtigsten Modellfaktoren nennt, die für die in Abschnitt 3 '
       + 'genannten Titel sprechen (datenbasiert, aus den Bewertungskriterien), '
       + 'NICHT pro Titel als separater Unterpunkt wiederholt — Titel dürfen '
-      + 'im Fließtext genannt werden, wo es der Lesbarkeit dient.\n';
+      + 'im Fließtext genannt werden, wo es der Lesbarkeit dient. TICKER-'
+      + 'SCOPE-SPERRE gilt ab hier (siehe REASONING-GUARDRAILS f): NIEMALS '
+      + 'einen Ticker nennen, der nicht in Abschnitt 3 steht, selbst wenn er '
+      + 'im Datenpool sichtbar ist und ein ähnliches Muster zeigt.\n';
 
     var abschnitt5 = '5. GEGENARGUMENTE/RISIKEN: EIN gemeinsamer Absatz, der '
       + 'die wichtigsten Risikofaktoren/Gegenargumente für die in Abschnitt 3 '
@@ -2199,7 +2228,22 @@ Das bedeutet konkret:
       + 'dass die zugrunde liegende Eigenschaft explizit als UIQ-Kriterium '
       + 'benannt ist — Maßstab: könnte das Wort ersatzlos gestrichen werden, '
       + 'ohne dass eine belegte Aussage verloren geht? Dann gehört es nicht '
-      + 'in den Satz.\n\n'
+      + 'in den Satz.\n'
+      + 'f) TICKER-SCOPE-SPERRE (05.09.2026, belegter Fund CSP/Wheel-Live-'
+      + 'Test — GILT FÜR JEDEN Abschnitt AB Abschnitt 4): der Datenkontext '
+      + 'enthält bis zu 10 Kandidaten mit vollständigen Kennzahlen (RSI, '
+      + 'HVP, EMA200-Abstand etc.), auch wenn Abschnitt 3 nur bis zu 3 davon '
+      + 'als Top-Titel benennt. Ab Abschnitt 4 dürfen AUSSCHLIESSLICH die in '
+      + 'Abschnitt 3 wörtlich genannten Titel erwähnt werden — NIEMALS einen '
+      + 'weiteren Ticker aus dem Datenpool zitieren, auch wenn er ein '
+      + 'passendes Muster zeigt (z.B. einen ähnlichen RSI-Wert wie ein '
+      + 'genannter Titel), nur weil er im Kontext sichtbar ist (belegter '
+      + 'Fund: "Die RSI-Werte bei ENGIY, NTAP, BA, HII und LHX zeigen '
+      + 'kurzfristige Schwäche" — BA/HII/LHX wurden in Abschnitt 3 nie '
+      + 'genannt). PRÜFPFLICHT vor jeder Ticker-Nennung ab Abschnitt 4: '
+      + 'steht dieser Ticker wörtlich in Abschnitt 3? Wenn nein, NICHT '
+      + 'erwähnen — auch nicht als zusätzliches Beispiel oder unterstützendes '
+      + 'Muster.\n\n'
       + 'AUFGABE (9-Punkte-Schema, 03.09.2026 — externes Reviewer-Feedback, '
       + 'gemeinsam für alle 14 UIQ-Strategien):\n'
       + '1. MARKT-/REGIME-KONTEXT: Fasse das aktuelle Marktregime anhand der '
