@@ -1,6 +1,31 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.33.0 (05.09.2026) — ANDIENUNGSWAHRSCHEINLICHKEITS-REGEL AUF '
+ *  CALL-SEITE UND BELIEBIGE INDIKATOREN VERALLGEMEINERT. CC-Live-Test '
+ *  (nach v2.32.0) fand: "ein starker struktureller Aufwärtstrend erhöht '
+ *  die Wahrscheinlichkeit, dass der Call früher ausgeübt werden könnte" — '
+ *  strukturell IDENTISCH zum 02.09.-RSI/Andienungs-Fund, nur (a) Call- '
+ *  statt Put-Seite, (b) EMA200-/D200-Abstand statt RSI als Indikator. Die '
+ *  bestehende Regel war im Titel zwar generisch ("Andienungs-/Ausübungs-'
+ *  wahrscheinlichkeit"), das einzige ausformulierte Beispiel deckte aber '
+ *  nur RSI+Put ab — das Modell hat die Verallgemeinerung auf Call+EMA200 '
+ *  offenbar nicht von selbst vollzogen. FIX: Regel-Text jetzt explizit '
+ *  "GILT FÜR JEDEN UNDERLYING-INDIKATOR UND BEIDE RICHTUNGEN" formuliert, '
+ *  mit ZWEI ausformulierten Beispielen (RSI/Put UND EMA200-D200-Abstand/'
+ *  Call) statt nur einem — Lehre aus den bisherigen Funden: eine Regel '
+ *  mit nur einem konkreten Beispiel wird vom Modell tendenziell eng auf '
+ *  genau dieses Beispiel bezogen, nicht automatisch generalisiert; zwei '
+ *  strukturell parallele Beispiele (verschiedener Indikator, verschiedene '
+ *  Richtung) sollen die Generalisierung robuster verankern. NICHT '
+ *  betroffen: die etablierte, unveränderte Abschnitt-6-Formulierung '
+ *  "näherer Strike ... höhere Ausübungswahrscheinlichkeit" bleibt zulässig '
+ *  — das ist eine strike-eigene Optionsmechanik-Aussage (näherer Strike = '
+ *  objektiv naeher am Geld), keine Ableitung aus einem Underlying-'
+ *  Indikator, und daher kein Fall dieser Regel. Wirkt rückwirkend auf alle '
+ *  5 Options-Strategien (nicht relevant für Equity-Strategien ohne '
+ *  Assignment-Konzept). Noch NICHT erneut live/smoke-getestet.
+ *
  *  Version: 2.32.0 (05.09.2026) — SCHRITT-2-SCHLUSS-SELBSTPRÜFUNG VON '
  *  WORTLISTEN-SUCHE AUF FUNKTIONS-PRÜFUNG UMGEBAUT. Auslöser: CC-Live-'
  *  Test NACH dem "stabil"-Fix (v2.31.0) zeigte "vorhersehbare Kursmuster" '
@@ -1796,15 +1821,29 @@ Das bedeutet konkret:
     'ausgeschlossen." NIEMALS "Andienung" fuer das Covered-Call-Ereignis ' +
     'verwenden — es ist begrifflich das falsche (entgegengesetzte) Konzept.\n' +
     '- KEINE ABGELEITETE ANDIENUNGS-/AUSUEBUNGSWAHRSCHEINLICHKEIT AUS ' +
-    'INDIKATORWERTEN (belegter Fund 02.09.2026, CSP-ATM/NA-Live-Test: "RSI ' +
-    '75 ... deutet eine erhoehte Andienungswahrscheinlichkeit an"): ein ' +
-    'RSI-Wert (oder ein anderer technischer Indikator) beschreibt einen ' +
-    'reinen Kurs-Datenpunkt, NIEMALS direkt eine Assignment-/Andienungs- ' +
-    'oder Ausuebungswahrscheinlichkeit — die tatsaechliche ITM-/Assignment-' +
-    'Wahrscheinlichkeit einer konkreten Option kann UIQ ohne Optionsketten-' +
-    'daten (Delta, Restlaufzeit) nicht bestimmen. Formulierungen wie "RSI ' +
-    '75 deutet eine erhoehte Andienungswahrscheinlichkeit an" sind ' +
-    'VERBOTEN. AKTUALISIERT (05.09.2026, dreifach belegter Wiederholungs-' +
+    'INDIKATORWERTEN — GILT FUER JEDEN UNDERLYING-INDIKATOR UND BEIDE ' +
+    'RICHTUNGEN (Put-Andienung UND Call-Ausuebung), NICHT NUR RSI (belegter ' +
+    'Fund 02.09.2026, CSP-ATM/NA-Live-Test, Put-Seite: "RSI 75 ... deutet ' +
+    'eine erhoehte Andienungswahrscheinlichkeit an"; ZWEITER, STRUKTURELL ' +
+    'IDENTISCHER Fund 05.09.2026, CC-Live-Test, Call-Seite, ANDERER ' +
+    'Indikator: "ein starker struktureller Aufwärtstrend erhöht die '+
+    'Wahrscheinlichkeit, dass der Call früher ausgeübt werden könnte" — ' +
+    'hier aus dem D200-/EMA200-Abstand abgeleitet, nicht aus RSI; zeigt: ' +
+    'die Regel darf NICHT indikatorspezifisch verstanden werden, sondern ' +
+    'gilt fuer JEDEN Underlying-Indikator, aus dem eine Options-Ereignis-' +
+    'Wahrscheinlichkeit abgeleitet werden koennte): ein technischer ' +
+    'Indikator des Basiswerts (RSI, EMA-/D200-Abstand, ATR, HVP, Bollinger-' +
+    'Position etc.) beschreibt IMMER nur einen reinen Kurs-Datenpunkt des ' +
+    'BASISWERTS, NIEMALS direkt eine Assignment-/Andienungs- oder ' +
+    'Ausuebungswahrscheinlichkeit einer KONKRETEN OPTION — die tatsaechliche ' +
+    'ITM-/Assignment-Wahrscheinlichkeit haengt von Delta, Restlaufzeit und ' +
+    'weiteren Optionsketten-Parametern ab, die UIQ nicht kennt. Formu- ' +
+    'lierungen wie "RSI 75 deutet eine erhoehte Andienungswahrscheinlichkeit ' +
+    'an" ODER "ein starker Aufwaertstrend erhoeht die Wahrscheinlichkeit ' +
+    'einer Ausuebung" sind BEIDE gleichermassen VERBOTEN — unabhaengig vom ' +
+    'verwendeten Indikator und unabhaengig davon, ob es sich um eine Put- ' +
+    'oder Call-Position handelt. AKTUALISIERT (05.09.2026, dreifach belegter ' +
+    'Wiederholungs-' +
     'fund ueber csp_wheel/CSP-ATM-NA-Live-Tests: "Rueckschlagpotenziale", ' +
     '"Risiko fuer weitere Abwaertsbewegung", "erhoehtem kurzfristigen ' +
     'Rueckgangspotenzial", "Rueckschlagsrisiken hindeutet" — das vormals ' +
@@ -1813,13 +1852,22 @@ Das bedeutet konkret:
     'Formulierung inzwischen verbieten; das Modell befolgte beide Regeln ' +
     'gleichzeitig, die aeltere gewann): das frühere Beispiel ist NICHT MEHR '+
     'gueltig. Stattdessen woertlich (reine Ebene-1-Beobachtung, KEINE ' +
-    'Risiko-/Rueckschlags-Formulierung mehr): "RSI 75 beschreibt eine ' +
+    'Risiko-/Rueckschlags-/Wahrscheinlichkeits-Formulierung mehr, EGAL WELCHER ' +
+    'INDIKATOR UND EGAL OB PUT ODER CALL): fuer RSI/Put-Seite: "RSI 75 ' +
+    'beschreibt eine ' +
     'ausgepraegte kurzfristige Ueberkauftheit. Ob und wie schnell dadurch ' +
     'ein moegliches Andienungsniveau erreicht wird, sowie die tatsaechliche ' +
     'Assignment-Wahrscheinlichkeit der konkreten Option, kann UIQ ohne ' +
-    'Optionskettendaten nicht bestimmen." Der reine Datenpunkt (RSI-Wert) ' +
+    'Optionskettendaten nicht bestimmen." Fuer EMA200-/D200-Abstand/Call-' +
+    'Seite ANALOG: "Der positive D200-Abstand beschreibt einen etablierten ' +
+    'Aufwaertstrend des Basiswerts. Ob und wie schnell dadurch der Strike ' +
+    'eines konkreten Short Calls erreicht wird, sowie die tatsaechliche ' +
+    'Ausuebungswahrscheinlichkeit der konkreten Option, kann UIQ ohne ' +
+    'Optionskettendaten nicht bestimmen." Der reine Datenpunkt (RSI, D200-' +
+    'Abstand, o.ae.) ' +
     'wird benannt, OHNE ihn selbst als "Risiko"/"Rueckschlagpotenzial"/' +
-    '"Rueckgangspotenzial" zu framen — das bleibt Ebene 1, keine Ebene-3-' +
+    '"Rueckgangspotenzial"/"erhoehte Wahrscheinlichkeit" zu framen — das ' +
+    'bleibt Ebene 1, keine Ebene-3-' +
     'Prognose (siehe REASONING-GUARDRAILS a/d/e fuer die vollstaendige ' +
     'Begruendung und Wortliste).\n' +
     '- KEIN DIREKTER STRIKE-BEZUG AUS REINEN UNDERLYING-SIGNALEN (belegter ' +
