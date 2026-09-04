@@ -1,6 +1,29 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.25.0 (04.09.2026) — ZWEITER RETEST des Momentum-9-Punkte-
+ *  Live-Tests (04.09.2026, nach v2.24.0): Reviewer bewertet klaren
+ *  Fortschritt (8,5-9/10), verbleibende Funde sind Feintuning, plus EIN
+ *  universelles Kernprinzip. GENERISCH (REASONING-GUARDRAILS-Block
+ *  erweitert, wirkt rückwirkend auf alle 7 migrierten Strategien):
+ *  (a) "erhöhtes Risiko einer/eines X" zur Verbotsliste ergänzt (klingt '
+ *  wie eine quantifizierte Risikoaussage, ist unbelegt — INSW-Fund:
+ *  "erhöhtes Risiko einer Marktkorrektur" aus reinem EMA200-Abstand
+ *  abgeleitet). NEU (d) DREI-EBENEN-TRENNUNG (Reviewer-Kernprinzip,
+ *  gilt für jeden Satz): Beobachtung → Modellinterpretation → Prognose/
+ *  Handlung; Ebene 3 nur mit explizitem Backtesting-Beleg. Zusätzlich:
+ *  Verbot, aus einem einzelnen Datenpunkt mehrere alternative Hypothesen
+ *  (z.B. "Korrektur"/"abgeschwächter Trend"/"günstigerer Einstieg") als
+ *  verbundene Kausalkette darzustellen (belegter Fund §6, BE-Fall) —
+ *  STATTDESSEN explizit benennen, dass keine der Interpretationen aus '
+ *  dem Datenpunkt allein folgt. Abschnitt 9 erweitert: bei identischem '
+ *  Score mehrerer Top-Titel als "Kohorte" bezeichnen, NIEMALS künstliche
+ *  Rangfolge 1./2./3. suggerieren, wenn die Scores gleich sind.
+ *  MOMENTUM-SPEZIFISCH: focus[]-Kriterium zum Bullish-Signalzähler '
+ *  ergänzt — SEPA-Score und Signalzähler sind zwei unabhängige Scores, '
+ *  dürfen NIE kausal verknüpft ("was bedeutet") werden, nur als zwei '
+ *  getrennte Sätze. Noch NICHT erneut live/smoke-getestet.
+ *
  *  Version: 2.24.0 (04.09.2026) — RETEST des Momentum-9-Punkte-Live-Tests
  *  (04.09.2026, nach v2.23.1) zeigte deutliche Verbesserung (RSI-Problem
  *  behoben, Trennung Modellbefund/Trade-off/Entscheidung funktioniert),
@@ -2030,7 +2053,15 @@ Das bedeutet konkret:
       + 'ein reiner Abstandswert zum 52W-Hoch für sich genommen keinen '
       + 'vorteilhafteren Einstieg belegt). Maßstab: wenn der Halbsatz beim '
       + 'Lesen wie eine Kaufbegründung oder ein Vorteilsversprechen klingt, '
-      + 'ist er zu überarbeiten — rein deskriptiv bleiben. Danach der '
+      + 'ist er zu überarbeiten — rein deskriptiv bleiben. WICHTIG (belegter '
+      + 'Fund 04.09.2026, Momentum-Retest — Reviewer-Feedback): falls '
+      + 'mehrere der in Abschnitt 3 genannten Titel einen IDENTISCHEN Score '
+      + 'teilen, sie als gemeinsame "Kohorte" bezeichnen — NIEMALS künstlich '
+      + 'eine Rangfolge 1./2./3. zwischen ihnen suggerieren oder implizieren '
+      + '(z.B. durch Reihenfolge-Sprache wie "an erster/zweiter Stelle"), '
+      + 'wenn die zugrunde liegenden Scores gleich sind. Eine Rangfolge ist '
+      + 'nur dort angebracht, wo unterschiedliche Scores sie tatsächlich '
+      + 'begründen. Danach der '
       + 'Pflichthinweis, dass ' + (istOptions
           ? 'Optionskette, Prämie, Liquidität, Earnings-Termine und individuelle Risikoparameter'
           : 'Einstiegszeitpunkt, Positionsgröße und individuelle Risikolage')
@@ -2062,11 +2093,13 @@ Das bedeutet konkret:
       + 'Kausalitäts- oder Prognoseaussagen aus Einzelindikatoren oder '
       + 'Regimeinformationen ableiten, sofern diese Beziehung nicht durch ein '
       + 'explizites, quantifiziertes Modell/Backtesting belegt ist. VERBOTEN: '
-      + '"macht wahrscheinlicher", "erhöht die Wahrscheinlichkeit", "führt zu", '
-      + '"verhindert", "spricht für eine bevorstehende Korrektur" o.ä. '
-      + 'STATTDESSEN NEUTRAL: "ist konsistent mit", "signalisiert", "zeigt", '
-      + '"steht im Modell im Zusammenhang mit", "kann als Risikofaktor '
-      + 'betrachtet werden".\n'
+      + '"macht wahrscheinlicher", "erhöht die Wahrscheinlichkeit", "erhöhtes '
+      + 'Risiko einer/eines [X]" (belegter Fund 04.09.2026, Momentum-Retest — '
+      + 'klingt wie eine quantifizierte Risikoaussage, ist aber unbelegt), '
+      + '"führt zu", "verhindert", "spricht für eine bevorstehende Korrektur" '
+      + 'o.ä. STATTDESSEN NEUTRAL: "ist konsistent mit", "signalisiert", '
+      + '"zeigt", "steht im Modell im Zusammenhang mit", "beschreibt eine '
+      + 'große Distanz zu X" (statt "erhöhtes Risiko durch X").\n'
       + 'b) NUMERISCHE PLAUSIBILITÄTSPRÜFUNG (belegter Fund 04.09.2026, '
       + 'Momentum-Live-Test — Daten-/Mappingfehler, kein reines Wortverbot): '
       + 'numerische Werte IMMER vor ihrer sprachlichen Interpretation auf '
@@ -2085,7 +2118,26 @@ Das bedeutet konkret:
       + 'großer EMA200- oder 52W-Abstand) ist zunächst ein reines Distanz-/'
       + 'Trendsignal — NIEMALS automatisch als "Überdehnung", "bevorstehende '
       + 'Korrektur" o.ä. wertend labeln, ohne die Einschränkung zu ergänzen, '
-      + 'dass daraus allein keine Korrektur-Aussage folgt.\n\n'
+      + 'dass daraus allein keine Korrektur-Aussage folgt.\n'
+      + 'd) DREI-EBENEN-TRENNUNG (04.09.2026, Reviewer-Kernprinzip — gilt für '
+      + 'JEDEN Satz der Antwort): UIQ unterscheidet strikt zwischen (1) '
+      + 'BEOBACHTUNG — ein reiner Datenpunkt (z.B. "EMA200-Abstand +38,2%"), '
+      + '(2) MODELLINTERPRETATION — Übereinstimmung mit definierten Kriterien '
+      + '(z.B. "starke Übereinstimmung mit Momentum-Kriterien"), und (3) '
+      + 'PROGNOSE/HANDLUNG — eine Aussage über künftige Kursentwicklung oder '
+      + 'Handlungsempfehlung (z.B. "Korrektur wahrscheinlicher", "besserer '
+      + 'Einstieg"). EBENE 3 DARF NUR BETRETEN WERDEN, WENN SIE DURCH EIN '
+      + 'EXPLIZITES, QUANTIFIZIERTES MODELL/BACKTESTING GESTÜTZT IST — '
+      + 'ansonsten bleibt die Antwort auf Ebene 1/2. Speziell: wenn aus einem '
+      + 'einzelnen Datenpunkt MEHRERE alternative Interpretationen denkbar '
+      + 'sind (z.B. ein großer Abstand zum Hoch könnte "Korrektur", '
+      + '"abgeschwächter Trend" ODER "günstigerer Einstieg" bedeuten — '
+      + 'belegter Fund 04.09.2026, Momentum-Retest, §6: alle drei Hypothesen '
+      + 'implizit als zusammenhängende Tatsachenkette aneinandergereiht), '
+      + 'diese NIEMALS als verbundene Kausalkette darstellen — STATTDESSEN '
+      + 'explizit benennen, dass aus dem Datenpunkt allein keine dieser '
+      + 'Interpretationen folgt (Pflichtformulierung sinngemäß: "aus dem '
+      + 'Abstand allein lässt sich nicht ableiten, ob X, Y oder Z vorliegt").\n\n'
       + 'AUFGABE (9-Punkte-Schema, 03.09.2026 — externes Reviewer-Feedback, '
       + 'gemeinsam für alle 14 UIQ-Strategien):\n'
       + '1. MARKT-/REGIME-KONTEXT: Fasse das aktuelle Marktregime anhand der '
@@ -2377,7 +2429,7 @@ Das bedeutet konkret:
         "Buy-Point/Timing: Steht der Titel am Pivot oder eher im Ruecksetzer zum EMA50 bei steigendem OBV?",
         "Stop-Loss-Sensitivitaet (rein qualitativ, KEIN konkreter Prozentwert/Kursniveau nennen — das ist EIC-exklusiv, Grundgesetz #11): tendiert der HVP-Wert eher zu einer engeren oder weiteren sinnvollen Risikotoleranz fuer eine individuell festzulegende Absicherung (hoeherer HVP tendenziell engere Toleranz sinnvoll, niedrigerer HVP tendenziell weitere)?",
         "Sektor- oder Makro-Risiko, das die Momentum-These aktuell am ehesten gefaehrden wuerde",
-        "Bullish-Signalzaehler (X/3, aus MACD/OBV/MA50 zusammengesetzt): WICHTIG, dieser Zaehler ist ein grober interner UIQ-Aggregationswert, KEIN eigenstaendiges, erklaertes Signal mit definierter Bedeutung pro Stufe (0/1/2/3). NIEMALS daraus eine zusammenfassende Bewertung wie 'bullische Signalquintessenz' oder aehnliche pauschale Charakterisierungen ableiten, ohne zu benennen, was der Zaehler konkret misst (Anzahl der drei erfuellten Einzelindikatoren) und was er NICHT aussagt (keine Gewichtung, keine Staerke-Einordnung zwischen den drei Komponenten)."
+        "Bullish-Signalzaehler (X/3, aus MACD/OBV/MA50 zusammengesetzt): WICHTIG, dieser Zaehler ist ein grober interner UIQ-Aggregationswert, KEIN eigenstaendiges, erklaertes Signal mit definierter Bedeutung pro Stufe (0/1/2/3). NIEMALS daraus eine zusammenfassende Bewertung wie 'bullische Signalquintessenz' oder aehnliche pauschale Charakterisierungen ableiten, ohne zu benennen, was der Zaehler konkret misst (Anzahl der drei erfuellten Einzelindikatoren) und was er NICHT aussagt (keine Gewichtung, keine Staerke-Einordnung zwischen den drei Komponenten). ZUSAETZLICH (belegter Fund 04.09.2026, Momentum-Retest — Reviewer-Feedback): SEPA-Score und Bullish-Signalzaehler sind ZWEI GETRENNTE, UNABHAENGIGE Scores — NIEMALS in einem Satz mit 'was bedeutet'/'d.h.'/'also' kausal verknuepfen (z.B. NIEMALS 'SEPA 8 erreicht, was bedeutet: das technische Momentum ist erkennbar'). STATTDESSEN als zwei separate Saetze nennen, z.B. 'Titel X erreicht SEPA 8/8 und damit die maximale Uebereinstimmung mit den hinterlegten SEPA-Kriterien. Zusaetzlich sind bei Titel X zwei von drei technischen Einzelsignalen (MACD, OBV, MA50) bullish.'"
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
