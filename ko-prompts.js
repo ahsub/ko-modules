@@ -1,6 +1,25 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.23.0 (04.09.2026) — EQUITY-MIGRATION FORTGESETZT (P1):
+ *  `momentum` als erste von 8 verbleibenden Equity-Strategien von
+ *  `_publicEquityPrompt()` auf `_publicNinePointPrompt()` umgestellt
+ *  (istOptionsStrategie: false, kein mode-Override → 'scan'). Vor dem
+ *  ersten Live-Test proaktiv geprüft: bekannte Problemwörter ("attraktiv",
+ *  "maximiert"/"optimiert", "keine strukturellen Hemmnisse",
+ *  "ATM-orientiert" außerhalb ATM-Kontext) — keine gefunden. NEUER FUND
+ *  (strukturell, kein Wortverbot): das dritte focus[]-Kriterium
+ *  ("Stop-Loss-Niveau: Sinnvoller Prozentabstand unter Kurs...") hätte
+ *  das Modell aktiv zu einem KONKRETEN Stop-Loss-Prozentwert eingeladen —
+ *  kollidiert mit Abschnitt 8 des 9-Punkte-Schemas ("OHNE jede Exit-/
+ *  Stop-/Roll-/Timing-Regel", EIC-exklusiv, Grundgesetz #11). Vor dem
+ *  ersten Test umformuliert auf rein qualitative "Stop-Loss-
+ *  Sensitivität" (HVP-Tendenz, kein Zahlenwert). principle-Text neu
+ *  ergänzt (Minervini-Stage-2-Mechanik), da MECHANIK-BEZUG-PFLICHT in
+ *  Abschnitt 2 einen STRATEGIEPRINZIP-Verweis voraussetzt (Muster aus
+ *  allen 6 bisher migrierten Strategien uebernommen). maxWords 350→450.
+ *  EIC-Zweig unverändert. Noch NICHT live getestet.
+ *
  *  Version: 2.22.6 (04.09.2026) — POLITUR-FIX zum KO-5-Fund: der zweite
  *  echte 9-Punkte-Live-Test (04.09.2026, KO-Trading, Kandidaten DE/BE/SIRI,
  *  jetzt mit echtem homeMarket-Wert aus dem Aggregator statt Fallback)
@@ -2254,17 +2273,19 @@ Das bedeutet konkret:
       focus: [
         "SEPA/Stage-2-Qualitaet: Erfuellt der Titel die Kernkriterien (Trend, relative Staerke) aus den Scandaten?",
         "Buy-Point/Timing: Steht der Titel am Pivot oder eher im Ruecksetzer zum EMA50 bei steigendem OBV?",
-        "Stop-Loss-Niveau: Sinnvoller Prozentabstand unter Kurs, abhaengig vom HVP-Wert (hoeherer HVP = engerer Stop)",
+        "Stop-Loss-Sensitivitaet (rein qualitativ, KEIN konkreter Prozentwert/Kursniveau nennen — das ist EIC-exklusiv, Grundgesetz #11): tendiert der HVP-Wert eher zu einer engeren oder weiteren sinnvollen Risikotoleranz fuer eine individuell festzulegende Absicherung (hoeherer HVP tendenziell engere Toleranz sinnvoll, niedrigerer HVP tendenziell weitere)?",
         "Sektor- oder Makro-Risiko, das die Momentum-These aktuell am ehesten gefaehrden wuerde"
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
-          return _publicEquityPrompt(ctx, {
-            rolle: 'Du analysierst Aktien nach Minervini/SEPA-Momentum-Kriterien (Stage-2-Trend, relative Stärke).',
+          return _publicNinePointPrompt(ctx, {
+            rolle: 'Du analysierst Aktien nach Minervini/SEPA-Momentum-Kriterien (Stage-2-Trend, relative Stärke) auf Basis technischer Kennzahlen. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
             stratName: 'Momentum/SEPA-Setups',
             marktumfeldFrage: 'Unterstützt die aktuelle Marktphase Momentum-Strategien (Trendbreite, Regime)?',
             focus: STRATEGIES.momentum.focus,
-            maxWords: 350
+            maxWords: 450,
+            istOptionsStrategie: false,
+            principle: 'Momentum/SEPA-Setups folgen der Minervini-Methode (Stage-2-Analyse): gesucht werden Aktien in einer bereits bestätigten Aufwärtsphase (Stage 2) — erkennbar an einer bullischen Anordnung der gleitenden Durchschnitte, starker relativer Stärke gegenüber dem Gesamtmarkt und einem Volumenmuster, das eher Akkumulation als Distribution zeigt. Die Strategie kauft keine fallenden Kurse, sondern bereits etablierte Trends — idealerweise beim ersten Rücksetzer zum EMA50 statt am ersten Ausbruchsimpuls selbst. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.'
           });
         }
         return KI_ANTI_HALLUZINATION
