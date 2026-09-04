@@ -1,6 +1,22 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.22.5 (04.09.2026) — KO-5-FIX: "bei US-Titeln" (reine Text-
+ *  Instruktion, Modell musste US-Zugehoerigkeit aus dem Ticker selbst
+ *  erschliessen) ersetzt durch Bezug auf das neue, tatsaechlich mitgelieferte
+ *  Datenfeld homeMarket (market_aggregator.py v04.09.2026 + index.html
+ *  v20260904-v488, DATA_LEGENDE/tickerList). Ausloeser: erster echter
+ *  9-Punkte-Live-Test mit den v2.22.4-Guardrails (04.09.2026, KO-Trading,
+ *  Kandidaten DE/SIRI/SLDE — alle drei US-boersennotiert) zeigte KO-5
+ *  (Gap-/Overnight-Risiko) komplett fehlend im Output, obwohl die Bedingung
+ *  erfuellt war — die Erkennung aus dem blossen Tickersymbol ("DE" z.B.
+ *  kollidiert mit dem Laenderkuerzel Deutschland) war nicht zuverlaessig.
+ *  Betrifft beide KO-5-Stellen im focus[]-Array (Zeile ~2163) und im
+ *  risikenText (Zeile ~2185ff.) sowie den bislang analog anfaelligen
+ *  "Marktzugang"-Punkt (Zeile ~2162, ebenfalls "fuer viele US-Aktien").
+ *  Funktional noch NICHT erneut live/smoke-getestet — vor dem naechsten
+ *  KO-Lauf verifizieren, dass homeMarket im tickerList-String ankommt.
+ *
  *  Version: 2.22.4 (03.09.2026) — FÜNF KO-SPEZIFISCHE GUARDRAILS ERGÄNZT,
  *  externes Reviewer-Feedback zum ersten echten KO-9-Punkte-Live-Test
  *  (über den richtigen Code-Pfad, s. v2.22.3-Aufklärung): (1) KO-1
@@ -2159,8 +2175,8 @@ Das bedeutet konkret:
         "Hebel-Eignung: Passt die Volatilitaet (ATR) des Titels zu einem 3-8x-Hebel, ohne durch normales Kursrauschen ausgeknockt zu werden? WICHTIG: HVP beschreibt die historische realisierte Volatilitaet des Basiswerts und ist KEIN Mass fuer den Hebel, die Produktvolatilitaet oder die KO-Wahrscheinlichkeit eines konkreten Zertifikats — diese haengen ausschliesslich vom gewaehlten Produkt ab.",
         "KO-Abstand (Underlying-Ebene, NICHT das konkrete Produkt): ATR-basierte Naeherung fuer die Kursbeweglichkeit des Basiswerts. WICHTIG: der Abstand zur EMA200 ist NIEMALS mit dem Abstand zur tatsaechlichen KO-Barriere gleichzusetzen — die EMA200 ist ein technischer Trendindikator des Basiswerts, die KO-Barriere ist ein Produktparameter des konkreten Zertifikats. Ein grosser EMA200-Abstand kann auf eine fortgeschrittene Kursbewegung hinweisen und damit das Rueckschlagrisiko im Modell erhoehen — das ist unabhaengig vom tatsaechlichen Puffer bis zur KO-Barriere, der ausschliesslich vom konkreten Produkt abhaengt.",
         "Trend-Regime-Eignung: KO-Zertifikate sind Hebel-/Momentum-Instrumente fuer kurzfristiges Trading (Tage bis wenige Wochen) in KLAREN Trendphasen — NICHT fuer Seitwaertsmaerkte oder Buy-and-Hold geeignet. Liegt aktuell ein klarer, starker Trendimpuls vor (z.B. nach Kurstreibern wie starken Quartalszahlen) oder eher ein Seitwaertsumfeld?",
-        "Marktzugang: fuer viele US-Aktien ist die Emission entsprechender Hebelprodukte fuer Privatanleger seit einer US-Steuerregeländerung 2017 eingeschraenkt bzw. gar nicht verfuegbar — der deutsche/europaeische Markt (DE/EU-Titel) bietet strukturell das breitere, liquidere Angebot. Bei US-Titeln zusaetzlich Quellensteuer-Aspekte und typischerweise geringeres Emittenten-Angebot beachten. Dies ist eine allgemeine Marktzugangs-Charakteristik, keine Empfehlung einzelner Titel oder Sektoren durch UIQ.",
-        "Gap-/Overnight-Risiko: bei US-Titeln besteht ein Zeitzonen-Versatz zwischen deutscher und US-Handelszeit — eine schnelle Kursbewegung oder ein Gap kann die KO-Barriere erreichen, bevor eine manuelle Reaktion moeglich ist. Dieses Risiko ist bei gehebelten Produkten strukturell staerker ausgepraegt als bei der Aktie selbst.",
+        "Marktzugang: fuer Titel mit homeMarket=US ist die Emission entsprechender Hebelprodukte fuer Privatanleger seit einer US-Steuerregeländerung 2017 eingeschraenkt bzw. gar nicht verfuegbar — der deutsche/europaeische Markt (homeMarket=DE/FR/NL/IT/CH/UK/DK/SE/AU) bietet strukturell das breitere, liquidere Angebot. Bei homeMarket=US zusaetzlich Quellensteuer-Aspekte und typischerweise geringeres Emittenten-Angebot beachten. WICHTIG: homeMarket bezeichnet die Handelsboerse (Handelszeit), NICHT den Firmensitz — auch ADRs nicht-amerikanischer Konzerne (z.B. SAP, ASML, RIO) haben homeMarket=US, da sie selbst auf NYSE/NASDAQ handeln. Dies ist eine allgemeine Marktzugangs-Charakteristik, keine Empfehlung einzelner Titel oder Sektoren durch UIQ.",
+        "Gap-/Overnight-Risiko: bei Kandidaten mit dem Datenfeld homeMarket=US (siehe FELDERKLÄRUNG) besteht ein Zeitzonen-Versatz zwischen deutscher und US-Handelszeit — eine schnelle Kursbewegung oder ein Gap kann die KO-Barriere erreichen, bevor eine manuelle Reaktion moeglich ist. Dieses Risiko ist bei gehebelten Produkten strukturell staerker ausgepraegt als bei der Aktie selbst. WICHTIG: homeMarket=US bedeutet Handel auf einer US-Boerse (NYSE/NASDAQ/OTC) und gilt AUCH fuer ADRs nicht-amerikanischer Unternehmen — NIEMALS versuchen, die Boersenzugehoerigkeit stattdessen aus dem Tickersymbol selbst zu erraten (z.B. der Ticker \"DE\" ist Deere & Co., NYSE, NICHT das Laenderkuerzel Deutschland).",
         "Positionsgroessen-Passung: Wie fuegt sich der Titel ins Limit von max. 2.000 EUR ein (Starter- vs. Aufstockungs-Groesse)? WICHTIG: die 2.000-EUR-Grenze ist eine Obergrenze fuer den maximalen Kapitaleinsatz/potenziellen Totalverlust — KEIN Stop-Loss-Mechanismus und keine Risikobegrenzung waehrend der Positionslaufzeit.",
         "UIQ-Score/Strategy-Fit ≠ Gewinnwahrscheinlichkeit: ein hoher Score beschreibt die Uebereinstimmung des Basiswerts mit den technischen Kriterien, NICHT die Erfolgswahrscheinlichkeit eines konkreten KO-Trades. Ein Titel kann gleichzeitig hohen Strategy Fit UND ein erhoehtes Korrekturrisiko aufweisen (z.B. hoher Score bei gleichzeitig grossem EMA200-Abstand) — beides klar getrennt darstellen, nicht als Widerspruch behandeln.",
         "Hauptrisiko fuer die Long-These: was koennte kurzfristig zum KO-Ereignis fuehren? WICHTIG: ein KO-Ereignis fuehrt in der Regel zum sofortigen Totalverlust des in dieser Position eingesetzten Kapitals — ein grundlegend anderes Risikoprofil als der Besitz der Aktie selbst. Eine eigene, vor Positionseroeffnung festgelegte Risikobegrenzung wird generell empfohlen (OHNE dass UIQ einen konkreten Stop-Loss-Wert vorgibt — das bleibt individuelle Festlegung bzw. EIC-exklusiv)."
@@ -2182,9 +2198,11 @@ Das bedeutet konkret:
               + 'Abstand NIEMALS von "Rückkehr-/Korrekturrisiko" oder "KO-Barriere schneller '
               + 'erreichen" sprechen (impliziert, UIQ kenne die tatsächliche Barriere) — STATTDESSEN: '
               + '"kann auf eine fortgeschrittene Kursbewegung bzw. erhöhte Distanz zum langfristigen '
-              + 'Trendmittel hinweisen und damit das Rückschlagrisiko im Modell erhöhen." Bei US-'
-              + 'Titeln IMMER das Gap-/Overnight-Risiko durch den Zeitzonen-Versatz zwischen '
-              + 'deutscher und US-Handelszeit benennen. Ergänzend die generelle Empfehlung '
+              + 'Trendmittel hinweisen und damit das Rückschlagrisiko im Modell erhöhen." Bei '
+              + 'Kandidaten mit dem Datenfeld homeMarket=US (siehe FELDERKLÄRUNG — NICHT aus dem '
+              + 'Tickersymbol selbst erraten, gilt auch für ADRs nicht-amerikanischer Unternehmen '
+              + 'wie SAP/ASML/RIO) IMMER das Gap-/Overnight-Risiko durch den Zeitzonen-Versatz '
+              + 'zwischen deutscher und US-Handelszeit benennen. Ergänzend die generelle Empfehlung '
               + 'aussprechen, vor Positionseröffnung eine eigene Risikobegrenzung festzulegen — OHNE '
               + 'einen konkreten Stop-Loss-Wert oder eine konkrete Regel zu nennen (das bleibt '
               + 'individuelle Festlegung bzw. EIC-exklusiv, Grundgesetz #11).',
