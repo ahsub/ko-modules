@@ -1,6 +1,45 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.40.0 (06.09.2026) — EQUITY-MIGRATION FORTGESETZT (P2): '
+ *  `meanrev` als fünfte von 7 verbleibenden Equity-Strategien von '
+ *  `_publicEquityPrompt()` auf `_publicNinePointPrompt()` umgestellt '
+ *  (istOptionsStrategie: false, mode default scan). focus[] bereits '
+ *  sauber (P2-Voraudit). principle-Text neu ergänzt (Mean-Reversion-'
+ *  Mechanik, RSI als Kernindikator vs. EMA200 als Zielniveau). '
+ *  risikenText NEU gesetzt: verhindert einen im alten Fünf-Abschnitte-'
+ *  Output vom 05.09.2026 direkt beobachteten STRATEGIE-/INDIKATOR-'
+ *  VERWECHSLUNGSFUND — "Kriterium-Erfüllung: Moderate Überverkauftheit" '
+ *  wurde dort faelschlich aus dem EMA200-Abstand statt dem tatsächlichen '
+ *  RSI-Wert abgeleitet, obwohl `meanrev`s eigene focus[]-Kriterien beide '
+ *  Kennzahlen bereits korrekt trennen (Konzept war vorhanden, wurde vom '
+ *  Modell im Live-Output aber nicht konsequent angewendet) — jetzt '
+ *  explizit als Pflichttrennung verankert, analog zur SEPA/Bullish-'
+ *  Signalzähler-Trennung bei Momentum. tradeoffKontext NEU gesetzt: '
+ *  "Reversions-Tiefe ↔ Trendrisiko" (RSI-Extremität vs. Momentum-Fallen-'
+ *  Risiko). Noch NICHT live/smoke-getestet. Migrationsstand: 11 von 14 '
+ *  Strategien.
+ *
+ *  Version: 2.39.0 (06.09.2026) — EQUITY-MIGRATION FORTGESETZT (P2): '
+ *  `swing` als vierte von 7 verbleibenden Equity-Strategien von '
+ *  `_publicEquityPrompt()` auf `_publicNinePointPrompt()` umgestellt '
+ *  (istOptionsStrategie: false, mode default scan). focus[] bereits '
+ *  durch proaktiven Audit (v2.35.0) bereinigt (Stop-Loss-Sensitivitaet-'
+ *  Fix). principle-Text neu ergänzt (Pullback/Breakout/Reversal-'
+ *  Mustertypologie, kürzerer Zeithorizont als Momentum/Breakout). '
+ *  risikenText NEU gesetzt: verhindert proaktiv exakt die Muster, die im '
+ *  alten Fünf-Abschnitte-Output vom 05.09.2026 auftraten ("🔴 stark '
+ *  überdehnt", "Pullback-Wahrscheinlichkeit erhöht", "Rückfall-Szenario '
+ *  wahrscheinlich" aus SIDEWAYS-Regime/schwacher Breadth abgeleitet) — '
+ *  dieselbe "keine automatische Überdehnung"-Klarstellung wie bei '
+ *  breakout/vcp, PLUS explizites Verbot, aus Regime-/Breadth-Schwäche '
+ *  eine Einzeltitel-Wahrscheinlichkeitsaussage abzuleiten. tradeoffKontext '
+ *  NEU gesetzt: "Mustertyp ↔ Timing-Präzision" — reflektiert die drei '
+ *  unterschiedlichen Musterarten (Pullback/Breakout/Reversal) mit ihren '
+ *  jeweils eigenen Trade-offs, statt eines einzelnen generischen '
+ *  Zielkonflikts. Noch NICHT live/smoke-getestet. Migrationsstand: 10 '
+ *  von 14 Strategien.
+ *
  *  Version: 2.38.0 (06.09.2026) — EQUITY-MIGRATION FORTGESETZT (P2): '
  *  `vcp` als dritte von 7 verbleibenden Equity-Strategien von '
  *  `_publicEquityPrompt()` auf `_publicNinePointPrompt()` umgestellt '
@@ -3268,12 +3307,30 @@ Das bedeutet konkret:
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
-          return _publicEquityPrompt(ctx, {
-            rolle: 'Du analysierst kurzfristige technische Swing-Setups (5-20 Tage Haltedauer-Horizont).',
+          return _publicNinePointPrompt(ctx, {
+            rolle: 'Du analysierst kurzfristige technische Swing-Setups (5-20 Tage Haltedauer-Horizont) auf Basis von Tagesschluss-Daten. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
             stratName: 'Swing-Setups',
             marktumfeldFrage: 'Wie ist die kurzfristige Trendrichtung und das Swing-Potenzial einzuordnen?',
             focus: STRATEGIES.swing.focus,
-            maxWords: 350
+            maxWords: 450,
+            istOptionsStrategie: false,
+            principle: 'Swing-Trading sucht kurzfristige technische Muster — Pullback in einem etablierten Aufwärtstrend, Breakout über ein Widerstandsniveau, oder Reversal an einer Unterstützung — mit einer geplanten Haltedauer von 5 bis 20 Handelstagen. Anders als Momentum- oder Breakout-Strategien mit Fokus auf etablierte Stage-2-Trends ist Swing-Trading musterunabhängiger und kürzer getaktet: Grundlage ist ein klar erkennbares technisches Setup, keine langfristige fundamentale These. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der kurzfristigen Kursbewegung der Aktie selbst.',
+            risikenText: 'Zusätzlich klarstellen: ein hoher EMA200-Abstand beschreibt lediglich eine '
+              + 'bereits weiter fortgeschrittene Kursbewegung relativ zum langfristigen Trendmittel '
+              + '(reine Ebene-1-Beobachtung, siehe REASONING-GUARDRAILS c/e) — daraus NIEMALS '
+              + 'automatisch eine "Überdehnung", ein "Rücksetzungsrisiko" oder eine erhöhte '
+              + '"Pullback-Wahrscheinlichkeit" ableiten. Ebenso NIEMALS aus einer schwachen Markt-'
+              + 'breite oder einem SIDEWAYS-Regime direkt ein "wahrscheinliches Rückfall-Szenario" '
+              + 'für Einzeltitel folgern (Ebene 3 ohne Backtesting-Beleg, siehe REASONING-GUARDRAILS '
+              + 'a/d).',
+            tradeoffKontext: '(Mustertyp ↔ Timing-Präzision — der eigentliche Zielkonflikt bei '
+              + 'Swing-Setups je nach erkanntem Muster: ein Pullback-Setup bietet einen bereits '
+              + 'bestätigten Trendkontext, erfordert aber präzises Timing nahe der Unterstützung; '
+              + 'ein Breakout-Setup bietet Momentum-Bestätigung, trägt aber ein höheres '
+              + 'unmittelbares Fehlausbruchsrisiko; ein Reversal-Setup bietet den größten '
+              + 'potenziellen Bewegungsraum, ist aber am wenigsten durch einen etablierten Trend '
+              + 'abgesichert. Die Gewichtung dieser Merkmale ist eine strategische Abwägung, keine '
+              + 'Aussage über den zukünftigen Kursverlauf.)'
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -3303,12 +3360,33 @@ Das bedeutet konkret:
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
-          return _publicEquityPrompt(ctx, {
-            rolle: 'Du analysierst statistische Über-/Unterverkauft-Situationen (Mean-Reversion-Kontext).',
+          return _publicNinePointPrompt(ctx, {
+            rolle: 'Du analysierst statistische Über-/Unterverkauft-Situationen (Mean-Reversion-Kontext) auf Basis von Tagesschluss-Daten. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
             stratName: 'Mean-Reversion-Setups',
             marktumfeldFrage: 'Gibt es aktuell extreme Über-/Unterverkauft-Situationen im Markt?',
             focus: STRATEGIES.meanrev.focus,
-            maxWords: 350
+            maxWords: 450,
+            istOptionsStrategie: false,
+            principle: 'Mean-Reversion-Strategien setzen auf die statistische Tendenz von Kursen, nach extremen kurzfristigen Ausschlägen zu einem gleitenden Mittelwert (hier: EMA200) zurückzukehren. Kernindikator ist der RSI als Maß für kurzfristige Über-/Unterhitzung — NICHT der EMA200-Abstand selbst, der lediglich das Zielniveau beschreibt (die Referenzlinie, zu der eine Rückkehr erwartet wird). Die Strategie funktioniert am ehesten bei extremen RSI-Werten in einem übergeordnet neutralen bis leicht trendigen Umfeld; in starken Trendphasen kann eine vermeintliche Übertreibung tatsächlich fortlaufendes Momentum sein (Momentum-Falle). Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.',
+            risikenText: 'Zusätzlich klarstellen (belegter Fund 05.09.2026, Mean-Reversion-Live-'
+              + 'Test — Strategie-/Indikator-Verwechslung): RSI (Über-/Unterhitzung) und EMA200-'
+              + 'Abstand (Distanz zum Zielniveau) sind ZWEI GETRENNTE Kennzahlen mit unterschiedlicher '
+              + 'Funktion. Ein hoher EMA200-Abstand ist NIEMALS selbst ein Beleg für Überverkauftheit/'
+              + 'Überhitzung — diese Einordnung folgt AUSSCHLIESSLICH aus dem RSI-Wert (belegter '
+              + 'Fund: "Kriterium-Erfüllung: Moderate Überverkauftheit" wurde fälschlich aus dem '
+              + 'EMA200-Abstand statt dem RSI-Wert abgeleitet). Beide Kennzahlen in getrennten '
+              + 'Sätzen benennen, niemals kausal vermischen (analog zur SEPA/Bullish-Signalzähler-'
+              + 'Trennung bei Momentum). Ebenso NIEMALS aus einem SIDEWAYS-Regime oder schwacher '
+              + 'Marktbreite eine Aussage ableiten, ob eine Mean-Reversion tatsächlich eintritt oder '
+              + 'ausbleibt (Ebene 3 ohne Backtesting-Beleg, siehe REASONING-GUARDRAILS a/d).',
+            tradeoffKontext: '(Reversions-Tiefe ↔ Trendrisiko — der eigentliche Zielkonflikt bei '
+              + 'Mean-Reversion: ein extremerer RSI-Wert beschreibt eine stärkere kurzfristige '
+              + 'Überhitzung/Überverkauftheit und damit im Modell ein potenziell größeres '
+              + 'Rückkehr-Potenzial zum Zielniveau; gleichzeitig kann ein extremer RSI-Wert '
+              + 'innerhalb eines starken übergeordneten Trends auch schlicht anhaltendes Momentum '
+              + 'widerspiegeln statt eine bevorstehende Umkehr (Momentum-Falle). Die Gewichtung '
+              + 'dieser Merkmale ist eine strategische Abwägung, keine Aussage über den '
+              + 'zukünftigen Kursverlauf.)'
           });
         }
         return KI_ANTI_HALLUZINATION
