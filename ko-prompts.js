@@ -1,6 +1,32 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.45.0 (06.09.2026) — NEUE STRATEGIE: `breakdown` (Alpha-'
+ *  Desk-Leaderboard "short_breakdown", bisher ohne STRATEGIES-Eintrag '
+ *  und daher ueber _noMetricsLBs deaktiviert, obwohl score_short_'
+ *  breakdown() bereits echte Scoring-Logik liefert). Erste GENUINE Short-'
+ *  Equity-Strategie (kein KO-Zertifikat wie fading_short — calc_ko_short_'
+ *  leverage() ist ausschliesslich an sFading gekoppelt, nicht an '
+ *  sBreakdown). Neuer, strategie-eigener Guardrail-Fund: Short-Positionen '
+ *  tragen ein UNBEGRENZTES Verlustrisiko (im Gegensatz zu Long-'
+ *  Positionen, max. Verlust = Kapitaleinsatz) — explizit in principle/'
+ *  risikenText verankert, unabhaengig vom gewaehlten Ausfuehrungs-'
+ *  instrument (Leerverkauf/inverse ETF/Put/KO-Short). Zweiter neuer '
+ *  Fund: Short-Squeeze-Risiko (squeezeRisk-Feld, per calc_squeeze_risk() '
+ *  in market_aggregator.py als "hartes Gate fuer alle Short-Strategien" '
+ *  dokumentiert, ≥70 kritisch) — als eigenes focus[]-Kriterium und '
+ *  risikenText-Pflichthinweis verankert; bisher in KEINER Strategie '
+ *  (auch nicht fading_short) explizit abgebildet, obwohl fading_short '
+ *  laut demselben Docstring ebenfalls diesem Gate unterliegen sollte — '
+ *  NICHT rueckwirkend in fading_short ergaenzt (separater Fund, ausserhalb '
+ *  des heutigen Auftrags, fuer spaeter vorgemerkt). Kapitulations-'
+ *  Abgrenzung als eigenes Kriterium (grosser EMA200-Abstand ≠ mehr '
+ *  Verkaufsdruck, spiegelbildlich zur bereits etablierten "keine '
+ *  automatische Ueberdehnung"-Regel). tradeoffKontext: "Trendbruch-Tiefe '
+ *  ↔ Squeeze-Risiko". Migrationsstand: 15 von jetzt 15 bekannten '
+ *  Strategien (14 vorherige + breakdown neu). Noch NICHT live/smoke-'
+ *  getestet.
+ *
  *  Version: 2.44.0 (06.09.2026) — EQUITY-MIGRATION ABGESCHLOSSEN (P2): '
  *  `dividend` und `value` als letzte zwei der 8 verbleibenden Equity-'
  *  Strategien von `_publicEquityPrompt()` auf `_publicNinePointPrompt()` '
@@ -4170,6 +4196,68 @@ Das bedeutet konkret:
           + 'Für jeden: Überhitzungs-Signal, Stop-Level (knapp über 52W-Hoch), Timing-Überlegung.\n'
           + '3. RISIKEN: Gegentrend-Short im Bullmarkt ist das größte Risiko — explizit benennen.\n'
           + '\nAntworte auf Deutsch, strukturiert 1-3. Max. 300 Wörter.';
+      }
+    },
+
+    breakdown: {
+      lbKey: 'short_breakdown',
+      label: 'Breakdown-Setups (Short)',
+      hint:  '📉 Breakdown (Short): Death-Cross-Bereich · Distribution · technischer Abwärtstrend',
+      color: 'var(--red)',
+      focus: [
+        "Trendbruch-Grad: Death-Cross-Naehe (EMA50 unter EMA200) und Kursposition unterhalb beider Linien",
+        "Distribution: negativer OBV-Trend und negatives MACD-Histogramm als Verkaufsdruck-Signale",
+        "Volumen-Bestaetigung: VolRatio > 1,3x als Hinweis auf verstaerkten Abgabedruck",
+        "Short-Squeeze-Risiko (squeezeRisk-Feld, 0-100, >=70 = kritische Schwelle): eine technisch stark ueberverkaufte, niedrig-volatile Ausgangslage (aufgestaute Energie) kann bei ploetzlichem Volumen-Anstieg zu einer schnellen, heftigen Gegenbewegung fuehren, die eine Short-These abrupt widerlegt — bei erhoehtem Wert IMMER explizit als Gegenargument benennen, nicht nur beilaeufig erwaehnen.",
+        "Kapitulations-Abgrenzung: ein extrem grosser Abstand unterhalb der EMA200 deutet eher auf eine bereits erfolgte Kapitulation (Mean-Reversion-Kandidat) hin als auf einen aktiven Breakdown-Trend — ein grosser Abstand bedeutet NICHT automatisch mehr verbleibenden Verkaufsdruck.",
+        "Groesstes Risiko fuer die Short-These"
+      ],
+      prompt: function(ctx) {
+        if (!ctx.isEic) {
+          return _publicNinePointPrompt(ctx, {
+            rolle: 'Du analysierst Titel in technischer Auflösung eines vorherigen Aufwärtstrends (Breakdown-Setups) auf Basis von Tagesschluss-Daten. UIQ bewertet ausschließlich die technische Eignung des Basiswerts für eine bearische These — die konkrete Ausführung (Leerverkauf, inverse ETFs, Put-Optionen, KO-Short-Zertifikate) liegt vollständig außerhalb von UIQ.',
+            stratName: 'Breakdown-Setups (Short)',
+            marktumfeldFrage: 'Unterstützt das aktuelle Regime bearische Breakdown-Setups (Marktbreite, Bär-Signale)?',
+            focus: STRATEGIES.breakdown.focus,
+            maxWords: 450,
+            istOptionsStrategie: false,
+            principle: 'Breakdown-Setups (Short) suchen Titel in technischer Auflösung eines vorherigen Aufwärtstrends — gekennzeichnet durch eine Annäherung an oder Überschreitung eines Death-Cross-Zustands (EMA50 unter EMA200), Distribution (fallender OBV, negatives MACD-Momentum) und Volumen-Bestätigung. UIQ bewertet ausschließlich die technische Eignung des Basiswerts für eine bearische/Breakdown-These — welche konkrete Ausführung (Leerverkauf von Aktien, inverse ETFs, Put-Optionen oder KO-Short-Zertifikate) gewählt wird, liegt vollständig außerhalb von UIQ und bringt jeweils eigene, unterschiedliche Risikoprofile mit sich. WICHTIGER RISIKOHINWEIS: eine direkte Leerverkaufsposition (Short-Sale) trägt im Gegensatz zu einer Long-Position ein theoretisch UNBEGRENZTES Verlustrisiko (der Kurs kann unbegrenzt steigen), während eine Long-Position maximal den vollständigen Kapitaleinsatz verlieren kann — dieser fundamentale Unterschied gilt unabhängig vom gewählten Ausführungsinstrument.',
+            risikenText: 'Zusätzlich IMMER auf das Short-Squeeze-Risiko hinweisen, wenn das '
+              + 'squeezeRisk-Feld einen erhöhten Wert zeigt (≥70 als kritische Schwelle) — eine '
+              + 'technisch stark überverkaufte, niedrig-volatile Ausgangslage kann bei plötzlichem '
+              + 'Volumen-Anstieg zu einer schnellen, heftigen Gegenbewegung führen, die eine Short-'
+              + 'These abrupt widerlegt. Zusätzlich das unbegrenzte Verlustrisiko einer direkten '
+              + 'Leerverkaufsposition explizit benennen (siehe STRATEGIEPRINZIP) — NIEMALS '
+              + 'implizieren, dass das Risiko einer Short-Position dem einer Long-Position '
+              + 'symmetrisch entspricht. Ein großer EMA200-Abstand (Death-Cross-Tiefe) beschreibt '
+              + 'lediglich eine bereits erfolgte Kursbewegung relativ zum langfristigen Trendmittel '
+              + '(reine Ebene-1-Beobachtung, siehe REASONING-GUARDRAILS c/e) — daraus NIEMALS '
+              + 'automatisch zusätzlichen Verkaufsdruck oder eine Fortsetzung des Abwärtstrends '
+              + 'ableiten.',
+            tradeoffKontext: '(Trendbruch-Tiefe ↔ Squeeze-Risiko — der eigentliche Zielkonflikt bei '
+              + 'Breakdown-Setups: ein bereits weiter fortgeschrittener Trendbruch (größerer Abstand '
+              + 'unterhalb der EMA200, negativeres OBV/MACD) beschreibt im Modell eine deutlichere '
+              + 'technische Bestätigung der Short-These; gleichzeitig kann eine bereits stark '
+              + 'überverkaufte Lage (niedrige HVP, überverkaufter RSI) genau die Bedingungen für '
+              + 'einen abrupten Short-Squeeze schaffen, der die These schnell widerlegt. Die '
+              + 'Gewichtung dieser Merkmale ist eine strategische Abwägung, keine Aussage über den '
+              + 'zukünftigen Kursverlauf.)'
+          });
+        }
+        return KI_ANTI_HALLUZINATION
+          + 'Du bist ein erfahrener Short-Trader mit Fokus auf technische Trendbrüche '
+          + '(Death Cross, Distribution).\n\n'
+          + '⚠️ WICHTIGER RISIKOHINWEIS: Eine direkte Leerverkaufsposition trägt ein theoretisch '
+          + 'unbegrenztes Verlustrisiko — anders als bei Long-Positionen, wo der maximale Verlust '
+          + 'auf den Kapitaleinsatz begrenzt ist.\n\n'
+          + ctx.marktkontext
+          + '\n\nAUFGABE:\n'
+          + '1. MARKTUMFELD: Unterstützt das aktuelle Regime bearische Setups? (2-3 Sätze)\n'
+          + '2. TOP 3 BREAKDOWN-KANDIDATEN: Für jeden: Trendbruch-Grad (EMA50/200-Position), '
+          + 'Distribution (OBV/MACD), Squeeze-Risiko (squeezeRisk-Feld, ≥70 = kritisch), '
+          + 'Stop-Level knapp über einem lokalen Widerstand.\n'
+          + '3. RISIKEN: Short-Squeeze-Potenzial und unbegrenztes Verlustrisiko explizit benennen.\n'
+          + '\nAntworte auf Deutsch, strukturiert 1-3. Max. 400 Wörter.';
       }
     },
 
