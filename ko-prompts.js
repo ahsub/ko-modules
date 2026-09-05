@@ -1,6 +1,36 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.43.0 (06.09.2026) — EQUITY-MIGRATION FORTGESETZT (P2): '
+ *  `fading_short` als sechste von 7 verbleibenden Equity-Strategien von '
+ *  `_publicEquityPrompt()` auf `_publicNinePointPrompt()` umgestellt, MIT '
+ *  VOLLSTÄNDIGER KO-STYLE-GUARDRAIL-FAMILIE (Priorität hochgestuft nach '
+ *  UI-Architektur-Klarstellung, s.u.). `fading_short` ist konzeptionell '
+ *  ein KO-SHORT-Hebelprodukt (spiegelbildlich zu `ko`/KO-Long), hatte '
+ *  bisher aber keine der 5 KO-spezifischen Guardrails. Jetzt ergänzt, '
+ *  spiegelbildlich zu KO-1 bis KO-5: Underlying≠Produkt, RSI-Überhitzung≠'
+ *  KO-Abstand (statt EMA200-Abstand, da RSI hier der Kernindikator ist), '
+ *  HVP≠Hebel/Produktvolatilität, Marktzugang+Gap-/Overnight-Risiko via '
+ *  homeMarket, Score≠Gewinnwahrscheinlichkeit — jeweils mit denselben '
+ *  Formulierungs-Lehren aus dem KO-Adversarial-Test (z.B. "erhöhtes '
+ *  Risiko" NIEMALS unbelegt aus RSI ableiten). Zusätzlich strategie-'
+ *  eigenes Gegentrend-Risiko (Short gegen übergeordneten Bulltrend) '
+ *  explizit in risikenText verankert. tradeoffKontext NEU: "Über-'
+ *  hitzungsgrad ↔ Trendrisiko". WICHTIGER KONTEXT (06.09.2026, Axel-'
+ *  Klarstellung + Code-Verifikation): `fading_short` ist NUR im Scanner-'
+ *  Tab vorhanden (openKiBriefing → STRATEGIES.fading_short.prompt(), '
+ *  dieser migrierte Pfad hier), NICHT im Alpha Desk (dessen Button für '
+ *  short_fading_ko laut `_noMetricsLBs` deaktiviert ist, da kein '
+ *  score_fading_short() im Aggregator existiert — das betrifft NUR den '
+ *  separaten Alpha-Desk-Pfad `runAlphaLbKI()`/`getKiSystemPrompt()`, '
+ *  NICHT diesen hier). Der Scanner-Tab-Pfad ist damit live/testbar — '
+ *  frühere Einschätzung (v2.42.0-Changelog), die Strategie sei "aktuell '
+ *  inaktiv", war zu pauschal und wird hiermit korrigiert. Migrationsstand: '
+ *  12 von 14 Strategien (dividend/value bewusst zurückgestellt, s. '
+ *  UI-Architektur-Notiz in /areas/uiq.md — ausschließlich über Alpha '
+ *  Desk erreichbar, das nie `KoPrompts.get()` aufruft). Noch NICHT live/'
+ *  smoke-getestet.
+ *
  *  Version: 2.42.0 (06.09.2026) — PROAKTIVER AUDIT DER LETZTEN 3 NICHT '
  *  MIGRIERTEN STRATEGIEN (dividend, value, fading_short) VOR P2-'
  *  MIGRATION, mit dem erweiterten Fundwissen aus allen bisherigen Live-'
@@ -4008,21 +4038,65 @@ Das bedeutet konkret:
       focus: [
         "Ueberhitzungsgrad: wie deutlich liegt der RSI-Wert ueber der 75-Schwelle?",
         "Regime-Voraussetzung: ist das aktuelle Regime (BULL_FRAGILE/STRESS_UNSTABLE) ueberhaupt fuer Fading Short geeignet?",
+        "Underlying ≠ Produkt (KO-Short-spezifisch, analog zu KO-Long): UIQ bewertet die technische Ueberhitzung des Basiswerts, NICHT ein konkretes KO-Short-Zertifikat (Barriere, Hebel, Spread, Finanzierungskosten, Emittent, Liquiditaet sind UIQ nicht bekannt). WICHTIG: HVP beschreibt die historische realisierte Volatilitaet des Basiswerts und ist KEIN Mass fuer den Hebel, die Produktvolatilitaet oder die KO-Wahrscheinlichkeit eines konkreten Zertifikats.",
+        "RSI-Ueberhitzung ≠ KO-Abstand: der RSI-Wert misst die kurzfristige Ueberhitzung des Basiswerts, NIEMALS den tatsaechlichen Puffer zur KO-Barriere des konkreten Short-Zertifikats — ein extremer RSI-Wert beschreibt eine ausgepraegte kurzfristige Ueberhitzung (reine Ebene-1-Beobachtung), OHNE dass daraus eine Aussage ueber die Naehe zur tatsaechlichen Produkt-Barriere folgt.",
+        "Marktzugang: fuer Titel mit homeMarket=US ist die Emission entsprechender Hebelprodukte fuer Privatanleger seit einer US-Steuerregeländerung 2017 eingeschraenkt bzw. gar nicht verfuegbar — der deutsche/europaeische Markt (homeMarket=DE/FR/NL/IT/CH/UK/DK/SE/AU) bietet strukturell das breitere, liquidere Angebot. WICHTIG: homeMarket bezeichnet die Handelsboerse (Handelszeit), NICHT den Firmensitz — auch ADRs nicht-amerikanischer Konzerne haben homeMarket=US.",
+        "Gap-/Overnight-Risiko: bei Kandidaten mit dem Datenfeld homeMarket=US (siehe FELDERKLÄRUNG) besteht ein Zeitzonen-Versatz zwischen deutscher und US-Handelszeit — eine schnelle Kursbewegung oder ein Gap kann die KO-Barriere erreichen, bevor eine manuelle Reaktion moeglich ist. NIEMALS die Boersenzugehoerigkeit aus dem Tickersymbol selbst erraten, NIEMALS die Feldnotation woertlich uebernehmen.",
+        "UIQ-Score/Strategy-Fit ≠ Gewinnwahrscheinlichkeit: ein hoher Score beschreibt die Uebereinstimmung des Basiswerts mit den technischen Kriterien, NICHT die Erfolgswahrscheinlichkeit eines konkreten KO-Short-Trades.",
         "Stop-Level-Sensitivitaet (rein qualitativ, KEIN konkreter Abstandswert/Kursniveau nennen — das ist EIC-exklusiv, Grundgesetz #11): wie eng oder weit erscheint eine sinnvolle Absicherung oberhalb des 52-Wochen-Hochs angesichts des aktuellen Ueberhitzungsgrads?",
-        "Das explizite Gegentrend-Risiko dieses experimentellen Setups im laufenden Bullmarkt"
+        "Das explizite Gegentrend-Risiko dieses experimentellen Setups im laufenden Bullmarkt: ein Short-Ansatz gegen einen uebergeordneten Aufwaertstrend traegt strukturell hoeheres Risiko als ein trendfolgender Long-Ansatz.",
+        "Hauptrisiko fuer die Short-These: was koennte kurzfristig zum KO-Ereignis fuehren? WICHTIG: ein KO-Ereignis fuehrt in der Regel zum sofortigen Totalverlust des in dieser Position eingesetzten Kapitals — ein grundlegend anderes Risikoprofil als eine klassische Short-Aktienposition."
       ],
-      // Kein eigener Analyse-Prompt: Fading-Short-Leaderboard hat keine
-      // Bewertungsmetriken (kein score_fading_short() im Aggregator).
-      // KI-Analyse-Button ist daher deaktiviert (runAlphaLbKI gibt Hinweis).
-      // Eintrag hier für getConfig() + STRATEGIE_MATRIX.
+      // Kein score_fading_short() im Aggregator — betrifft NUR den Alpha-Desk-
+      // Leaderboard-Button (runAlphaLbKI(), s. _noMetricsLBs), NICHT den
+      // Scanner-Tab-Pfad hier (openKiBriefing → STRATEGIES.fading_short.prompt()).
+      // Bestaetigt 06.09.2026 (Axel): fading_short ist NUR im Scanner-Tab
+      // vorhanden, nicht im Alpha Desk — dieser Pfad ist live/testbar.
       prompt: function(ctx) {
         if (!ctx.isEic) {
-          return _publicEquityPrompt(ctx, {
-            rolle: 'Du analysierst überhitzte Titel auf strukturelle Eignung für einen Gegentrend-Ansatz (Fading, experimentell, nur BULL_FRAGILE/STRESS_UNSTABLE).',
+          return _publicNinePointPrompt(ctx, {
+            rolle: 'Du analysierst technisch überhitzte Titel auf strukturelle Eignung für einen experimentellen KO-Short-Gegentrend-Ansatz (nur BULL_FRAGILE/STRESS_UNSTABLE-Regime) auf Basis technischer Kennzahlen DES BASISWERTS. UIQ bewertet ausschliesslich den Basiswert, NICHT ein konkretes KO-Short-Produkt (Barriere, Hebel, Spread, Finanzierungskosten, Emittent und Liquidität sind UIQ nicht bekannt).',
             stratName: 'Fading-Short-Setups (experimentell)',
             marktumfeldFrage: 'Ist das aktuelle Regime (BULL_FRAGILE/STRESS_UNSTABLE) überhaupt für Fading-Ansätze relevant?',
             focus: STRATEGIES.fading_short.focus,
-            maxWords: 300
+            maxWords: 500,
+            istOptionsStrategie: false,
+            principle: 'Fading Short (experimentell) handelt KO-Zertifikate in Short-Richtung auf technisch überhitzte Basiswerte innerhalb eines übergeordneten Bullmarktes — ein bewusster Gegentrend-Ansatz, der auf eine kurzfristige Erschöpfung/Korrektur eines stark gelaufenen Titels setzt, NICHT auf eine Trendumkehr des Gesamtmarkts. Wie alle KO-Zertifikate sind sie gehebelte Hebelprodukte (typisch 3-8x), die bei Berührung der KO-Barriere wertlos verfallen — reine kurzfristige Trading-Instrumente (Tage bis wenige Wochen). Bei der Produktauswahl sind Laufzeit, Finanzierungskosten, KO-Barriere, Abstand zur Barriere, Emittentenbedingungen und Liquidität des konkreten Produkts zu prüfen. Für viele US-Aktien ist die Emission solcher Hebelprodukte für Privatanleger seit einer US-Steuerregeländerung 2017 eingeschränkt oder gar nicht verfügbar. Besonderer Risikohinweis: Ein KO-Ereignis führt in der Regel zum sofortigen Totalverlust des in der Position eingesetzten Kapitals. Wichtige Abgrenzung: UIQ bewertet die technische Überhitzung des Basiswerts — die Eignung eines konkreten KO-Short-Zertifikats kann ohne produktspezifische Daten nicht beurteilt werden. Status EXPERIMENTELL: nur in klar definierten Regimen relevant, ein Gegentrend-Ansatz im laufenden Bullmarkt trägt strukturell erhöhtes Risiko gegenüber trendfolgenden Strategien.',
+            risikenText: 'Zusätzlich IMMER auf das besondere Totalverlust-Risiko von Hebelprodukten '
+              + 'hinweisen: ein KO-Ereignis führt in der Regel zum sofortigen und vollständigen '
+              + 'Verlust des in dieser Position eingesetzten Kapitals — ein grundlegend anderes '
+              + 'Risikoprofil als eine klassische Short-Aktienposition. Bei einem hohen RSI-Wert '
+              + 'NIEMALS von "erhöhter KO-Wahrscheinlichkeit" oder "näher an der Barriere" sprechen '
+              + '(impliziert, UIQ kenne die tatsächliche Barriere) UND NIEMALS "erhöhtes Risiko" o.ä. '
+              + 'unbelegt aus dem RSI-Wert ableiten (verstößt gegen REASONING-GUARDRAILS a/d/e) — '
+              + 'STATTDESSEN rein deskriptiv: "beschreibt eine ausgeprägte kurzfristige Überhitzung '
+              + 'des Basiswerts." Bei Kandidaten mit dem Datenfeld homeMarket=US (siehe '
+              + 'FELDERKLÄRUNG — NICHT aus dem Tickersymbol selbst erraten, gilt auch für ADRs '
+              + 'nicht-amerikanischer Unternehmen) IMMER das Gap-/Overnight-Risiko durch den '
+              + 'Zeitzonen-Versatz zwischen deutscher und US-Handelszeit benennen — dabei homeMarket '
+              + 'ausschließlich als interne Faktengrundlage nutzen, NIEMALS die Feldnotation '
+              + '"homeMarket=US" wörtlich im Text wiedergeben, sondern natürlichsprachlich '
+              + 'umschreiben. Zusätzlich das Gegentrend-Risiko explizit benennen: ein Short-Ansatz '
+              + 'gegen einen übergeordneten Bullmarkt-Trend trägt ein strukturell höheres Risiko als '
+              + 'ein trendfolgender Long-Ansatz, da eine Fortsetzung des Bulltrends die Position '
+              + 'schnell und vollständig gegen sich haben kann. Ergänzend die generelle Empfehlung '
+              + 'aussprechen, vor Positionseröffnung eine eigene Risikobegrenzung festzulegen — OHNE '
+              + 'einen konkreten Stop-Loss-Wert oder eine konkrete Regel zu nennen (das bleibt '
+              + 'individuelle Festlegung bzw. EIC-exklusiv, Grundgesetz #11).',
+            modellGrenzeText: 'PFLICHT-ZUSATZ speziell für KO-Short-Zertifikate, wörtlich sinngemäß: '
+              + '"UIQ kann ohne produktspezifische Zertifikatsdaten nicht beurteilen, welches '
+              + 'konkrete KO-Short-Zertifikat hinsichtlich Hebel, KO-Abstand, Spread, '
+              + 'Finanzierungskosten, Emittentenrisiko und Liquidität geeignet ist — UIQ bewertet '
+              + 'ausschließlich die technische Überhitzung des Basiswerts, nicht die Eignung eines '
+              + 'konkreten Produkts."',
+            tradeoffKontext: '(Überhitzungsgrad ↔ Trendrisiko — der eigentliche Zielkonflikt bei '
+              + 'Fading Short: ein extremerer RSI-Wert beschreibt eine stärkere kurzfristige '
+              + 'Überhitzung und damit im Modell ein potenziell größeres Korrektur-Potenzial; '
+              + 'gleichzeitig kann extreme Überhitzung innerhalb eines starken übergeordneten '
+              + 'Bulltrends auch schlicht anhaltendes Momentum widerspiegeln statt eine '
+              + 'bevorstehende Korrektur (Gegentrend-Falle, strukturell verschärft durch den '
+              + 'Short-Charakter des KO-Zertifikats). Die Gewichtung dieser Merkmale ist eine '
+              + 'strategische Abwägung, keine Aussage über den zukünftigen Kursverlauf.)'
           });
         }
         return KI_ANTI_HALLUZINATION
