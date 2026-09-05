@@ -1,6 +1,81 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.35.0 (06.09.2026) — PROAKTIVER AUDIT DER 7 NOCH NICHT '
+ *  MIGRIERTEN EQUITY-STRATEGIEN (breakout, vcp, swing, meanrev, dividend, '
+ *  value, fading_short) auf dieselben zwei Fundtypen wie beim P0-Audit '
+ *  der migrierten Strategien (veraltete Pflichtformulierungen UND '
+ *  konkrete Stop-Loss-Einladungen wie beim urspruenglichen Momentum-Fund '
+ *  vor dessen Migration) — VOR dem eigentlichen P2-Migrationsstart, um '
+ *  Iterationsrunden zu sparen (etabliertes Arbeitsprinzip seit '
+ *  Momentum-Sprint). ZWEI FUNDE, BEIDE STOP-LOSS-EINLADUNGEN: '
+ *  (1) `swing`, focus[2]: "Stop-Loss in ATR-Einheiten: sinnvoller '
+ *  Abstand..." — haette nach Migration gegen Abschnitt 8 (EIC-exklusiv, '
+ *  Grundgesetz #11) verstossen, exakt wie der urspruengliche Momentum-'
+ *  Fund vor v2.23.0. Umformuliert auf rein qualitative "Stop-Loss-'
+ *  Sensitivitaet" (keine ATR-Zahl/Prozentwert). '
+ *  (2) `fading_short`, focus[2]: "Stop-Level: sinnvoller Abstand knapp '
+ *  ueber dem 52-Wochen-Hoch" — gleiches Muster, gleicher Fix. '
+ *  GEPRUEFT UND SAUBER BEFUNDEN (Public-Pfad): breakout, vcp, meanrev, '
+ *  dividend, value — keine bekannten Problemwoerter (attraktiv/stabil/'
+ *  vorhersehbar/Rueckschlagrisiko/erhoehte Wahrscheinlichkeit) und keine '
+ *  weiteren konkreten Stop-Loss-Einladungen in den public-focus[]/'
+ *  principle-Feldern gefunden. NICHT GEPRUEFT/NIEDRIGE PRIORITAET: '
+ *  EIC-exklusive Branches aller Strategien (enthalten vereinzelt '
+ *  "stabil"/"attraktiv" in altem Freitext-Stil, z.B. cc/dividend/value) '
+ *  — bewusst zurueckgestellt, da nur Axel als EIC-Nutzer und Teil des '
+ *  bereits offenen ko-ai.js-Haertungs-Backlogpunkts, nicht Teil des '
+ *  9-Punkte-Migrationspfads. Alle Fixes wirken NUR innerhalb der '
+ *  jeweiligen, noch nicht migrierten Strategie (kein Effekt auf bereits '
+ *  migrierte Strategien). Noch NICHT live getestet (Strategien selbst '
+ *  sind ja noch gar nicht migriert) — Wirkung zeigt sich erst beim '
+ *  jeweiligen Migrations-Live-Test.
+ *
+ *  Version: 2.34.0 (06.09.2026) — P0 AUS UEBERGABE-2026-09-05.md '
+ *  ABGESCHLOSSEN: systematischer Audit aller 7 migrierten Strategien auf '
+ *  veraltete, strategie-eigene Pflichtformulierungen (focus[]/risikenText/'
+ *  principle), die vor Einführung der REASONING-GUARDRAILS geschrieben '
+ *  wurden und deren jetzt geltende Regeln verletzen — Auslöser war der '
+ *  KO-Adversarial-Test 05.09.2026, der zeigte, dass der gemeinsame Fix im '
+ *  PUBLIC_REGULATORY_GUARDRAIL (v2.28.0) strategie-eigene Textstellen '
+ *  nicht mit abdeckte. DREI FUNDE, ZWEI STRATEGIEN: '
+ *  (1) `ko` — sowohl focus[1] (KO-2-Kriterium) als auch risikenText '
+ *  enthielten wortwörtlich "...das Rückschlagrisiko im Modell erhöhen" '
+ *  (unverändert seit v2.22.4) — dieselbe Formulierung, die im gemeinsamen '
+ *  Guardrail-Text bereits als Regelkonflikt erkannt und gefixt worden '
+ *  war, hier aber unabhängig weiterbestand und im Live-Test 05.09.2026 '
+ *  reproduzierbar auftrat. Beide Stellen auf reine Ebene-1-Beschreibung '
+ *  umgestellt ("beschreibt eine fortgeschrittene Kursbewegung..." statt '
+ *  "...und erhöht damit..."). '
+ *  (2) `cc` — focus[2] war selbst als Kriterium NAMENS "Stabilitaet/'
+ *  Etabliertheit" definiert, mit dem Zusatz "...vorhersehbaren Kurs-'
+ *  verlauf" — vermutlich der HAUPTURSPRUNG der wiederholten "stabil"/'
+ *  "vorhersehbar"-Funde bei cc/collar (beide Wörter waren nicht nur '
+ *  Formulierungsvorschlag, sondern Name/Definition eines fest verankerten '
+ *  Bewertungskriteriums). Umbenannt zu "Grade-Einstufung/D200-Position", '
+ *  beide Problemwörter entfernt, expliziter Verweis auf REASONING-'
+ *  GUARDRAILS e ergänzt. '
+ *  (3) `csp_wheel` — focus[0] enthielt "Wie attraktiv ist die aktuelle '
+ *  Praemie" — verletzt ein bereits bestehendes, explizites "attraktiv"-'
+ *  Verbot im PUBLIC_REGULATORY_GUARDRAIL (seit 01.09.2026 mehrfach '
+ *  belegt und gehärtet) direkt in der eigenen Kriterien-Definition der '
+ *  Strategie. Umformuliert auf neutrale Prämienbasis-Beschreibung. '
+ *  GEPRÜFT UND SAUBER BEFUNDEN: atmna, weekly_income, collar, momentum — '
+ *  keine hartcodierten Regelkonflikte in deren focus[]/risikenText/'
+ *  principle gefunden. Insbesondere `collar`s "stabil"-Fund vom '
+ *  05.09.2026-Test hat KEINE Entsprechung im Code — bestätigt die '
+ *  gestrige Einschätzung, dass es sich dort um statistische Rest-'
+ *  fehlerquote handelt, nicht um einen behebbaren Prompt-Fehler. '
+ *  ZWEITER P0-PUNKT (Score-Flatting-Regel bei `ko`) — KEIN Code-Fund: '
+ *  die Regel ("NIEMALS 'alle übrigen Titel erfüllen die Kriterien '
+ *  ebenfalls'") sitzt unverändert im gemeinsamen Builder und hat keine '
+ *  strategie-spezifische Schwächung durch `ko`; das Nicht-Greifen im '
+ *  Live-Test wird als selbe Art Restfehlerquote eingeordnet wie der '
+ *  `collar`-Fund, kein weiterer Fix identifiziert. Alle drei Textfixe '
+ *  wirken NUR für die jeweils betroffene Strategie (strategie-eigene '
+ *  Felder, nicht der gemeinsame Builder). Noch NICHT erneut live/smoke-'
+ *  getestet.
+ *
  *  Version: 2.33.0 (05.09.2026) — ANDIENUNGSWAHRSCHEINLICHKEITS-REGEL AUF '
  *  CALL-SEITE UND BELIEBIGE INDIKATOREN VERALLGEMEINERT. CC-Live-Test '
  *  (nach v2.32.0) fand: "ein starker struktureller Aufwärtstrend erhöht '
@@ -2784,7 +2859,7 @@ Das bedeutet konkret:
       color: '#818cf8',
       focus: [
         "Hebel-Eignung: Passt die Volatilitaet (ATR) des Titels zu einem 3-8x-Hebel, ohne durch normales Kursrauschen ausgeknockt zu werden? WICHTIG: HVP beschreibt die historische realisierte Volatilitaet des Basiswerts und ist KEIN Mass fuer den Hebel, die Produktvolatilitaet oder die KO-Wahrscheinlichkeit eines konkreten Zertifikats — diese haengen ausschliesslich vom gewaehlten Produkt ab.",
-        "KO-Abstand (Underlying-Ebene, NICHT das konkrete Produkt): ATR-basierte Naeherung fuer die Kursbeweglichkeit des Basiswerts. WICHTIG: der Abstand zur EMA200 ist NIEMALS mit dem Abstand zur tatsaechlichen KO-Barriere gleichzusetzen — die EMA200 ist ein technischer Trendindikator des Basiswerts, die KO-Barriere ist ein Produktparameter des konkreten Zertifikats. Ein grosser EMA200-Abstand kann auf eine fortgeschrittene Kursbewegung hinweisen und damit das Rueckschlagrisiko im Modell erhoehen — das ist unabhaengig vom tatsaechlichen Puffer bis zur KO-Barriere, der ausschliesslich vom konkreten Produkt abhaengt.",
+        "KO-Abstand (Underlying-Ebene, NICHT das konkrete Produkt): ATR-basierte Naeherung fuer die Kursbeweglichkeit des Basiswerts. WICHTIG: der Abstand zur EMA200 ist NIEMALS mit dem Abstand zur tatsaechlichen KO-Barriere gleichzusetzen — die EMA200 ist ein technischer Trendindikator des Basiswerts, die KO-Barriere ist ein Produktparameter des konkreten Zertifikats. Ein grosser EMA200-Abstand beschreibt eine fortgeschrittene Kursbewegung relativ zum langfristigen Trendmittel des Basiswerts (reine Ebene-1-Beobachtung, KEINE Risiko-/Rueckschlags-Formulierung — siehe REASONING-GUARDRAILS a/d/e) — das ist unabhaengig vom tatsaechlichen Puffer bis zur KO-Barriere, der ausschliesslich vom konkreten Produkt abhaengt.",
         "Trend-Regime-Eignung: KO-Zertifikate sind Hebel-/Momentum-Instrumente fuer kurzfristiges Trading (Tage bis wenige Wochen) in KLAREN Trendphasen — NICHT fuer Seitwaertsmaerkte oder Buy-and-Hold geeignet. Liegt aktuell ein klarer, starker Trendimpuls vor (z.B. nach Kurstreibern wie starken Quartalszahlen) oder eher ein Seitwaertsumfeld?",
         "Marktzugang: fuer Titel mit homeMarket=US ist die Emission entsprechender Hebelprodukte fuer Privatanleger seit einer US-Steuerregeländerung 2017 eingeschraenkt bzw. gar nicht verfuegbar — der deutsche/europaeische Markt (homeMarket=DE/FR/NL/IT/CH/UK/DK/SE/AU) bietet strukturell das breitere, liquidere Angebot. Bei homeMarket=US zusaetzlich Quellensteuer-Aspekte und typischerweise geringeres Emittenten-Angebot beachten. WICHTIG: homeMarket bezeichnet die Handelsboerse (Handelszeit), NICHT den Firmensitz — auch ADRs nicht-amerikanischer Konzerne (z.B. SAP, ASML, RIO) haben homeMarket=US, da sie selbst auf NYSE/NASDAQ handeln. Dies ist eine allgemeine Marktzugangs-Charakteristik, keine Empfehlung einzelner Titel oder Sektoren durch UIQ.",
         "Gap-/Overnight-Risiko: bei Kandidaten mit dem Datenfeld homeMarket=US (siehe FELDERKLÄRUNG) besteht ein Zeitzonen-Versatz zwischen deutscher und US-Handelszeit — eine schnelle Kursbewegung oder ein Gap kann die KO-Barriere erreichen, bevor eine manuelle Reaktion moeglich ist. Dieses Risiko ist bei gehebelten Produkten strukturell staerker ausgepraegt als bei der Aktie selbst. WICHTIG: homeMarket=US bedeutet Handel auf einer US-Boerse (NYSE/NASDAQ/OTC) und gilt AUCH fuer ADRs nicht-amerikanischer Unternehmen — NIEMALS versuchen, die Boersenzugehoerigkeit stattdessen aus dem Tickersymbol selbst zu erraten (z.B. der Ticker \"DE\" ist Deere & Co., NYSE, NICHT das Laenderkuerzel Deutschland). WICHTIG (Ausgabeform): homeMarket ist ein interner Datenpunkt fuer die Bewertung — NIEMALS die Feldnotation \"homeMarket=US\" wörtlich in den Text uebernehmen, sondern natuerlichsprachlich verbalisieren, z.B. \"diese Titel werden an US-Boersen gehandelt\" oder \"da es sich um einen an einer US-Boerse gehandelten Titel handelt\".",
@@ -2807,9 +2882,15 @@ Das bedeutet konkret:
               + 'Verlust des in dieser Position eingesetzten Kapitals — ein grundlegend anderes '
               + 'Risikoprofil als der Besitz der zugrunde liegenden Aktie. Bei einem grossen EMA200-'
               + 'Abstand NIEMALS von "Rückkehr-/Korrekturrisiko" oder "KO-Barriere schneller '
-              + 'erreichen" sprechen (impliziert, UIQ kenne die tatsächliche Barriere) — STATTDESSEN: '
-              + '"kann auf eine fortgeschrittene Kursbewegung bzw. erhöhte Distanz zum langfristigen '
-              + 'Trendmittel hinweisen und damit das Rückschlagrisiko im Modell erhöhen." Bei '
+              + 'erreichen" sprechen (impliziert, UIQ kenne die tatsächliche Barriere) UND NIEMALS '
+              + '"erhöhtes Rückschlagrisiko" o.ä. (verstößt gegen REASONING-GUARDRAILS a/d/e — '
+              + 'AKTUALISIERT 06.09.2026, dieselbe Formulierung war bereits im gemeinsamen '
+              + 'PUBLIC_REGULATORY_GUARDRAIL-Text als Regelkonflikt gefixt worden, v2.28.0, hier in '
+              + 'KOs eigenem risikenText aber unveraendert seit v2.22.4 bestehen geblieben — genau '
+              + 'diese Formulierung tauchte im KO-Adversarial-Test 05.09.2026 live wieder auf) — '
+              + 'STATTDESSEN rein deskriptiv: '
+              + '"beschreibt eine fortgeschrittene Kursbewegung bzw. erhöhte Distanz zum langfristigen '
+              + 'Trendmittel des Basiswerts." Bei '
               + 'Kandidaten mit dem Datenfeld homeMarket=US (siehe FELDERKLÄRUNG — NICHT aus dem '
               + 'Tickersymbol selbst erraten, gilt auch für ADRs nicht-amerikanischer Unternehmen '
               + 'wie SAP/ASML/RIO) IMMER das Gap-/Overnight-Risiko durch den Zeitzonen-Versatz '
@@ -3060,7 +3141,7 @@ Das bedeutet konkret:
       focus: [
         "Technisches Muster: Pullback, Breakout oder Reversal — welches liegt vor und wie klar ausgepraegt?",
         "Entry-Zone: Aktueller Kurs im Verhaeltnis zum erkannten Setup (nur aus Kurs-Feld ableiten)",
-        "Stop-Loss in ATR-Einheiten: sinnvoller Abstand fuer die geschaetzte Haltedauer von 5-20 Tagen",
+        "Stop-Loss-Sensitivitaet (rein qualitativ, KEIN konkreter ATR-Multiplikator/Prozentwert/Kursniveau nennen — das ist EIC-exklusiv, Grundgesetz #11): tendiert die ATR-Groessenordnung eher zu einer engeren oder weiteren sinnvollen Risikotoleranz fuer eine individuell festzulegende Absicherung, gegeben die geschaetzte Haltedauer von 5-20 Tagen?",
         "Was wuerde dieses Swing-Setup am ehesten invalidieren?"
       ],
       prompt: function(ctx) {
@@ -3129,7 +3210,7 @@ Das bedeutet konkret:
       hint:  '⚙️ CSP/Wheel: Cash Secured Put + Covered Call · CapTrader/IBKR · Theta-Strategie',
       color: 'var(--amber)',
       focus: [
-        "HVP-Eignung: Wie attraktiv ist die aktuelle Praemie gemessen am HVP-Wert des Titels?",
+        "HVP-Eignung: Wie hoch ist die anhand des HVP-Werts geschaetzte Praemienbasis des Titels (rein deskriptiv, KEINE Wertung als \"attraktiv\"/\"guenstig\" — siehe PUBLIC_REGULATORY_GUARDRAIL, attraktiv-Verbot)?",
         "Strike-Naeherung: EMA200-Abstand als grobe Orientierung fuer einen sinnvollen Strike-Bereich",
         "Exit-Kriterien: Gewinnmitnahme- und Stop-Loss-Schwelle gemaess der hinterlegten Regel",
         "IV-Crush- oder Earnings-Risiko innerhalb der betrachteten Laufzeit"
@@ -3342,7 +3423,7 @@ Das bedeutet konkret:
       focus: [
         "Langfristige Halteeignung: das Modell bewertet KEINE Aktienqualitaet — CC ersetzt keine eigene Aktienanalyse. Goldene Regel: nur auf Titel Calls schreiben, die man auch ohne die Optionsstrategie langfristig halten wuerde. UIQ liefert hierzu nur die Bewertungskriterien dieser Strategie, keine fundamentale Investment-Empfehlung.",
         "Dividendenrendite (divYield) und Cashflow-Stabilitaet KOENNEN bei der Auswahl relevant sein (z.B. bei bereits gehaltenen oder gezielt fuer Wheel-Fortfuehrung erworbenen Qualitaetstiteln), sind aber KEINE zwingende Voraussetzung fuer einen Covered Call — ein CC kann auch auf einem nicht-dividendenstarken Titel sinnvoll sein, wenn die Aktie bewusst gehalten wird und Upside gegen Praemieneinnahme getauscht werden soll.",
-        "Stabilitaet/Etabliertheit: Grade-Einstufung und D200-Position als Naeherung fuer einen etablierten, vorhersehbaren Kursverlauf (echte Marktkapitalisierung, Spread-Enge und Liquiditaet liegen UIQ nicht vor — Broker-Check).",
+        "Grade-Einstufung/D200-Position: Grade-Einstufung und D200-Position als Naeherung fuer die aktuelle Trendlage des Titels (reine Snapshot-Kennzahl zu EINEM Zeitpunkt — KEINE Aussage ueber Kursverhalten ueber Zeit, Dauerhaftigkeit oder Vorhersagbarkeit ableiten, siehe REASONING-GUARDRAILS e; echte Marktkapitalisierung, Spread-Enge und Liquiditaet liegen UIQ nicht vor — Broker-Check).",
         "Praemienqualitaet: HVP beschreibt die historische realisierte Volatilitaet und kann einen Hinweis auf ein bewegteres Kursumfeld geben — die tatsaechlich erzielbare Call-Praemie laesst sich daraus allein NICHT ableiten (Kontextsignal, kein Praemienmass; UIQ hat keine Live-Optionsketten-IV, echte IV/IV-Perzentil-Rang sind im Broker zu pruefen).",
         "Strike-Kompromiss (qualitativ, keine konkreten Delta-Werte — Public-Modus): ein naeher am Kurs liegender Strike ist typischerweise mit hoeherer Praemie UND hoeherer Ausuebungswahrscheinlichkeit verbunden (passt eher zu seitwaerts/leicht fallenden Erwartungen), ein weiter entfernter Strike mit geringerer Praemie aber mehr Kursspielraum (passt eher zu moderat steigenden Erwartungen).",
         "CC-spezifischer D200-Zielkonflikt (Unterschied zu CSP wichtig): ein hoher positiver D200-Abstand ist bei CC NICHT per se guenstig wie bei CSP — je staerker ein Titel strukturell steigt, desto groesser der potenzielle Opportunitaetsverlust durch den gedeckelten Short Call (Risiko, zu frueh aus einer guten Position herausgerufen zu werden). Bei CSP kann ein starker Aufwaertstrend dagegen unproblematischer sein, da eine Andienung dort grundsaetzlich in eine gewuenschte Aktienposition fuehrt.",
@@ -3641,7 +3722,7 @@ Das bedeutet konkret:
       focus: [
         "Ueberhitzungsgrad: wie deutlich liegt der RSI-Wert ueber der 75-Schwelle?",
         "Regime-Voraussetzung: ist das aktuelle Regime (BULL_FRAGILE/STRESS_UNSTABLE) ueberhaupt fuer Fading Short geeignet?",
-        "Stop-Level: sinnvoller Abstand knapp ueber dem 52-Wochen-Hoch",
+        "Stop-Level-Sensitivitaet (rein qualitativ, KEIN konkreter Abstandswert/Kursniveau nennen — das ist EIC-exklusiv, Grundgesetz #11): wie eng oder weit erscheint eine sinnvolle Absicherung oberhalb des 52-Wochen-Hochs angesichts des aktuellen Ueberhitzungsgrads?",
         "Das explizite Gegentrend-Risiko dieses experimentellen Setups im laufenden Bullmarkt"
       ],
       // Kein eigener Analyse-Prompt: Fading-Short-Leaderboard hat keine
