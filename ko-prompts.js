@@ -1,6 +1,24 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.36.0 (06.09.2026) — EQUITY-MIGRATION FORTGESETZT (P2): '
+ *  `breakout` als zweite von 7 verbleibenden Equity-Strategien von '
+ *  `_publicEquityPrompt()` auf `_publicNinePointPrompt()` umgestellt '
+ *  (istOptionsStrategie: false, mode default scan). focus[] bereits '
+ *  durch proaktiven Audit (v2.35.0) bereinigt. principle-Text neu '
+ *  ergänzt (Pivot-/Volumen-Mechanik nach Minervini/O\'Neil/IBD). '
+ *  risikenText NEU gesetzt: verhindert proaktiv, dass 52W-Hoch-Nähe '
+ *  allein als Ausbruchsbeleg gilt (muss mit Volumenbestätigung '
+ *  kombiniert werden) UND dass ein hoher EMA200-Abstand automatisch als '
+ *  "Überdehnung"/Rückschlagrisiko geframt wird (Anlass: der alte '
+ *  Fünf-Abschnitte-Output vom 05.09.2026 zeigte genau dieses Muster — '
+ *  EMA200-Abstand explizit als "rote Flagge"/"extremales Überdehnungs-'
+ *  Signal" bezeichnet, was gegen REASONING-GUARDRAILS c verstoßen hätte). '
+ *  tradeoffKontext NEU gesetzt: "Ausbruchsfrische ↔ Bestätigungsrisiko" '
+ *  als strategie-eigener Zielkonflikt (analog zu momentums "Trend-'
+ *  bestätigung ↔ Einstiegsrisiko"). Noch NICHT live/smoke-getestet. '
+ *  Migrationsstand: 8 von 14 Strategien.
+ *
  *  Version: 2.35.0 (06.09.2026) — PROAKTIVER AUDIT DER 7 NOCH NICHT '
  *  MIGRIERTEN EQUITY-STRATEGIEN (breakout, vcp, swing, meanrev, dividend, '
  *  value, fading_short) auf dieselben zwei Fundtypen wie beim P0-Audit '
@@ -3021,12 +3039,31 @@ Das bedeutet konkret:
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
-          return _publicEquityPrompt(ctx, {
-            rolle: 'Du analysierst technische Breakout-Setups (52W-Hoch-Nähe, Volumenbestätigung, Stage-2-Kontext nach Minervini/O\'Neil/IBD) auf Basis von Tagesschluss-Daten. UIQ ist KEIN Intraday-Scanner.',
+          return _publicNinePointPrompt(ctx, {
+            rolle: 'Du analysierst technische Breakout-Setups (52W-Hoch-Nähe, Volumenbestätigung, Stage-2-Kontext nach Minervini/O\'Neil/IBD) auf Basis von Tagesschluss-Daten. UIQ ist KEIN Intraday-Scanner — Gap & Go, ORB, Pre-Market-Gaps, RVOL 5x oder Float-Screening sind NICHT verfügbar. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
             stratName: 'Breakout-Setups',
             marktumfeldFrage: 'Unterstützt das aktuelle Regime technische Breakouts (Marktbreite, Volatilität)?',
             focus: STRATEGIES.breakout.focus,
-            maxWords: 400
+            maxWords: 450,
+            istOptionsStrategie: false,
+            principle: 'Breakout-Setups suchen einen technischen Ausbruch über ein etabliertes Pivot-Niveau (typischerweise ein vorheriges 52-Wochen-Hoch oder eine enge Konsolidierungszone) im Kontext eines übergeordneten Stage-2-Aufwärtstrends (Methodik: Minervini/O\'Neil/IBD). Entscheidend ist die Kombination aus Kursnähe zum Pivot UND Volumenbestätigung (steigendes Volumen beim Ausbruch, vorherige Volumen-Austrocknung während der Konsolidierung) — ein Ausbruch ohne Volumenbestätigung gilt als weniger belastbar (False-Breakout-Risiko). UIQ analysiert ausschließlich Tagesschluss-Daten; Intraday-Techniken sind nicht Teil der Strategie. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.',
+            risikenText: 'Zusätzlich klarstellen: Nähe zum 52-Wochen-Hoch allein belegt keine '
+              + 'Ausbruchsqualität — erst in Kombination mit Volumenbestätigung (obvTrend positiv, '
+              + 'vcpBreakoutVol ≥ 2.0) wird ein Pivot-Niveau zu einem belastbaren technischen Setup; '
+              + 'ohne diese Bestätigung bleibt das False-Breakout-Risiko erhöht. Ein hoher EMA200-'
+              + 'Abstand beschreibt lediglich eine bereits weiter fortgeschrittene Kursbewegung '
+              + 'relativ zum langfristigen Trendmittel (reine Ebene-1-Beobachtung, siehe REASONING-'
+              + 'GUARDRAILS c/e) — daraus NIEMALS automatisch eine "Überdehnung" oder ein erhöhtes '
+              + 'Rückschlagrisiko ableiten.',
+            tradeoffKontext: '(Ausbruchsfrische ↔ Bestätigungsrisiko — der eigentliche Zielkonflikt '
+              + 'bei Breakout-Setups: ein Titel nahe am 52-Wochen-Hoch mit geringerem EMA200-'
+              + 'Abstand bietet einen frischeren, klassischeren Pivot-Ausbruch, ohne bereits stark '
+              + 'ausgedehnt zu sein; ein Titel mit großem EMA200-Abstand hat oft schon einen '
+              + 'erheblichen Teil der Bewegung hinter sich — ein Ausbruch von diesem Niveau aus '
+              + 'kann trotzdem funktionieren, ist aber weniger der klassische frische Pivot-'
+              + 'Breakout nach Minervini/O\'Neil. Volumenbestätigung bleibt in beiden Fällen '
+              + 'entscheidend, nicht allein die Distanzwerte. Die Gewichtung dieser Merkmale ist '
+              + 'eine strategische Abwägung, keine Aussage über den zukünftigen Kursverlauf.)'
           });
         }
         return KI_ANTI_HALLUZINATION
