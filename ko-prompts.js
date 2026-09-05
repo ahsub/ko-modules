@@ -1,6 +1,33 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.38.0 (06.09.2026) — EQUITY-MIGRATION FORTGESETZT (P2): '
+ *  `vcp` als dritte von 7 verbleibenden Equity-Strategien von '
+ *  `_publicEquityPrompt()` auf `_publicNinePointPrompt()` umgestellt '
+ *  (istOptionsStrategie: false, mode default scan). focus[] bereits '
+ *  durch proaktiven Audit (v2.35.0) bereinigt. principle-Text neu '
+ *  ergänzt (Contraction-/Volumen-Austrocknungs-Mechanik nach Minervini). '
+ *  risikenText NEU gesetzt: (1) SEPA/EMA200 sind Stage-2-Proxies, KEIN '
+ *  Ersatz für die eigentlichen VCP-spezifischen Felder (vcpContractions/'
+ *  vcpLastPct/vcpVolContraction) — Anlass: der alte Fünf-Abschnitte-'
+ *  Output vom 05.09.2026 zeigte, dass diese Felder im aktuellen KI-'
+ *  Briefing-Datenpfad fehlten ("VCP-spezifische Metriken ... nicht '
+ *  enthalten"), das Modell dies aber bereits selbst korrekt als '
+ *  Limitation benannte — jetzt explizit als Pflichtverhalten verankert, '
+ *  statt sich auf Zufallstreffer zu verlassen; (2) dieselbe "keine '
+ *  automatische Überdehnung aus EMA200-Abstand"-Klarstellung wie bei '
+ *  `breakout` (derselbe Fund war im alten Output sichtbar: VLO mit '
+ *  +47,7% EMA200-Abstand als "🔴 aggressive Ausreisser" geframt). '
+ *  tradeoffKontext NEU gesetzt: "Kontraktionstiefe ↔ Ausbruchs-'
+ *  Bestätigungsspielraum" als strategie-eigener Zielkonflikt (VCP-'
+ *  spezifisch, nicht identisch mit breakouts "Ausbruchsfrische"-Framing, '
+ *  auch wenn beide Strategien denselben Datenpool teilen). HINWEIS: der '
+ *  fehlende VCP-Feld-Datenpfad selbst (vcpContractions/vcpLastPct/etc. im '
+ *  KI-Briefing-Kontext) ist ein separates, moegliches Datenfluss-Thema in '
+ *  index.html/market_aggregator.py, NICHT in diesem Fix behoben — nur der '
+ *  Prompt-Umgang mit dem Fehlen dieser Felder wurde gehaertet. Noch NICHT '
+ *  live/smoke-getestet. Migrationsstand: 9 von 14 Strategien.
+ *
  *  Version: 2.37.0 (06.09.2026) — GESPIEGELTER FUND ZU PUNKT (b) NACH '
  *  BREAKOUT-LIVE-TEST: "VOD und GLEN.L teilen die höchste Pivotpräsenz '
  *  (-1,47% und -0,24% vom 52W-Hoch)" — zwei unterschiedliche Werte (fast '
@@ -3164,12 +3191,32 @@ Das bedeutet konkret:
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
-          return _publicEquityPrompt(ctx, {
-            rolle: 'Du analysierst Volatility-Contraction-Pattern-Setups (VCP nach Mark Minervini) — sukzessiv enger werdende Korrekturen in einem Stage-2-Aufwärtstrend.',
+          return _publicNinePointPrompt(ctx, {
+            rolle: 'Du analysierst Volatility-Contraction-Pattern-Setups (VCP nach Mark Minervini) — sukzessiv enger werdende Korrekturen in einem Stage-2-Aufwärtstrend, auf Basis von Tagesschluss-Daten. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
             stratName: 'VCP-Setups',
             marktumfeldFrage: 'Ist das aktuelle Marktumfeld (Regime, VIX, Marktbreite) günstig für VCP-Ausbrüche?',
             focus: STRATEGIES.vcp.focus,
-            maxWords: 350
+            maxWords: 450,
+            istOptionsStrategie: false,
+            principle: 'VCP (Volatility Contraction Pattern) nach Mark Minervini kennzeichnet sich durch sukzessiv enger werdende Korrekturen (Contractions) innerhalb eines übergeordneten Stage-2-Aufwärtstrends — jede Contraction pendelt typischerweise enger als die vorherige, begleitet von abnehmendem Volumen (Volumen-Austrocknung). Das Setup gilt als reif, wenn Volumen und Kursspanne auf ein Minimum komprimiert wurden und ein Ausbruch mit deutlich erhöhtem Volumen unmittelbar bevorsteht — ohne diese Volumen-Bestätigung bleibt ein Ausbruch weniger belastbar. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.',
+            risikenText: 'Zusätzlich klarstellen: SEPA-Score und EMA200-Abstand sind Stage-2-'
+              + 'Trendindikatoren, aber KEIN Ersatz für die eigentlichen VCP-spezifischen Kriterien '
+              + '(Anzahl Contractions, Tiefe der letzten Korrektur, Volumen-Kompression während der '
+              + 'Kontraktion). Falls diese VCP-spezifischen Felder in den Scandaten nicht verfügbar '
+              + 'sind, das explizit als Dateneinschränkung benennen — NIEMALS aus SEPA/EMA200 allein '
+              + 'auf eine tatsächliche VCP-Reife schließen. Ein hoher EMA200-Abstand beschreibt '
+              + 'lediglich eine bereits weiter fortgeschrittene Kursbewegung relativ zum langfristigen '
+              + 'Trendmittel (reine Ebene-1-Beobachtung, siehe REASONING-GUARDRAILS c/e) — daraus '
+              + 'NIEMALS automatisch eine "Überdehnung" oder ein erhöhtes Rückschlagrisiko ableiten.',
+            tradeoffKontext: '(Kontraktionstiefe ↔ Ausbruchs-Bestätigungsspielraum — der eigentliche '
+              + 'Zielkonflikt bei VCP: eine tiefere, spätere Kontraktion (niedrigerer vcpLastPct, '
+              + 'mehrfache Contractions) gilt nach Minervini als reifer und näher am Ausbruch, '
+              + 'bedeutet aber auch weniger Spielraum bis zu einem ungültigen Setup (Verletzung des '
+              + 'letzten Kontraktionstiefs); ein weniger weit fortgeschrittenes Setup hat mehr '
+              + 'Entwicklungsspielraum, aber auch mehr Unsicherheit, ob tatsächlich eine VCP-Struktur '
+              + 'vorliegt. Volumen-Austrocknung während der Kontraktion bleibt in beiden Fällen '
+              + 'entscheidend. Die Gewichtung dieser Merkmale ist eine strategische Abwägung, keine '
+              + 'Aussage über den zukünftigen Kursverlauf.)'
           });
         }
         return KI_ANTI_HALLUZINATION
