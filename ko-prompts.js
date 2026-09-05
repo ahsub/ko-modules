@@ -1,6 +1,64 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.42.0 (06.09.2026) — PROAKTIVER AUDIT DER LETZTEN 3 NICHT '
+ *  MIGRIERTEN STRATEGIEN (dividend, value, fading_short) VOR P2-'
+ *  MIGRATION, mit dem erweiterten Fundwissen aus allen bisherigen Live-'
+ *  Tests (konkrete Stop-/Strike-Einladungen, Scheingenauigkeit). ZWEI '
+ *  FUNDE: (1) `dividend`, focus[2] "CSP-Unterlegungs-Eignung: lässt sich '
+ *  ein Strike 5-10% unter Kurs sinnvoll platzieren?" — lud zu einer '
+ *  konkreten Strike-Prozent-Empfehlung ein, obwohl dividend primär eine '
+ *  Equity-Strategie ist; auf qualitative Eignungsfrage umformuliert, '
+ *  Prozentbereich bleibt nur als Kontext-Rahmen erhalten. (2) `value`, '
+ *  focus[2] "Sicherheitsmarge: wie groß ist der Puffer... zum fairen '
+ *  Wert?" — lud dazu ein, einen konkreten "fairen Wert" zu berechnen, '
+ *  den die verfügbaren Kennzahlen (P/E, P/B, FCF-Yield) allein nicht '
+ *  rigoros hergeben (Scheingenauigkeits-Risiko aus dem Reviewer-'
+ *  Adversarial-Testkatalog) — auf qualitative Kennzahlen-Einordnung '
+ *  ohne Zahlenfindung umformuliert. WICHTIGE STRUKTURELLE BEOBACHTUNG '
+ *  (kein Code-Fix, da Feature aktuell inaktiv): `fading_short` ist '
+ *  konzeptionell ein KO-SHORT-Hebelprodukt (siehe hint: "KO-Short · '
+ *  Gegentrend"), hat aber KEINE der 5 KO-spezifischen Guardrails (KO-1 '
+ *  bis KO-5: Underlying≠Produkt, EMA200≠KO-Abstand, HVP≠Hebel, Score≠'
+ *  Gewinnwahrscheinlichkeit, Gap-Risiko/homeMarket), die `ko` (Long-'
+ *  Richtung) bereits besitzt — bei Aktivierung dieser Strategie (aktuell '
+ *  laut Code-Kommentar deaktiviert: "kein score_fading_short() im '
+ *  Aggregator", KI-Analyse-Button inaktiv) müsste dieselbe Guardrail-'
+ *  Familie ergänzt werden. Bewusst NICHT jetzt schon implementiert '
+ *  (Pareto-Abwägung: Aufwand für aktuell unerreichbaren Code-Pfad, '
+ *  Feature nicht live testbar) — als Punkt für die Reaktivierung dieser '
+ *  Strategie vorgemerkt, nicht für die laufende Migration. Alle Funde '
+ *  wirken NUR innerhalb der jeweiligen, noch nicht migrierten Strategie. '
+ *  Noch NICHT live getestet.
+ *
+ *  Version: 2.41.0 (06.09.2026) — ZWEI FIXES NACH SWING-LIVE-TEST-'
+ *  SICHERHEITSCHECK: (1) Punkt (a) Kausalitätsverbot erweitert um '
+ *  MODAL GEHEDGTE FORMEN — belegter Fund: "kann hier schneller zu einer '
+ *  stärkeren Gegenbewegung führen" stand im selben Absatz NEBEN der '
+ *  korrekten Formulierung "daraus lässt sich nicht automatisch ein '
+ *  erhöhtes Pullback-Risiko ableiten" — ein direkter Selbstwiderspruch, '
+ *  der zeigt, dass das bestehende Verbot von "führt zu" nur den exakten '
+ *  Wortlaut traf, nicht die modal gehedgte Variante ("kann ... führen"). '
+ *  Jetzt explizit klargestellt: das Modalverb hedged nur die Gewissheit, '
+ *  nicht die Kausalitätsbehauptung — beide bleiben verboten. (2) TICKER-'
+ *  SCOPE-SPERRE: dritter belegter Wiederholungsfund (nach BA/HII/LHX '
+ *  05.09., PPRUY 05.09., jetzt BE/MUFG 06.09. im Swing-Live-Test trotz '
+ *  bereits bestehender Regel f + lokaler Verstärkung in Abschnitt 4/5 + '
+ *  Schluss-Selbstprüfung Schritt 1). Drei Verstärkungen: Schritt 1 der '
+ *  Schluss-Selbstprüfung deutlich verschärft (explizite Anweisung, jeden '
+ *  Satz Wort für Wort zu prüfen statt nur "vorkommende" Ticker, mit dem '
+ *  Hinweis, dass diese Prüfung bereits mehrfach nicht ausgereicht hat); '
+ *  NEUE dritte lokale Verstärkung in Abschnitt 6 (Trade-off) ergänzt — '
+ *  bisher nur Abschnitt 4/5 lokal verstärkt, aber der aktuelle Fund lag '
+ *  in einem Vergleichssatz, der strukturell in Abschnitt 6 gehört. '
+ *  Wirkt rückwirkend auf alle 11 migrierten Strategien. Noch NICHT '
+ *  erneut live/smoke-getestet — die Ticker-Scope-Sperre nähert sich '
+ *  langsam dem Punkt, wo eine rein prompt-basierte Lösung an Grenzen '
+ *  stößt (dritter Wiederholungsfund trotz drei Verteidigungsschichten); '
+ *  falls der nächste Test erneut einen Scope-Leck zeigt, sollte das als '
+ *  Kandidat für den bereits offenen Server-Scanner-Backlog-Punkt (P1) '
+ *  geprüft werden, nicht für einen vierten Prompt-Patch.
+ *
  *  Version: 2.40.0 (06.09.2026) — EQUITY-MIGRATION FORTGESETZT (P2): '
  *  `meanrev` als fünfte von 7 verbleibenden Equity-Strategien von '
  *  `_publicEquityPrompt()` auf `_publicNinePointPrompt()` umgestellt '
@@ -2447,7 +2505,12 @@ Das bedeutet konkret:
       + 'maximiert die verfügbare Prämie" — STATTDESSEN "Ein näherer Strike '
       + 'ist typischerweise mit einer höheren Optionsprämie verbunden, '
       + 'während ein weiterer Strike-Abstand typischerweise einen größeren '
-      + 'Kurspuffer bedeutet".\n';
+      + 'Kurspuffer bedeutet". TICKER-SCOPE-SPERRE gilt auch hier (belegter '
+      + 'Wiederholungsfund 06.09.2026, Swing-Live-Test): der Vergleich '
+      + 'zwischen "Titeln mit moderatem Abstand" und "Titeln mit größerem '
+      + 'Abstand" darf NUR die in Abschnitt 3 genannten Titel referenzieren, '
+      + 'NIEMALS zusätzliche Ticker aus dem Datenpool zur Illustration '
+      + 'heranziehen.\n';
 
     var modellGrenzeZusatz = istOptions
       ? (' Zusätzlich: keine konkrete Strike-, Delta-, DTE-, Prämien- oder '
@@ -2561,9 +2624,23 @@ Das bedeutet konkret:
       + 'Risiko einer/eines [X]" (belegter Fund 04.09.2026, Momentum-Retest — '
       + 'klingt wie eine quantifizierte Risikoaussage, ist aber unbelegt), '
       + '"führt zu", "verhindert", "spricht für eine bevorstehende Korrektur" '
-      + 'o.ä. STATTDESSEN NEUTRAL: "ist konsistent mit", "signalisiert", '
-      + '"zeigt", "steht im Modell im Zusammenhang mit", "beschreibt eine '
-      + 'große Distanz zu X" (statt "erhöhtes Risiko durch X").\n'
+      + 'o.ä. — DAS VERBOT GILT AUSDRÜCKLICH AUCH FÜR MODAL GEHEDGTE FORMEN '
+      + 'DESSELBEN INHALTS (belegter Fund 06.09.2026, Swing-Live-Test: "kann '
+      + 'hier schneller zu einer stärkeren Gegenbewegung führen" — reine '
+      + 'Modal-Hedging-Umgehung von "führt zu", direkt im selben Absatz neben '
+      + 'der korrekten Formulierung "daraus lässt sich nicht automatisch ein '
+      + 'erhöhtes Pullback-Risiko ableiten" — beide Sätze widersprechen sich, '
+      + 'das Verbot muss auf den INHALT wirken, nicht nur auf den exakten '
+      + 'Wortlaut ohne Modalverb; ebenso "höheres Rücksetzungsrisiko" im '
+      + 'selben Live-Test). Formulierungen wie "kann zu X führen", "könnte X '
+      + 'auslösen", "dürfte X bedeuten" sind GENAUSO VERBOTEN wie ihre '
+      + 'ungehedgten Entsprechungen, wenn sie eine unbelegte Kausalkette aus '
+      + 'einem Einzelindikator behaupten — das "kann"/"könnte" macht die '
+      + 'Aussage nicht neutral, es hedged nur ihre Gewissheit, nicht ihre '
+      + 'Kausalitätsbehauptung. STATTDESSEN NEUTRAL: "ist konsistent mit", '
+      + '"signalisiert", "zeigt", "steht im Modell im Zusammenhang mit", '
+      + '"beschreibt eine große Distanz zu X" (statt "erhöhtes Risiko durch '
+      + 'X" oder "kann zu X führen").\n'
       + 'b) NUMERISCHE PLAUSIBILITÄTSPRÜFUNG (belegter Fund 04.09.2026, '
       + 'Momentum-Live-Test — Daten-/Mappingfehler, kein reines Wortverbot): '
       + 'numerische Werte IMMER vor ihrer sprachlichen Interpretation auf '
@@ -2742,11 +2819,20 @@ Das bedeutet konkret:
       + abschnitt9
       + '\nSCHLUSS-SELBSTPRÜFUNG (05.09.2026, PFLICHT vor Abgabe der Antwort, '
       + 'ZWEI SCHRITTE):\n'
-      + 'SCHRITT 1 (TICKER-SCOPE, wiederholter Fund trotz Regel f): liste '
+      + 'SCHRITT 1 (TICKER-SCOPE, MEHRFACH BELEGTER WIEDERHOLUNGSFUND trotz '
+      + 'Regel f UND trotz dieser Selbstprüfung — belegt 05.09.2026 (PPRUY) '
+      + 'UND erneut 06.09.2026, Swing-Live-Test (BE, MUFG mit konkreten '
+      + 'EMA200-Werten in Abschnitt 4/5 zitiert, obwohl nur VOD/GLEN.L/VLO '
+      + 'in Abschnitt 3 genannt waren) — DIESE PRÜFUNG HAT BEREITS MEHRFACH '
+      + 'NICHT AUSGEREICHT, FÜHRE SIE BESONDERS GRÜNDLICH DURCH, NICHT NUR '
+      + 'ÜBERFLIEGEND): liste '
       + 'innerlich die Ticker auf, die in Abschnitt 3 genannt wurden (sowohl '
-      + 'Top-Titel als auch Nicht-Top-Titel). Prüfe DANACH jeden einzelnen '
-      + 'Ticker, der in den Abschnitten 4 bis 9 vorkommt, gegen diese Liste — '
-      + 'kommt dort ein Ticker vor, der NICHT auf der Abschnitt-3-Liste '
+      + 'Top-Titel als auch Nicht-Top-Titel). Prüfe DANACH JEDEN EINZELNEN '
+      + 'SATZ der Abschnitte 4 bis 9 Wort für Wort auf Ticker-Nennungen — '
+      + 'nicht nur die offensichtlichen, auch beiläufige Vergleichsnennungen '
+      + '(z.B. "X und Y zeigen größere Abstände als die Top-Titel") — und '
+      + 'gleiche JEDEN gefundenen Ticker gegen die Abschnitt-3-Liste ab. '
+      + 'Kommt dort ein Ticker vor, der NICHT auf der Abschnitt-3-Liste '
       + 'steht, MUSS er vor Abgabe entfernt oder der Satz umformuliert '
       + 'werden. Diese Prüfung gilt unabhängig davon, ob der zusätzliche '
       + 'Ticker plausibel ins Argument passt.\n'
@@ -3789,7 +3875,7 @@ Das bedeutet konkret:
       focus: [
         "Dividendenqualitaet: Verhaeltnis von Rendite (divYield), Ausschuettungsquote (payoutRatio) und FCF-Yield",
         "Fundamentalstaerke: ROE und Verschuldungsgrad als Qualitaetsindikatoren",
-        "CSP-Unterlegungs-Eignung: laesst sich ein Strike 5-10% unter Kurs sinnvoll platzieren?",
+        "CSP-Unterlegungs-Eignung (rein qualitativ, KEINEN konkreten Strike-Wert nennen — das ist EIC-exklusiv, Grundgesetz #11): eignet sich der Titel grundsaetzlich fuer eine optionale CSP-Unterlegung im ueblichen 5-10%-OTM-Bereich, ohne einen konkreten Strike zu empfehlen?",
         "Groesstes Risiko fuer die Nachhaltigkeit dieser Dividende"
       ],
       prompt: function(ctx) {
@@ -3838,7 +3924,7 @@ Das bedeutet konkret:
       focus: [
         "Bewertungs-Kennzahlen: peForward, P/B und FCF-Yield im Verhaeltnis zum Sektor eingeordnet",
         "Qualitaetscheck: rechtfertigt der ROE-Wert die guenstige Bewertung, oder handelt es sich um einen Value-Trap-Kandidaten?",
-        "Sicherheitsmarge: wie gross ist der Puffer zwischen Kurs und dem aus den Daten ableitbaren fairen Wert?",
+        "Sicherheitsmarge (qualitativ einordnen, KEINEN konkreten \"fairen Wert\" oder Kursziel berechnen/erfinden): wie gross erscheint der Puffer zwischen aktuellem Kurs und den verfuegbaren Bewertungskennzahlen (peForward/P-B/FCF-Yield) im Sektorvergleich?",
         "Staerkstes strukturelles Risiko (schrumpfendes Geschaeftsmodell, Schuldenlast, Sektor-Gegenwind)"
       ],
       prompt: function(ctx) {
