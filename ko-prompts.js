@@ -1,6 +1,32 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.44.0 (06.09.2026) — EQUITY-MIGRATION ABGESCHLOSSEN (P2): '
+ *  `dividend` und `value` als letzte zwei der 8 verbleibenden Equity-'
+ *  Strategien von `_publicEquityPrompt()` auf `_publicNinePointPrompt()` '
+ *  umgestellt (istOptionsStrategie: false, mode default scan). Auslöser: '
+ *  `index.html` v491 hat `runAlphaLbKI()` von der alten `getKiSystemPrompt()`-'
+ *  Familie auf `KoPrompts.get()` umgestellt — `dividend`/`value` sind '
+ *  dadurch zum ERSTEN MAL überhaupt live erreichbar (vorher: kein '
+ *  funktionierender UI-Pfad, weder Scanner-Tab noch Alpha Desk). focus[] '
+ *  bereits durch proaktiven Audit (v2.42.0) bereinigt (Sicherheitsmarge/'
+ *  CSP-Unterlegungs-Eignung-Fixes). principle-Texte neu ergänzt. '
+ *  risikenText NEU gesetzt: (1) `dividend` — Dividenden-/Yield-Trap-Risiko '
+ *  (hohe divYield NIEMALS isoliert als Qualitätssignal werten, IMMER mit '
+ *  payoutRatio/fcfYield zusammen einordnen; sDividend-Score als interner '
+ *  Aggregationswert benannt, kein externes Gütesiegel). (2) `value` — '
+ *  analystUpside explizit als EXTERNE Analystenkonsens-Kennzahl markiert, '
+ *  nicht als UIQ-eigenes Signal; Value-Trap-Vorbehalt bei niedriger '
+ *  Bewertung verstärkt. tradeoffKontext NEU: "Rendite ↔ Nachhaltigkeits-'
+ *  risiko" (dividend) bzw. "Bewertungsgünstigkeit ↔ Value-Trap-Risiko" '
+ *  (value). `value`s bestehende ctx.tickers-Sonderbehandlung (für '
+ *  runValueKiBriefing()) unverändert erhalten — bleibt kompatibel, da '
+ *  runAlphaLbKI() kein ctx.tickers setzt (nur ctx.marktkontext), der '
+ *  Block also einfach no-opt. Migrationsstand: 14 von 14 Strategien — '
+ *  ALLE STRATEGIEN JETZT AUF DEM 9-PUNKTE-SCHEMA. Noch NICHT live/smoke-'
+ *  getestet (kein bisheriger echter Live-Test für dividend/value '
+ *  existierte, da vorher kein funktionierender Pfad vorhanden war).
+ *
  *  Version: 2.43.0 (06.09.2026) — EQUITY-MIGRATION FORTGESETZT (P2): '
  *  `fading_short` als sechste von 7 verbleibenden Equity-Strategien von '
  *  `_publicEquityPrompt()` auf `_publicNinePointPrompt()` umgestellt, MIT '
@@ -3910,12 +3936,30 @@ Das bedeutet konkret:
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
-          return _publicEquityPrompt(ctx, {
-            rolle: 'Du analysierst Qualitäts-Dividendentitel (nachhaltige Ausschüttung, solider Free Cashflow).',
+          return _publicNinePointPrompt(ctx, {
+            rolle: 'Du analysierst Qualitäts-Dividendentitel (nachhaltige Ausschüttung, solider Free Cashflow) auf Basis fundamentaler und technischer Kennzahlen. Reines Direktinvestment im Kern (Aktienposition); eine CSP-Unterlegung ist rein optional und sekundär, kein zwingender Bestandteil.',
             stratName: 'Dividend-Growth-Setups',
             marktumfeldFrage: 'Unterstützt das aktuelle Regime Income-Strategien (Zinsniveau, HY-Spread)?',
             focus: STRATEGIES.dividend.focus,
-            maxWords: 350
+            maxWords: 450,
+            istOptionsStrategie: false,
+            principle: 'Dividend-Growth-Setups suchen Qualitäts-Dividendentitel mit nachhaltiger Ausschüttung und solidem Free Cashflow — die Rendite (divYield) allein ist NICHT das Auswahlkriterium, sondern muss durch Fundamentalstärke (ROE, Verschuldungsgrad, Free-Cashflow-Deckung der Ausschüttung) gerechtfertigt sein. Eine optionale Cash-Secured-Put-Unterlegung kann zusätzliches Einkommen erzeugen, ist aber kein zwingender Bestandteil der Strategie. Reines Direktinvestment im Kern: die Basisrendite kommt aus der Dividende und der Kursbewegung der Aktie selbst, kein spekulativer Dividendenjäger — eine hohe Rendite allein rechtfertigt keine Auswahl, wenn die Ausschüttung nicht nachhaltig gedeckt ist.',
+            risikenText: 'Zusätzlich klarstellen (Dividenden-/Yield-Trap-Risiko, analog zum Value-Trap-'
+              + 'Konzept): eine hohe Dividendenrendite (divYield) ist NIEMALS automatisch ein Qualitäts-'
+              + 'oder Attraktivitätsmerkmal — sie kann auch bedeuten, dass der Markt eine Kürzung der '
+              + 'Ausschüttung bereits einpreist (der Kurs ist gefallen, wodurch die rechnerische Rendite '
+              + 'steigt, ohne dass die Ausschüttung selbst nachhaltiger geworden wäre). Eine divYield '
+              + 'IMMER gemeinsam mit payoutRatio und fcfYield einordnen, NIEMALS isoliert als positives '
+              + 'Signal werten. Der sDividend-Score ist ein interner UIQ-Aggregationswert, KEIN externes '
+              + 'Qualitätssiegel — bei Erwähnung benennen, was er zusammenfasst (Dividendenqualität + '
+              + 'Fundamentalstärke), nicht nur die Zahl nennen.',
+            tradeoffKontext: '(Rendite ↔ Nachhaltigkeitsrisiko — der eigentliche Zielkonflikt bei '
+              + 'Dividend-Growth: eine höhere aktuelle Dividendenrendite bedeutet mehr laufendes '
+              + 'Einkommen, geht aber häufig mit einer höheren Ausschüttungsquote und damit größerem '
+              + 'Kürzungsrisiko einher, falls sich die Fundamentaldaten verschlechtern; eine niedrigere, '
+              + 'konservativer gedeckte Rendite bietet mehr Sicherheitspuffer, aber weniger laufendes '
+              + 'Einkommen. Die Gewichtung dieser Merkmale ist eine strategische Abwägung, keine '
+              + 'Aussage über die zukünftige Dividendenentwicklung.)'
           });
         }
         return KI_ANTI_HALLUZINATION
@@ -3991,12 +4035,28 @@ Das bedeutet konkret:
         }
         var _marktkontextMitTickern = (ctx.marktkontext || '') + _tickerBlock;
         if (!ctx.isEic) {
-          return _publicEquityPrompt({ marktkontext: _marktkontextMitTickern }, {
-            rolle: 'Du analysierst günstig bewertete Qualitätstitel nach Value-Kriterien (Graham/Buffett-Prinzipien).',
+          return _publicNinePointPrompt({ marktkontext: _marktkontextMitTickern }, {
+            rolle: 'Du analysierst günstig bewertete Qualitätstitel nach Value-Kriterien (Graham/Buffett-Prinzipien) auf Basis fundamentaler und technischer Kennzahlen. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
             stratName: 'Value-Setups',
             marktumfeldFrage: 'Unterstützt das aktuelle Regime Value-Rotation (Growth-vs-Value-Dynamik, Zinsniveau)?',
             focus: STRATEGIES.value.focus,
-            maxWords: 350
+            maxWords: 450,
+            istOptionsStrategie: false,
+            principle: 'Value-Investing (nach Graham/Buffett-Prinzipien) sucht Aktien, die gegenüber fundamentalen Kennzahlen (Kurs-Gewinn-Verhältnis, Kurs-Buchwert, Free-Cashflow-Rendite) günstig bewertet erscheinen — vorausgesetzt, die zugrunde liegende Geschäftsqualität (ROE, Wettbewerbsposition) rechtfertigt die niedrige Bewertung. Ein niedriger Kurs allein ist kein Kaufgrund: ohne fundamentale Qualitätsprüfung droht ein "Value Trap" — ein Titel, der aus gutem Grund günstig bewertet ist (schrumpfendes Geschäftsmodell, strukturelle Probleme, Sektor-Gegenwind). Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung/Neubewertung der Aktie selbst.',
+            risikenText: 'Zusätzlich klarstellen: der analystUpside-Wert (Analyst-Kursziel-Upside) ist '
+              + 'eine externe Analystenkonsens-Kennzahl, KEIN von UIQ selbst abgeleitetes Signal — bei '
+              + 'Erwähnung explizit als externe Quelle benennen ("Analystenkonsens sieht X% Upside"), '
+              + 'NIEMALS als eigene UIQ-Einschätzung darstellen. Ebenso NIEMALS aus einem niedrigen '
+              + 'peForward/P-B-Wert allein auf eine "günstige" oder "attraktive" Bewertung schließen, '
+              + 'ohne den Value-Trap-Vorbehalt zu nennen (siehe focus-Kriterium Qualitätscheck) — eine '
+              + 'niedrige Bewertung ist zunächst nur ein Datenpunkt, keine bereits geprüfte Kaufchance.',
+            tradeoffKontext: '(Bewertungsgünstigkeit ↔ Value-Trap-Risiko — der eigentliche Zielkonflikt '
+              + 'bei Value-Investing: eine niedrigere Bewertung (peForward, P/B) beschreibt im Modell '
+              + 'ein potenziell größeres Aufwertungspotenzial, falls die Geschäftsqualität die '
+              + 'Bewertung nicht rechtfertigt; gleichzeitig kann dieselbe niedrige Bewertung bedeuten, '
+              + 'dass der Markt strukturelle Probleme bereits korrekt einpreist (Value Trap). Die '
+              + 'Gewichtung dieser Merkmale ist eine strategische Abwägung, keine Aussage über die '
+              + 'zukünftige Kursentwicklung.)'
           });
         }
         return KI_ANTI_HALLUZINATION
