@@ -1,6 +1,37 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.46.0 (07.09.2026) — ECHTE IV-PERZENTIL-DATEN IN PUBLIC-MODE-'
+ *  GUARDRAILS INTEGRIERT. Fortsetzung des market_aggregator.py/index.html-'
+ *  Fixes vom selben Tag (neues Feld ivpPercentile aus externer Quelle '
+ *  github.com/ahsub/options-vol-data, echte implizite statt nur '
+ *  historischer Volatilitaet). Axel-Entscheidung: IVP wo verfuegbar als '
+ *  PRIMAERES Kriterium, HVP explizit nur noch als dokumentierter Fallback '
+ *  fuer die Luecken (kein 1:1-identisches Ticker-Universum). FUENF '
+ *  STELLEN aktualisiert: (1) `csp_wheel` focus[0] "HVP-Eignung" → "IVP-'
+ *  Eignung" umbenannt, jetzt mit klarer Prioritaetsreihenfolge (IVP '
+ *  primaer, HVP nur als explizit gekennzeichnete Naeherung). (2) `cc`s '
+ *  "Praemienqualitaet"-Kriterium aktualisiert — die alte Formulierung '
+ *  ("UIQ hat keine Live-Optionsketten-IV... im Broker zu pruefen") war '
+ *  seit heute schlicht veraltet. (3) `collar`s rolle/principle/'
+ *  "Absicherungsbedarf"-Kriterium auf dieselbe IVP-primaer/HVP-Fallback-'
+ *  Logik umgestellt. (4) `ko`s "Hebel-Eignung" (KO-3-Guardrail) und (5) '
+ *  `fading_short`s KO-3-Analog ("Underlying ≠ Produkt") erweitert: die '
+ *  Semantic-Firewall-Kernaussage (HVP/IVP ≠ Hebel/Produktvolatilitaet/'
+ *  KO-Wahrscheinlichkeit) bleibt unveraendert richtig, jetzt aber fuer '
+ *  BEIDE Kennzahlen formuliert statt nur HVP. BEWUSST NICHT ANGEFASST: '
+ *  `momentum`s Stop-Loss-Sensitivitaet-Kriterium (Aktien-Stop-Groesse, '
+ *  kein Praemienbezug) und `breakdown`s Squeeze-Risiko-tradeoffKontext '
+ *  (realisierte Vol-Kompression als Setup-Merkmal, kein Praemienbezug) — '
+ *  beide nutzen HVP fuer einen Zweck, fuer den IVP kein besserer Ersatz '
+ *  waere. BEWUSST ZURUECKGESTELLT: alle HVP-Erwaehnungen in den EIC-'
+ *  Zweigen (ctx.isEic-Branches) der betroffenen Strategien — diese '
+ *  werden im Zuge der bereits beschlossenen Umstellung auf den neuen EIC '
+ *  Master Prompt (UIQ_EIC_Master_Prompt_Draft_1.1.md, 07.09.2026) ohnehin '
+ *  komplett neu geschrieben; eine Reparatur jetzt waere doppelte Arbeit. '
+ *  `atmna`/`weekly_income` geprueft und sauber befunden (kein HVP-Bezug '
+ *  in deren focus[]). Noch NICHT live/smoke-getestet.
+ *
  *  Version: 2.45.0 (06.09.2026) — NEUE STRATEGIE: `breakdown` (Alpha-'
  *  Desk-Leaderboard "short_breakdown", bisher ohne STRATEGIES-Eintrag '
  *  und daher ueber _noMetricsLBs deaktiviert, obwohl score_short_'
@@ -3148,7 +3179,7 @@ Das bedeutet konkret:
       hint:  '⚡ KO-Zertifikat: Hebel 3–8x · KO-Abstand · Positionsgröße max. €2.000',
       color: '#818cf8',
       focus: [
-        "Hebel-Eignung: Passt die Volatilitaet (ATR) des Titels zu einem 3-8x-Hebel, ohne durch normales Kursrauschen ausgeknockt zu werden? WICHTIG: HVP beschreibt die historische realisierte Volatilitaet des Basiswerts und ist KEIN Mass fuer den Hebel, die Produktvolatilitaet oder die KO-Wahrscheinlichkeit eines konkreten Zertifikats — diese haengen ausschliesslich vom gewaehlten Produkt ab.",
+        "Hebel-Eignung: Passt die Volatilitaet (ATR) des Titels zu einem 3-8x-Hebel, ohne durch normales Kursrauschen ausgeknockt zu werden? WICHTIG (aktualisiert 07.09.2026 — echte IV-Perzentil-Daten integriert, s. ivpPercentile-Feld): weder HVP (historische realisierte Volatilitaet) noch ivpPercentile (implizite Volatilitaet, falls fuer den Titel verfuegbar) sind ein Mass fuer den Hebel, die Produktvolatilitaet oder die KO-Wahrscheinlichkeit eines konkreten Zertifikats — diese haengen ausschliesslich vom gewaehlten Produkt ab.",
         "KO-Abstand (Underlying-Ebene, NICHT das konkrete Produkt): ATR-basierte Naeherung fuer die Kursbeweglichkeit des Basiswerts. WICHTIG: der Abstand zur EMA200 ist NIEMALS mit dem Abstand zur tatsaechlichen KO-Barriere gleichzusetzen — die EMA200 ist ein technischer Trendindikator des Basiswerts, die KO-Barriere ist ein Produktparameter des konkreten Zertifikats. Ein grosser EMA200-Abstand beschreibt eine fortgeschrittene Kursbewegung relativ zum langfristigen Trendmittel des Basiswerts (reine Ebene-1-Beobachtung, KEINE Risiko-/Rueckschlags-Formulierung — siehe REASONING-GUARDRAILS a/d/e) — das ist unabhaengig vom tatsaechlichen Puffer bis zur KO-Barriere, der ausschliesslich vom konkreten Produkt abhaengt.",
         "Trend-Regime-Eignung: KO-Zertifikate sind Hebel-/Momentum-Instrumente fuer kurzfristiges Trading (Tage bis wenige Wochen) in KLAREN Trendphasen — NICHT fuer Seitwaertsmaerkte oder Buy-and-Hold geeignet. Liegt aktuell ein klarer, starker Trendimpuls vor (z.B. nach Kurstreibern wie starken Quartalszahlen) oder eher ein Seitwaertsumfeld?",
         "Marktzugang: fuer Titel mit homeMarket=US ist die Emission entsprechender Hebelprodukte fuer Privatanleger seit einer US-Steuerregeländerung 2017 eingeschraenkt bzw. gar nicht verfuegbar — der deutsche/europaeische Markt (homeMarket=DE/FR/NL/IT/CH/UK/DK/SE/AU) bietet strukturell das breitere, liquidere Angebot. Bei homeMarket=US zusaetzlich Quellensteuer-Aspekte und typischerweise geringeres Emittenten-Angebot beachten. WICHTIG: homeMarket bezeichnet die Handelsboerse (Handelszeit), NICHT den Firmensitz — auch ADRs nicht-amerikanischer Konzerne (z.B. SAP, ASML, RIO) haben homeMarket=US, da sie selbst auf NYSE/NASDAQ handeln. Dies ist eine allgemeine Marktzugangs-Charakteristik, keine Empfehlung einzelner Titel oder Sektoren durch UIQ.",
@@ -3578,7 +3609,7 @@ Das bedeutet konkret:
       hint:  '⚙️ CSP/Wheel: Cash Secured Put + Covered Call · CapTrader/IBKR · Theta-Strategie',
       color: 'var(--amber)',
       focus: [
-        "HVP-Eignung: Wie hoch ist die anhand des HVP-Werts geschaetzte Praemienbasis des Titels (rein deskriptiv, KEINE Wertung als \"attraktiv\"/\"guenstig\" — siehe PUBLIC_REGULATORY_GUARDRAIL, attraktiv-Verbot)?",
+        "IVP-Eignung (Praemienbasis, aktualisiert 07.09.2026 — echte IV-Perzentil-Daten integriert): falls das Feld ivpPercentile fuer den Titel vorliegt, IMMER dieses als primaeres Kriterium nutzen — wie ist die implizite Volatilitaet relativ zu ihrer eigenen historischen Bandbreite einzuordnen (rein deskriptiv, KEINE Wertung als \"attraktiv\"/\"guenstig\" — siehe PUBLIC_REGULATORY_GUARDRAIL, attraktiv-Verbot)? NUR FALLS ivpPercentile fuer diesen Titel NICHT vorliegt: HVP als Naeherung nutzen, dabei EXPLIZIT benennen, dass es sich um eine Schaetzung aus historischer (nicht impliziter) Volatilitaet handelt, da UIQ fuer diesen Titel keine echte IV-Perzentil-Kennzahl hat.",
         "Strike-Naeherung: EMA200-Abstand als grobe Orientierung fuer einen sinnvollen Strike-Bereich",
         "Exit-Kriterien: Gewinnmitnahme- und Stop-Loss-Schwelle gemaess der hinterlegten Regel",
         "IV-Crush- oder Earnings-Risiko innerhalb der betrachteten Laufzeit"
@@ -3792,7 +3823,7 @@ Das bedeutet konkret:
         "Langfristige Halteeignung: das Modell bewertet KEINE Aktienqualitaet — CC ersetzt keine eigene Aktienanalyse. Goldene Regel: nur auf Titel Calls schreiben, die man auch ohne die Optionsstrategie langfristig halten wuerde. UIQ liefert hierzu nur die Bewertungskriterien dieser Strategie, keine fundamentale Investment-Empfehlung.",
         "Dividendenrendite (divYield) und Cashflow-Stabilitaet KOENNEN bei der Auswahl relevant sein (z.B. bei bereits gehaltenen oder gezielt fuer Wheel-Fortfuehrung erworbenen Qualitaetstiteln), sind aber KEINE zwingende Voraussetzung fuer einen Covered Call — ein CC kann auch auf einem nicht-dividendenstarken Titel sinnvoll sein, wenn die Aktie bewusst gehalten wird und Upside gegen Praemieneinnahme getauscht werden soll.",
         "Grade-Einstufung/D200-Position: Grade-Einstufung und D200-Position als Naeherung fuer die aktuelle Trendlage des Titels (reine Snapshot-Kennzahl zu EINEM Zeitpunkt — KEINE Aussage ueber Kursverhalten ueber Zeit, Dauerhaftigkeit oder Vorhersagbarkeit ableiten, siehe REASONING-GUARDRAILS e; echte Marktkapitalisierung, Spread-Enge und Liquiditaet liegen UIQ nicht vor — Broker-Check).",
-        "Praemienqualitaet: HVP beschreibt die historische realisierte Volatilitaet und kann einen Hinweis auf ein bewegteres Kursumfeld geben — die tatsaechlich erzielbare Call-Praemie laesst sich daraus allein NICHT ableiten (Kontextsignal, kein Praemienmass; UIQ hat keine Live-Optionsketten-IV, echte IV/IV-Perzentil-Rang sind im Broker zu pruefen).",
+        "Praemienqualitaet (aktualisiert 07.09.2026 — echte IV-Perzentil-Daten integriert): falls ivpPercentile fuer den Titel vorliegt, beschreibt es die relative Positionierung der tatsaechlichen impliziten Volatilitaet — ein deutlich hoeherer Wert ist mit einer strukturell hoeheren Call-Praemienbasis vereinbar (rein deskriptiv, keine Wertung als \"attraktiv\"). FALLS ivpPercentile fehlt: HVP als Naeherung nutzen und EXPLIZIT als historische (nicht implizite) Volatilitaet kennzeichnen — die tatsaechlich erzielbare Call-Praemie laesst sich daraus allein NICHT ableiten (Kontextsignal, kein Praemienmass). In beiden Faellen bleibt die konkrete Optionskette (Bid/Ask, tatsaechliches Delta) im Broker zu pruefen.",
         "Strike-Kompromiss (qualitativ, keine konkreten Delta-Werte — Public-Modus): ein naeher am Kurs liegender Strike ist typischerweise mit hoeherer Praemie UND hoeherer Ausuebungswahrscheinlichkeit verbunden (passt eher zu seitwaerts/leicht fallenden Erwartungen), ein weiter entfernter Strike mit geringerer Praemie aber mehr Kursspielraum (passt eher zu moderat steigenden Erwartungen).",
         "CC-spezifischer D200-Zielkonflikt (Unterschied zu CSP wichtig): ein hoher positiver D200-Abstand ist bei CC NICHT per se guenstig wie bei CSP — je staerker ein Titel strukturell steigt, desto groesser der potenzielle Opportunitaetsverlust durch den gedeckelten Short Call (Risiko, zu frueh aus einer guten Position herausgerufen zu werden). Bei CSP kann ein starker Aufwaertstrend dagegen unproblematischer sein, da eine Andienung dort grundsaetzlich in eine gewuenschte Aktienposition fuehrt.",
         "Rollstrategie: wie wahrscheinlich ist ein Aufwaerts-Roll noetig, wenn der Kurs sich dem Strike naehert?",
@@ -3875,7 +3906,7 @@ Das bedeutet konkret:
       hint:  '🛡️ Collar/Protective Put: Absicherung Bestandsposition · BULL_FRAGILE · Proxy-Strikes',
       color: '#0ea5e9',
       focus: [
-        "Absicherungsbedarf: sprechen RSI/Momentum NUR in Kombination mit hoher HVP UND strukturell intaktem uebergeordnetem Trend fuer eine gezielte Ueberpruefung des Absicherungsbedarfs bei diesem Titel? (RSI allein — ob hoch oder niedrig — reicht NICHT: ein bereits stark gefallener Titel mit niedrigem RSI braucht nicht automatisch mehr Absicherung, das waere konzeptionell widerspruechlich.)",
+        "Absicherungsbedarf (aktualisiert 07.09.2026 — echte IV-Perzentil-Daten integriert): sprechen RSI/Momentum NUR in Kombination mit hoher Volatilitaet (primaer ivpPercentile falls fuer den Titel verfuegbar, sonst HVP als historische Naeherung — in diesem Fall explizit als Naeherung kennzeichnen) UND strukturell intaktem uebergeordnetem Trend fuer eine gezielte Ueberpruefung des Absicherungsbedarfs bei diesem Titel? (RSI allein — ob hoch oder niedrig — reicht NICHT: ein bereits stark gefallener Titel mit niedrigem RSI braucht nicht automatisch mehr Absicherung, das waere konzeptionell widerspruechlich.)",
         "Protective Put vs. voller Collar: lohnt sich hier eher die einfache Absicherung oder die volle Kostenreduktion mit gedeckeltem Upside?",
         "Strike-Naeherung: ATR-basierte Put-/Call-Distanz als grobe Orientierung (keine echten Optionsketten verfuegbar)",
         "Wichtigste Einschraenkung dieser Einschaetzung, die vor einer echten Position in IBKR/CapTrader zu pruefen ist"
@@ -3884,14 +3915,14 @@ Das bedeutet konkret:
         var mode = 'holding_review';  // gilt fuer Public UND EIC — s. Kommentar in _publicOptionsPrompt
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
-            rolle: 'Du analysierst Bestandspositionen auf strukturellen Absicherungsbedarf (Collar/Protective Put) in einem fragilen Bull-Regime. UIQ hat KEINEN Zugriff auf echte Optionsketten oder Bestandspositionen — alle Einordnungen sind ATR/HVP-basierte Näherungen.',
+            rolle: 'Du analysierst Bestandspositionen auf strukturellen Absicherungsbedarf (Collar/Protective Put) in einem fragilen Bull-Regime. UIQ hat KEINEN Zugriff auf echte Optionsketten oder Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen, ergänzt um echte IV-Perzentil-Daten (ivpPercentile) wo für den Titel verfügbar, sonst HVP als historischer Volatilitäts-Fallback.',
             stratName: 'Collar/Protective-Put-Setups',
             marktumfeldFrage: 'Spricht das aktuelle Regime (BULL_FRAGILE o.ä.) grundsätzlich für Absicherungsüberlegungen?',
             focus: STRATEGIES.collar.focus,
             maxWords: 400,
             mode: mode,
             istOptionsStrategie: true,
-            principle: 'Collar/Protective Put ist eine Absicherungsstrategie für bestehende Aktienpositionen: durch den Kauf eines Put wird ein Mindestverkaufspreis ("Boden") für die gehaltene Position abgesichert — die einzigen Kosten sind die gezahlte Put-Prämie. Beim vollen Collar wird zusätzlich ein Call verkauft, um die Put-Prämie ganz oder teilweise zu finanzieren; im Gegenzug wird das Aufwärtspotenzial der Position bis zum Call-Strike gedeckelt. UIQ hat keinen Zugriff auf echte Optionsketten oder tatsächliche Bestandspositionen — alle Einordnungen sind ATR-/HVP-basierte Näherungen zur hypothetischen Prüfung, keine Aussage über eine tatsächlich gehaltene Position.',
+            principle: 'Collar/Protective Put ist eine Absicherungsstrategie für bestehende Aktienpositionen: durch den Kauf eines Put wird ein Mindestverkaufspreis ("Boden") für die gehaltene Position abgesichert — die einzigen Kosten sind die gezahlte Put-Prämie. Beim vollen Collar wird zusätzlich ein Call verkauft, um die Put-Prämie ganz oder teilweise zu finanzieren; im Gegenzug wird das Aufwärtspotenzial der Position bis zum Call-Strike gedeckelt. UIQ hat keinen Zugriff auf echte Optionsketten oder tatsächliche Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen zur hypothetischen Prüfung (ergänzt um echte IV-Perzentil-Daten wo verfügbar, sonst HVP als historischer Fallback), keine Aussage über eine tatsächlich gehaltene Position.',
             // BEGRIFFS-INTEGRITAET (31.08.2026, Prioritaet 3 aus Uebergabe-
             // protokoll 30.08. §8 — analog zum CC-Fund vom 29.08.). Collar
             // nutzte bislang den generischen Fallback "Andienung" — begrifflich
@@ -4124,7 +4155,7 @@ Das bedeutet konkret:
       focus: [
         "Ueberhitzungsgrad: wie deutlich liegt der RSI-Wert ueber der 75-Schwelle?",
         "Regime-Voraussetzung: ist das aktuelle Regime (BULL_FRAGILE/STRESS_UNSTABLE) ueberhaupt fuer Fading Short geeignet?",
-        "Underlying ≠ Produkt (KO-Short-spezifisch, analog zu KO-Long): UIQ bewertet die technische Ueberhitzung des Basiswerts, NICHT ein konkretes KO-Short-Zertifikat (Barriere, Hebel, Spread, Finanzierungskosten, Emittent, Liquiditaet sind UIQ nicht bekannt). WICHTIG: HVP beschreibt die historische realisierte Volatilitaet des Basiswerts und ist KEIN Mass fuer den Hebel, die Produktvolatilitaet oder die KO-Wahrscheinlichkeit eines konkreten Zertifikats.",
+        "Underlying ≠ Produkt (KO-Short-spezifisch, analog zu KO-Long): UIQ bewertet die technische Ueberhitzung des Basiswerts, NICHT ein konkretes KO-Short-Zertifikat (Barriere, Hebel, Spread, Finanzierungskosten, Emittent, Liquiditaet sind UIQ nicht bekannt). WICHTIG (aktualisiert 07.09.2026 — echte IV-Perzentil-Daten integriert, s. ivpPercentile-Feld): weder HVP (historische realisierte Volatilitaet) noch ivpPercentile (implizite Volatilitaet, falls fuer den Titel verfuegbar) sind ein Mass fuer den Hebel, die Produktvolatilitaet oder die KO-Wahrscheinlichkeit eines konkreten Zertifikats.",
         "RSI-Ueberhitzung ≠ KO-Abstand: der RSI-Wert misst die kurzfristige Ueberhitzung des Basiswerts, NIEMALS den tatsaechlichen Puffer zur KO-Barriere des konkreten Short-Zertifikats — ein extremer RSI-Wert beschreibt eine ausgepraegte kurzfristige Ueberhitzung (reine Ebene-1-Beobachtung), OHNE dass daraus eine Aussage ueber die Naehe zur tatsaechlichen Produkt-Barriere folgt.",
         "Marktzugang: fuer Titel mit homeMarket=US ist die Emission entsprechender Hebelprodukte fuer Privatanleger seit einer US-Steuerregeländerung 2017 eingeschraenkt bzw. gar nicht verfuegbar — der deutsche/europaeische Markt (homeMarket=DE/FR/NL/IT/CH/UK/DK/SE/AU) bietet strukturell das breitere, liquidere Angebot. WICHTIG: homeMarket bezeichnet die Handelsboerse (Handelszeit), NICHT den Firmensitz — auch ADRs nicht-amerikanischer Konzerne haben homeMarket=US.",
         "Gap-/Overnight-Risiko: bei Kandidaten mit dem Datenfeld homeMarket=US (siehe FELDERKLÄRUNG) besteht ein Zeitzonen-Versatz zwischen deutscher und US-Handelszeit — eine schnelle Kursbewegung oder ein Gap kann die KO-Barriere erreichen, bevor eine manuelle Reaktion moeglich ist. NIEMALS die Boersenzugehoerigkeit aus dem Tickersymbol selbst erraten, NIEMALS die Feldnotation woertlich uebernehmen.",
