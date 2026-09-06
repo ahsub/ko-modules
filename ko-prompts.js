@@ -1,6 +1,24 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.48.1 (07.09.2026) — EIC MASTER PROMPT: KANDIDATEN-FOKUS +
+ *  LÄNGENBREMSE ergaenzt (Live-Test-Fund, zweiter EIC-csp_wheel-Lauf über
+ *  Options-Desk, nach v505/v1.19 max_tokens-Erhoehung weiterhin abgebrochen
+ *  UND "zu viel Text", Axel-Fund). Root Cause: _eicMasterPrompt() hatte
+ *  anders als _publicNinePointPrompt() KEINE Kandidaten-Begrenzung (Public:
+ *  "bis zu 3 Titel" in Abschnitt 3) und KEINE Laengenvorgabe (Public: "Max.
+ *  500 Woerter") — das Modell analysierte dadurch die komplette 20-Titel-
+ *  Watchlist erschoepfend in vier Kohorten mit Einzelbewertung pro Titel,
+ *  was selbst das erhoehte 5000-Token-Limit sprengte (Antwort brach erneut
+ *  mitten im Satz ab, noch vor Erreichen von §23). Fix (Axel-Vorgabe nach
+ *  Rückfrage): Kandidaten-Fokus auf 3-5 staerkste Titel (etwas grosszuegiger
+ *  als Public wegen zusaetzlicher EIC-Tiefe), Ziellaenge ca. 1000-1200
+ *  Woerter fuer die GESAMTE Analyse (Ebenen 1-22 + §23). Uebrige Watchlist
+ *  darf knapp zusammengefasst erwaehnt werden, nicht mehr Titel fuer Titel
+ *  durchgearbeitet. Funktional verifiziert (Node-Test): neue Textbausteine
+ *  vorhanden, §23 weiterhin enthalten, Public-Zweig unveraendert, alle 14
+ *  uebrigen Strategien laden fehlerfrei in beiden Modi.
+ *
  *  Version: 2.48.0 (07.09.2026) — EIC MASTER PROMPT MIGRATION (csp_wheel,
  *  Axel-Entscheidung). Neue gemeinsame Funktion _eicMasterPrompt(ctx, o),
  *  analog zu _publicNinePointPrompt(): traegt den vollstaendigen UIQ EIC
@@ -3092,6 +3110,16 @@ Das bedeutet konkret:
       + (o.principle
           ? ('STRATEGIEPRINZIP:\n' + o.principle + '\n\n')
           : '')
+      + 'KANDIDATEN-FOKUS (Live-Test-Fund 07.09.2026 — ohne diese Vorgabe '
+      + 'wurde die komplette Watchlist erschöpfend in Kohorten durchanalysiert, '
+      + 'statt sich auf die relevantesten Titel zu konzentrieren): analysiere '
+      + 'im Detail NUR die 3-5 Titel mit der stärksten Kriterien-Übereinstimmung '
+      + 'für ' + o.stratName + ' — analog zum Public-Modus ("bis zu 3 Titel"), '
+      + 'hier etwas grosszügiger wegen der zusätzlichen EIC-Tiefe (Widerspruchs-'
+      + 'analyse, Hypothese, §23). Die übrige Watchlist darf knapp zusammengefasst '
+      + 'erwähnt werden (z.B. "weitere N Titel erfüllen die Kriterien nicht '
+      + 'hinreichend, u.a. wegen niedriger IVP oder ungültigem Strike"), aber '
+      + 'NICHT Titel für Titel einzeln durchgearbeitet werden.\n\n'
       + `# 1. DIE FÜNF EBENEN DER EIC-ANALYSE
 
 Jede Aussage ist gedanklich einer dieser Ebenen zuzuordnen:
@@ -3757,7 +3785,17 @@ Was Ebene 5 grundsätzlich verbietet, bleibt auch hier verboten, wenn es nicht b
 ## Externe Prüfung bleibt Pflicht
 
 Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broker (Liquidität, Bid/Ask, echte Prämie, Earnings-Termine) — er liefert die UIQ-seitige Vorarbeit dafür, direktiv statt gehedged formuliert. Ein Schlusssatz macht das explizit: "Strike/DTE-Vorschlag ist UIQ-Modell-Ableitung, keine geprüfte Optionskette — reale Prämie/Liquidität im Broker verifizieren."
-`;
+`
+      + '\n\nLÄNGE (Live-Test-Fund 07.09.2026 — ohne diese Vorgabe wurde die '
+      + 'Antwort trotz erhöhtem Token-Limit mitten im Satz abgebrochen): '
+      + 'Ziellänge der GESAMTEN Analyse (Ebenen 1-22 + §23 zusammen) ca. '
+      + '1000-1200 Wörter. Das ist grosszügiger als der Public-Modus (ca. 500 '
+      + 'Wörter), weil EIC zusätzlich Widerspruchsanalyse, Hypothese und den '
+      + '§23-Handlungsempfehlungsblock trägt — aber KEIN Freibrief für '
+      + 'erschöpfende Tabellen über die gesamte Watchlist (s. KANDIDATEN-FOKUS '
+      + 'oben). Lieber bei 3-5 Kandidaten in der gebotenen Tiefe bleiben, als '
+      + 'durch Breite über die gesamte Watchlist die Länge zu sprengen und '
+      + 'am Ende abzubrechen, bevor §23 überhaupt erreicht ist.';
   }
 
   function _publicOptionsPrompt(ctx, o) {
