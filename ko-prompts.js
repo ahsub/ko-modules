@@ -1,6 +1,26 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.49.4 (07.09.2026) — §23 ZAHLEN-ERFINDUNGS-SPERRE MIT
+ *  KONKRETEN VORHER/NACHHER-BEISPIELEN VERSCHÄRFT (vierter Live-Test-Fund,
+ *  atmna-Viertlauf — dieselbe Fundklasse trat ERNEUT auf, obwohl die
+ *  uebergreifende Regel aus v2.49.3 bereits nach dem dritten Fund ergaenzt
+ *  worden war: "Bid-Ask-Spread <$0,15/<$0,30" (keine Quelle, auch nicht
+ *  Ludwig, nennt einen Dollar-Betrag), "OI mindestens 50 Kontrakte" (falsch
+ *  UND unnoetig erfunden — die korrekte Zahl, "dreistelliger Bereich", stand
+ *  bereits im STRATEGIEPRINZIP und wurde ignoriert). Lehre: eine abstrakte
+ *  Regel allein reicht bei diesem hartnaeckigen Muster nicht — jetzt mit
+ *  konkreten SO-NICHT/SO-STATTDESSEN-Beispielpaaren nachgeschaerft, inkl.
+ *  explizitem Hinweis, dass eine im Prompt bereits vorgegebene Zahl exakt
+ *  zu uebernehmen ist statt durch eine "plausibel wirkende" Alternative
+ *  ersetzt zu werden. Funktional verifiziert: neue Beispiele vorhanden,
+ *  §23-Block intakt, alle 14 uebrigen Strategien fehlerfrei in beiden
+ *  Modi. Naechster Live-Test sollte zeigen, ob konkrete Beispiele robuster
+ *  wirken als die rein abstrakte Regel aus v2.49.3 — falls das Muster ein
+ *  fuenftes Mal auftritt, ist vermutlich eine strukturelle statt prompt-
+ *  textliche Loesung noetig (z.B. serverseitiger Post-Scan analog zum
+ *  bereits bestehenden Compliance-Scanner in ko-ai-worker.js).
+ *
  *  Version: 2.49.3 (07.09.2026) — §23 ZAHLEN-ERFINDUNGS-SPERRE AUF DEN
  *  GESAMTEN BLOCK AUSGEWEITET (dritter Live-Test-Fund am selben Tag,
  *  atmna-Drittlauf über Options-Desk). Root Cause: die in v2.49.1
@@ -3895,7 +3915,19 @@ Was Ebene 5 grundsätzlich verbietet, bleibt auch hier verboten, wenn es nicht b
 
 ## Diese Sperren gelten für den GESAMTEN §23-Block, nicht nur für die Felder oben
 
-HARTE SPERRE, DRITTER BELEGTER FUND (07.09.2026, atmna-Drittlauf — dieselbe erfundene Schwelle "Prämie ≥2,5% des Kurses" tauchte erneut auf, diesmal NICHT im Prämien-Attraktivität-Feld, sondern in einem selbst hinzugefügten Abschnitt "Externe Prüfung/IBKR-Checklist"): die PRÜFFRAGE-Pflicht aus den Feldern oben gilt für JEDE Zahl, die irgendwo in §23 auftaucht — unabhängig davon, unter welcher Überschrift, auch in selbst ergänzten Abschnitten wie einer Broker-Checkliste. Eine externe Prüfliste darf benennen, WAS zu prüfen ist (Bid-Ask-Spread, Open Interest, echte Prämie, Earnings-Termine) — aber KEINE eigenen Zahlenschwellen dafür erfinden ("Spread <0,10$", "OI min. 100", "Prämie ≥2,5%"), es sei denn, eine solche Zahl steht bereits als echter UIQ-Konfigurationswert oder Marktkonvention im Prompt. Ein Verbot, das nur an einer Textstelle steht, wird sonst zuverlässig umgangen, indem dieselbe erfundene Zahl unter einer anderen Überschrift neu erscheint — das gilt strukturell, nicht nur für die bereits belegten Einzelfälle.
+HARTE SPERRE, VIERFACH BELEGTER FUND (07.09.2026, atmna-Drittlauf UND -Viertlauf — dieselbe Fundklasse zweimal in Folge, obwohl die Regel unten bereits nach dem Drittlauf ergänzt wurde): die PRÜFFRAGE-Pflicht aus den Feldern oben gilt für JEDE Zahl, die irgendwo in §23 auftaucht — unabhängig davon, unter welcher Überschrift, auch in selbst ergänzten Abschnitten wie einer Broker-Checkliste. Eine externe Prüfliste darf benennen, WAS zu prüfen ist (Bid-Ask-Spread, Open Interest, echte Prämie, Earnings-Termine) — aber KEINE eigenen Zahlenschwellen dafür erfinden, es sei denn, eine solche Zahl steht bereits als echter UIQ-Konfigurationswert oder im STRATEGIEPRINZIP genannte Marktkonvention im Prompt.
+
+KONKRETE, WIEDERHOLT BELEGTE FEHLER — SO NICHT:
+- "Bid-Ask-Spread <$0,15 ideal, <$0,30 akzeptabel" — KEINE Quelle nennt einen Dollar-Betrag für Bid-Ask-Spreads, auch Ludwig nicht (dessen Kriterium ist rein qualitativ: "Spanne bleibt eng", ohne Zahl).
+- "Open Interest mindestens 50 Kontrakte" — falsch UND unnötig erfunden, obwohl die korrekte Zahl im STRATEGIEPRINZIP bereits steht ("dreistelliger Bereich", also ≥100) — dritter Beleg dafür, dass selbst eine im Prompt bereitgestellte korrekte Zahl ignoriert und durch eine erfundene ersetzt wurde.
+- "Prämie ≥2,5% des Kurses" (zweimal belegt) — keine Quelle nennt diesen Schwellenwert.
+
+SO STATTDESSEN:
+- "Bid-Ask-Spread eng genug? (keine UIQ-Zahl verfügbar, im Broker beurteilen)"
+- "Open Interest im dreistelligen Bereich? (Ludwig-Kriterium, s. STRATEGIEPRINZIP)" — NUR wenn das Prinzip diese Zahl tatsächlich nennt, sonst ebenfalls nur qualitativ.
+- Prämien-Attraktivität ausschließlich über IVP/HVP-Perzentil einordnen (s. Feld oben), keine %/$-Mindestschwelle.
+
+Wenn eine Zahl im STRATEGIEPRINZIP bereits vorgegeben ist: genau DIESE Zahl verwenden, keine eigene erfinden, auch keine "naheliegend wirkende" Alternative. Wenn keine Zahl vorgegeben ist: qualitativ bleiben ("eng genug", "ausreichend liquide"), niemals eine plausibel klingende Zahl ergänzen, um die Checkliste vollständiger wirken zu lassen.
 
 ## Externe Prüfung bleibt Pflicht
 
