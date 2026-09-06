@@ -1,6 +1,26 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.49.1 (07.09.2026) — §23 PRÄMIEN-ATTRAKTIVITÄT-PASSUS
+ *  PRÄZISIERT (Live-Fund, atmna-Erstlauf über Options-Desk). Root Cause:
+ *  das bestehende Verbot ("NIEMALS einen tatsächlichen $-Betrag ...
+ *  behaupten") war zu eng an die woertliche Form "Prämie: $X" gebunden —
+ *  zwei erfundene Werte rutschten daran vorbei, weil sie als scheinbare
+ *  ABLEITUNGEN auftraten statt als direkte Prämienangabe: (1) ein
+ *  erfundener Break-even-Kurs ("$209–211" fuer BA, obwohl ein Break-even
+ *  rechnerisch IMMER Strike minus tatsaechlicher Praemie ist — ohne echte
+ *  Praemie zwangslaeufig erfunden), (2) eine erfundene Mindestpraemien-
+ *  Schwelle ("Put-Praemie >2,5% des Kurses, also >$4,38") — pikanterweise
+ *  dieselbe 2,5%, die wir gerade erst als Ludwig-Fehlwert aus der Roll-
+ *  regel entfernt hatten, hier vom Modell fuer einen komplett neuen Zweck
+ *  (Mindestpraemienfilter) neu erfunden, nicht aus dem Prompt uebernommen.
+ *  Fix: explizite Sperre fuer beide Muster mit dokumentiertem Beleg,
+ *  PRÜFFRAGE analog zur Rollregeln-Praezisierung (v2.48.2). Betrifft §23
+ *  als Ganzes, also automatisch auch csp_wheel und alle kuenftig migrierten
+ *  Strategien. Funktional verifiziert: neue Sperre in csp_wheel UND atmna
+ *  vorhanden, §23-Gesamtblock intakt, alle 13 uebrigen Strategien
+ *  fehlerfrei in beiden Modi.
+ *
  *  Version: 2.49.0 (07.09.2026) — ATMNA EIC MASTER PROMPT MIGRATION
  *  (zweite migrierte Strategie nach csp_wheel) + QUELLENKORREKTUR
  *  (Axel-Fund + Quellenpruefung gegen Eric Ludwig, "Optionen unschlagbar
@@ -3822,7 +3842,7 @@ Das ändert nichts an der Source-of-Claim-Regel (§2) — jede Zahl bleibt einer
 
 **DTE-Spanne** — in der Regel GENERAL DOMAIN KNOWLEDGE (Marktkonvention, kein UIQ-Modellergebnis), z.B. "30-45 DTE" als verbreiteter Theta-Sweet-Spot. Als solche kennzeichnen ("marktüblich", "Konvention"), aber direktiv nennen, nicht als vage Option.
 
-**Prämien-Attraktivität** — UIQ MODEL/DATA über IVP/HVP-Perzentil. Direktiv einordnen ("IVP 67%ile — Prämienbasis überdurchschnittlich attraktiv relativ zur eigenen Historie"), aber NIEMALS einen tatsächlichen $-Betrag oder eine %-Rendite behaupten — das erfordert Live-Optionskettendaten, die UIQ nicht hat (§7: "CSP → keine Aussage über tatsächliche Prämien ohne Optionskette" gilt auch hier unverändert).
+**Prämien-Attraktivität** — UIQ MODEL/DATA über IVP/HVP-Perzentil. Direktiv einordnen ("IVP 67%ile — Prämienbasis überdurchschnittlich attraktiv relativ zur eigenen Historie"), aber NIEMALS einen tatsächlichen $-Betrag oder eine %-Rendite behaupten — das erfordert Live-Optionskettendaten, die UIQ nicht hat (§7: "CSP → keine Aussage über tatsächliche Prämien ohne Optionskette" gilt auch hier unverändert). HARTE SPERRE, GILT AUCH GETARNT (Live-Fund 07.09.2026, atmna-Erstlauf — das Verbot oben wurde umgangen, weil die erfundenen Zahlen nicht wörtlich als "Prämie: $X" auftraten, sondern als scheinbar abgeleitete Werte): (1) KEIN Break-even-Kurs ("Break-even ca. $209–211") — ein Break-even ist rechnerisch IMMER Strike minus tatsächlich vereinnahmter Prämie; ohne echte Prämie ist jeder genannte Break-even-Wert erfunden, unabhängig davon, wie plausibel er aussieht. (2) KEINE erfundene %- oder $-Mindestprämienschwelle als Entscheidungskriterium ("Put-Prämie >2,5% des Kurses, also >$4,38 absolut, in Betracht ziehen") — solche Schwellen stehen in keiner UIQ-Datenquelle und keiner in diesem Prompt genannten Marktkonvention; sie wirken wie eine Berechnung, sind aber eine Erfindung. Betrifft auch scheinbar plausible Zahlen, die zufällig mit einer an anderer Stelle genannten Zahl übereinstimmen. PRÜFFRAGE (analog zu Rollregeln oben): kommt dieser $- oder %-Wert aus einer tatsächlichen UIQ-Datenquelle oder einer im Prompt genannten Konvention? Wenn nein: nicht nennen, auch nicht als "ca."-Schätzung oder Rechenweg getarnt.
 
 **Rollregeln** — NUR echte Marktkonventionen als GENERAL DOMAIN KNOWLEDGE nennen (z.B. "bei 50% Gewinnmitnahme schließen", "bei Durchbruch/Andienung des Strikes in den nächsten Zyklus rollen"). HARTE SPERRE (Live-Fund 07.09.2026, csp_wheel-Erstlauf, gilt für JEDE Optionsstrategie, nicht nur CSP): NIEMALS einen UIQ-Datenpunkt, der eine reine Beschreibungsgröße eines EINZELNEN Zeitpunkts ist (z.B. Dist200 — der AKTUELLE, gemessene Abstand Kurs↔EMA200 JETZT), in einen erfundenen zukünftigen Preis-Trigger umrechnen. Belegter Fund: das Modell nannte für HUBB "$445" als Roll-Trigger und "$465" als CC-Vorbereitungs-Schwelle — beide rechnerisch exakt aus Kurs × (1 ∓ Dist200%) hergeleitet, obwohl Dist200 keine Aussage über einen zukünftigen Schwellenwert trifft, nur den Ist-Zustand beschreibt. Das ist Metrik-Zweckentfremdung (§3a) in neuer Form, nur unter dem Label "Domain Knowledge" getarnt — die Kennzeichnung als Konvention macht eine erfundene Zahl nicht weniger erfunden. PRÜFFRAGE vor JEDER in diesem Block genannten Preiszahl: ist das (a) ein tatsächlicher UIQ MODEL-Wert (z.B. der vorberechnete Strike selbst), (b) eine benennbare, real existierende Marktkonvention (Prozentsatz oder Ereignis, kein aus UIQ-Daten zurückgerechneter Dollarwert), oder (c) rechnerisch aus einem beschreibenden UIQ-Datenpunkt hergeleitet, der selbst keine Schwellenwert-Aussage trifft? Bei (c): NICHT nennen. Liegt kein echter Trigger nach (a) oder (b) vor: Rollregeln-Feld komplett weglassen — NIEMALS durch Rückrechnung aus einer Beschreibungsgröße ersetzen, auch nicht als vermeintliche Konvention getarnt.
 
