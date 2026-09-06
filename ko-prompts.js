@@ -1,6 +1,25 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.49.3 (07.09.2026) — §23 ZAHLEN-ERFINDUNGS-SPERRE AUF DEN
+ *  GESAMTEN BLOCK AUSGEWEITET (dritter Live-Test-Fund am selben Tag,
+ *  atmna-Drittlauf über Options-Desk). Root Cause: die in v2.49.1
+ *  eingefuehrte Sperre gegen erfundene %-/$-Mindestprämienschwellen war
+ *  nur innerhalb des "Prämien-Attraktivität"-Feldes verankert — dieselbe
+ *  bereits belegte Erfindung ("Prämie ≥2,5% des Kurses") tauchte im
+ *  naechsten Lauf unveraendert wieder auf, diesmal versteckt in einem vom
+ *  Modell selbst ergaenzten "Externe Prüfung/IBKR-Checklist"-Abschnitt, den
+ *  die enge Formulierung nicht abdeckte. Fix: neue, uebergeordnete Regel
+ *  ("gilt fuer den GESAMTEN §23-Block, nicht nur fuer die Felder oben") —
+ *  eine externe Pruefliste darf benennen WAS zu pruefen ist, aber KEINE
+ *  eigenen Zahlenschwellen dafuer erfinden, unabhaengig von der Ueberschrift,
+ *  unter der sie steht. Lehre, strukturell festgehalten: ein Verbot an
+ *  einer Textstelle wird zuverlaessig umgangen, indem dieselbe Erfindung
+ *  unter neuer Ueberschrift wieder auftaucht — kuenftige Funde dieser Art
+ *  sollten direkt als uebergreifende Regel statt als lokaler Patch behandelt
+ *  werden. Funktional verifiziert: neue Regel vorhanden, §23-Block intakt,
+ *  alle 14 uebrigen Strategien fehlerfrei in beiden Modi.
+ *
  *  Version: 2.49.2 (07.09.2026) — §23 KANDIDATEN-FOKUS + LÄNGE NACHGESCHÄRFT
  *  (zweiter Live-Test-Fund am selben Tag, atmna-Zweitlauf über Options-
  *  Desk — Antwort brach trotz max_tokens 5000 erneut mitten im Satz ab).
@@ -3874,9 +3893,13 @@ Das ändert nichts an der Source-of-Claim-Regel (§2) — jede Zahl bleibt einer
 
 Was Ebene 5 grundsätzlich verbietet, bleibt auch hier verboten, wenn es nicht berechenbar/konventionsbasiert ist: konkrete Gewinnwahrscheinlichkeiten, konkrete Kursziele, konkrete Positionsgrößen. Direktiver Ton ändert nichts an der Pflicht, nur das zu sagen, was UIQ tatsächlich weiß oder als Marktkonvention klar kennzeichnet.
 
+## Diese Sperren gelten für den GESAMTEN §23-Block, nicht nur für die Felder oben
+
+HARTE SPERRE, DRITTER BELEGTER FUND (07.09.2026, atmna-Drittlauf — dieselbe erfundene Schwelle "Prämie ≥2,5% des Kurses" tauchte erneut auf, diesmal NICHT im Prämien-Attraktivität-Feld, sondern in einem selbst hinzugefügten Abschnitt "Externe Prüfung/IBKR-Checklist"): die PRÜFFRAGE-Pflicht aus den Feldern oben gilt für JEDE Zahl, die irgendwo in §23 auftaucht — unabhängig davon, unter welcher Überschrift, auch in selbst ergänzten Abschnitten wie einer Broker-Checkliste. Eine externe Prüfliste darf benennen, WAS zu prüfen ist (Bid-Ask-Spread, Open Interest, echte Prämie, Earnings-Termine) — aber KEINE eigenen Zahlenschwellen dafür erfinden ("Spread <0,10$", "OI min. 100", "Prämie ≥2,5%"), es sei denn, eine solche Zahl steht bereits als echter UIQ-Konfigurationswert oder Marktkonvention im Prompt. Ein Verbot, das nur an einer Textstelle steht, wird sonst zuverlässig umgangen, indem dieselbe erfundene Zahl unter einer anderen Überschrift neu erscheint — das gilt strukturell, nicht nur für die bereits belegten Einzelfälle.
+
 ## Externe Prüfung bleibt Pflicht
 
-Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broker (Liquidität, Bid/Ask, echte Prämie, Earnings-Termine) — er liefert die UIQ-seitige Vorarbeit dafür, direktiv statt gehedged formuliert. Ein Schlusssatz macht das explizit: "Strike/DTE-Vorschlag ist UIQ-Modell-Ableitung, keine geprüfte Optionskette — reale Prämie/Liquidität im Broker verifizieren."
+Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broker (Liquidität, Bid/Ask, echte Prämie, Earnings-Termine) — er liefert die UIQ-seitige Vorarbeit dafür, direktiv statt gehedged formuliert. Ein Schlusssatz macht das explizit: "Strike/DTE-Vorschlag ist UIQ-Modell-Ableitung, keine geprüfte Optionskette — reale Prämie/Liquidität im Broker verifizieren." Diese abschließende Prüfliste NENNT WAS zu prüfen ist, OHNE eigene Zahlenschwellen zu erfinden (s. Sperre oben) — z.B. "Bid-Ask-Spread eng genug?" statt "Bid-Ask-Spread <0,10$".
 `
       + '\n\nLÄNGE (Live-Test-Fund 07.09.2026 — ohne diese Vorgabe wurde die '
       + 'Antwort trotz erhöhtem Token-Limit mitten im Satz abgebrochen): '
