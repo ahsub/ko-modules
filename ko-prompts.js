@@ -1,6 +1,25 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.48.2 (07.09.2026) — §23 ROLLREGELN-PASSUS PRÄZISIERT (Live-
+ *  Fund, dritter EIC-csp_wheel-Lauf über Options-Desk, Axel-Entscheidung:
+ *  "muss hieb- und stichfest gefixt werden", da mittelfristig weitere
+ *  Optionsstrategien auf denselben §23-Block migrieren). Root Cause: die
+ *  bisherige Formulierung ("GENERAL DOMAIN KNOWLEDGE, wenn ein UIQ-
+ *  Datenpunkt einen Trigger nahelegt") war zu offen — das Modell rechnete
+ *  Dist200 (reine Ist-Zustand-Beschreibungsgröße: aktueller Abstand
+ *  Kurs↔EMA200 JETZT) in erfundene absolute Preis-Trigger um ("$445"/"$465"
+ *  fuer HUBB, exakt Kurs×(1∓Dist200%)) und tarnte das als "Domain
+ *  Knowledge"-Rollregel — Metrik-Zweckentfremdung (§3a) unter neuem Label,
+ *  an der Kennzeichnungs-Vorgabe vorbei. Fix: explizite HARTE SPERRE mit
+ *  dokumentiertem Beleg, PRÜFFRAGE-Dreiteilung (UIQ MODEL-Wert / echte
+ *  Marktkonvention / Rückrechnung aus Beschreibungsgröße — bei Fall drei:
+ *  weglassen), bewusst generisch fuer JEDE Optionsstrategie formuliert
+ *  (nicht CSP-spezifisch), da §23 fuer atmna/weekly_income/cc/collar
+ *  identisch weiterverwendet wird. Funktional verifiziert: neue Pruefregel
+ *  vorhanden, §23-Gesamtblock intakt, alle 14 Strategien fehlerfrei in
+ *  beiden Modi (kein Kollateralschaden).
+ *
  *  Version: 2.48.1 (07.09.2026) — EIC MASTER PROMPT: KANDIDATEN-FOKUS +
  *  LÄNGENBREMSE ergaenzt (Live-Test-Fund, zweiter EIC-csp_wheel-Lauf über
  *  Options-Desk, nach v505/v1.19 max_tokens-Erhoehung weiterhin abgebrochen
@@ -3776,7 +3795,7 @@ Das ändert nichts an der Source-of-Claim-Regel (§2) — jede Zahl bleibt einer
 
 **Prämien-Attraktivität** — UIQ MODEL/DATA über IVP/HVP-Perzentil. Direktiv einordnen ("IVP 67%ile — Prämienbasis überdurchschnittlich attraktiv relativ zur eigenen Historie"), aber NIEMALS einen tatsächlichen $-Betrag oder eine %-Rendite behaupten — das erfordert Live-Optionskettendaten, die UIQ nicht hat (§7: "CSP → keine Aussage über tatsächliche Prämien ohne Optionskette" gilt auch hier unverändert).
 
-**Rollregeln** — GENERAL DOMAIN KNOWLEDGE, wenn ein UIQ-Datenpunkt einen Trigger nahelegt (z.B. Zeit-/Kursbezug), sonst weglassen statt zu erfinden.
+**Rollregeln** — NUR echte Marktkonventionen als GENERAL DOMAIN KNOWLEDGE nennen (z.B. "bei 50% Gewinnmitnahme schließen", "bei Durchbruch/Andienung des Strikes in den nächsten Zyklus rollen"). HARTE SPERRE (Live-Fund 07.09.2026, csp_wheel-Erstlauf, gilt für JEDE Optionsstrategie, nicht nur CSP): NIEMALS einen UIQ-Datenpunkt, der eine reine Beschreibungsgröße eines EINZELNEN Zeitpunkts ist (z.B. Dist200 — der AKTUELLE, gemessene Abstand Kurs↔EMA200 JETZT), in einen erfundenen zukünftigen Preis-Trigger umrechnen. Belegter Fund: das Modell nannte für HUBB "$445" als Roll-Trigger und "$465" als CC-Vorbereitungs-Schwelle — beide rechnerisch exakt aus Kurs × (1 ∓ Dist200%) hergeleitet, obwohl Dist200 keine Aussage über einen zukünftigen Schwellenwert trifft, nur den Ist-Zustand beschreibt. Das ist Metrik-Zweckentfremdung (§3a) in neuer Form, nur unter dem Label "Domain Knowledge" getarnt — die Kennzeichnung als Konvention macht eine erfundene Zahl nicht weniger erfunden. PRÜFFRAGE vor JEDER in diesem Block genannten Preiszahl: ist das (a) ein tatsächlicher UIQ MODEL-Wert (z.B. der vorberechnete Strike selbst), (b) eine benennbare, real existierende Marktkonvention (Prozentsatz oder Ereignis, kein aus UIQ-Daten zurückgerechneter Dollarwert), oder (c) rechnerisch aus einem beschreibenden UIQ-Datenpunkt hergeleitet, der selbst keine Schwellenwert-Aussage trifft? Bei (c): NICHT nennen. Liegt kein echter Trigger nach (a) oder (b) vor: Rollregeln-Feld komplett weglassen — NIEMALS durch Rückrechnung aus einer Beschreibungsgröße ersetzen, auch nicht als vermeintliche Konvention getarnt.
 
 ## Harte Grenze
 
