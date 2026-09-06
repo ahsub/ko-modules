@@ -7,6 +7,27 @@
  * global verfügbar ist wenn renderAlphaCards() und runScan() aufgerufen werden.
  *
  * August 2026 — Konsolidierungs-Sprint
+ *
+ * v1.1 (07.09.2026) — WICHTIGSTER FUND DES TAGES: dieses Modul war seit
+ * seiner Konsolidierung im August ueber einen auf einen Commit von damals
+ * (@de329ba) GEPINNTEN jsDelivr-CDN-Link eingebunden — exakt dasselbe Muster
+ * wie bei ko-prompts.js, nur dass dieser Pin nie aktualisiert wurde. loadScanner
+ * FromKV() (Scanner-Tab, laedt aus masterShortlist statt aus dem vollen
+ * Ticker-Array) nutzte dadurch monatelang eine veraltete Feldliste, KOMPLETT
+ * unabhaengig von allen Fixes dieser Woche an topResults.push()/kvDataToTicker
+ * Data()/buildParameterPool()/tickerList() in index.html — die liefen alle
+ * ins Leere, weil dieser Scanner-Tab-Pfad sie nie durchlief. Entdeckt durch
+ * direkten Live-Vergleich von JSON.stringify(tickerData['VOD']) in zwei
+ * komplett unabhaengigen Browsern (Chrome + Firefox), nachdem Cache-Leerung,
+ * Hard-Reload und sogar ein Inkognito-/neues Profil das Symptom nicht behoben
+ * hatten — der entscheidende Hinweis war ein Feldnamens-Unterschied ("_fromKv"
+ * hier vs. "fromKV" in kvDataToTickerData()), der auf einen dritten,
+ * unbekannten Pfad hindeutete. NEU in v1.1: homeMarket, echte IVP-Felder
+ * (ivpPercentile/ivpDays/ivpCurIv/ivpHv20/ivpHv50/ivpHv100, priorisiert vor
+ * dem alten _ivp/isHV-Fallback), sowie sBreakout/sVcp/sKoLong in stratScores
+ * UND als flache Felder ergaenzt. WICHTIG: der jsDelivr-Hash-Pin in
+ * index.html MUSS nach diesem Commit ebenfalls aktualisiert werden, sonst
+ * wiederholt sich exakt dasselbe Problem.
  */
 
 function kvToScannerState(r) {
@@ -44,10 +65,18 @@ function kvToScannerState(r) {
   var volRatio = r.volRatio != null ? Math.round(r.volRatio * 100) : null;
 
   // Strategie-Scores (Python-berechnet → direkt übergeben, kein JS-Scoring)
+  // ERGÄNZT (07.09.2026, Axel-Fund — VCP-Live-Test zeigte trotz vcpDetected-
+  // Mapping weiterhin "0x, kein vollst. VCP": long_breakout/vcp_setups/ko_long
+  // fehlten hier, obwohl sBreakout/sVcp/sKoLong seit Wochen serverseitig
+  // berechnet werden — betraf tickerList()s "if(r.strategyScores)"-Zweig in
+  // index.html, der NUR diese nested stratScores liest, nie die flachen Felder).
   var stratScores = {
     long_minervini: { score: r.sMinervini || 0, label: 'Minervini SEPA' },
     long_swing:     { score: r.sSwing     || 0, label: 'Swing-Pullback' },
     long_mr:        { score: r.sMrLong    || 0, label: 'Mean Rev. Long' },
+    long_breakout:  { score: r.sBreakout  || 0, label: 'Breakout Stage-2' },
+    vcp_setups:     { score: r.sVcp       || 0, label: 'VCP Setup' },
+    ko_long:        { score: r.sKoLong    || 0, label: 'KO-Long' },
     short_breakdown:{ score: r.sBreakdown || 0, label: 'Short Breakdown' },
     short_fading:   { score: r.sFading    || 0, label: 'Short Fading'   },
     long_dividend:  { score: r.sDividend  || 0, label: 'Dividend Growth' },  // Backlog #13b (29.07.2026)
@@ -150,7 +179,10 @@ function kvToScannerState(r) {
     ivPercentile:   r.ivPercentile  != null ? r.ivPercentile  : null,
     ivArchiveDays:  r.ivArchiveDays != null ? r.ivArchiveDays : null,
     // _ivp-Objekt: echte Aggregator-Werte wenn vorhanden, sonst HVP-Fallback (calcHV20 bleibt aktiv)
-    _ivp: (r.ivAtm != null) ? {
+    // GEÄNDERT (07.09.2026): nur noch aktiv, wenn die NEUE, echte IVP (ivpPercentile
+    // oben) fuer diesen Titel NICHT verfuegbar ist — sonst widerspruechliche
+    // Doppel-Nennung derselben Grundfrage in tickerList().
+    _ivp: (r.ivAtm != null && r.ivpPercentile == null) ? {
       ivp:    r.ivRank,        // ivRank als ivp (0-100, wie HVP)
       atmIV:  Math.round(r.ivAtm),
       dte:    r.ivDte || null,
@@ -175,6 +207,34 @@ function kvToScannerState(r) {
     vcpVolContraction:r.vcpVolContraction != null ? r.vcpVolContraction: null,
     vcpBreakoutVol:   r.vcpBreakoutVol   != null ? r.vcpBreakoutVol   : null,
     tightnessPct:     r.tightnessPct     != null ? r.tightnessPct     : null,
+    // NEU (07.09.2026): homeMarket (KO-5-Gap-Risiko-Guardrail) — seit
+    // market_aggregator.py v2.22.4 (06.09.2026) berechnet, hier bisher nie
+    // gemappt.
+    homeMarket:       r.homeMarket        != null ? r.homeMarket        : 'US',
+    // NEU (07.09.2026): flache Strategie-Score-Felder (zusätzlich zu
+    // stratScores oben) — manche Konsumenten (z.B. index.html tickerList()s
+    // "KV-Modus"-Fallback-Zweig) lesen r.sMinervini/r.sVcp/etc. direkt, nicht
+    // ueber das verschachtelte strategyScores-Objekt.
+    sMinervini:       r.sMinervini != null ? r.sMinervini : null,
+    sSwing:           r.sSwing     != null ? r.sSwing     : null,
+    sMrLong:          r.sMrLong    != null ? r.sMrLong    : null,
+    sBreakout:        r.sBreakout  != null ? r.sBreakout  : null,
+    sVcp:             r.sVcp       != null ? r.sVcp       : null,
+    sKoLong:          r.sKoLong    != null ? r.sKoLong    : null,
+    sBreakdown:       r.sBreakdown != null ? r.sBreakdown : null,
+    sFading:          r.sFading    != null ? r.sFading    : null,
+    sDividend:        r.sDividend  != null ? r.sDividend  : null,
+    sValue:           r.sValue     != null ? r.sValue     : null,
+    // NEU (07.09.2026): echte IV-Perzentil-Daten (fetch_iv_percentile_data()
+    // in market_aggregator.py, externe Quelle github.com/ahsub/options-vol-data)
+    // — als PRIMAERES Kriterium, der alte _ivp/isHV-Fallback oben bleibt nur
+    // aktiv wenn KEINE echte IVP vorliegt.
+    ivpPercentile:    r.ivpPercentile != null ? r.ivpPercentile : null,
+    ivpDays:          r.ivpDays       != null ? r.ivpDays       : null,
+    ivpCurIv:         r.ivpCurIv      != null ? r.ivpCurIv      : null,
+    ivpHv20:          r.ivpHv20       != null ? r.ivpHv20       : null,
+    ivpHv50:          r.ivpHv50       != null ? r.ivpHv50       : null,
+    ivpHv100:         r.ivpHv100      != null ? r.ivpHv100      : null,
     // EMA / SMA
     sma150:           r.sma150           != null ? r.sma150           : null,
     ema200SlopeUp:    r.ema200SlopeUp    != null ? r.ema200SlopeUp    : null,
@@ -271,4 +331,4 @@ function kvToScannerState(r) {
 window.kvToScannerState = kvToScannerState;
 window._kvToScannerStateFn = kvToScannerState;
 
-console.log('[ko-kv-state] v1.0 geladen — kvToScannerState global verfügbar');
+console.log('[ko-kv-state] v1.1 geladen — kvToScannerState global verfügbar (homeMarket/echte IVP/sBreakout+sVcp+sKoLong ergänzt, 07.09.2026)');
