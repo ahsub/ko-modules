@@ -1,6 +1,35 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.49.0 (07.09.2026) — ATMNA EIC MASTER PROMPT MIGRATION
+ *  (zweite migrierte Strategie nach csp_wheel) + QUELLENKORREKTUR
+ *  (Axel-Fund + Quellenpruefung gegen Eric Ludwig, "Optionen unschlagbar
+ *  handeln", vom Nutzer hochgeladen). Der alte atmna-EIC-Zweig instruierte
+ *  das Modell EXPLIZIT, erfundene $-Prämienbeträge ("d) Prämien-SCHÄTZUNG
+ *  ... + 50/60/70%-Gewinn-Ziele in $") und eine erfundene Rollregel
+ *  ("e) Roll-Szenario Stufe 1: Strike ≈ Kurs − 2,5%") zu nennen — beides
+ *  fest im Prompt-Text verankert, keine Modell-Entgleisung. Gegen die
+ *  Originalquelle geprüft: Ludwigs tatsächliches Rollkriterium (Schritt 4)
+ *  ist zeit-/moneyness-/prämienökonomiebasiert (5 Tage vor Verfall + Put
+ *  im Geld + kein Teilgewinn möglich → rollen; Stufe 1-3 nach Prämien-
+ *  Deckungskriterium, KEIN fester Kursabstand). Die "2,5%" selbst stammt
+ *  vermutlich aus einer Verwechslung: Ludwigs echtes Aktienauswahl-
+ *  Kriterium ("Strike-Staffelung ≤5% des Kurses") wird im Buch an einem
+ *  $50-Aktien-Beispiel mit "$2,50-Schritten" illustriert — der Dollar-
+ *  Beispielwert wurde irgendwann faelschlich als eigenstaendige "2,5%"-
+ *  Regel uebernommen UND zusätzlich einer völlig anderen Kategorie
+ *  (Rollregel statt Aktienauswahl) zugeordnet. Korrigiert auf die echten
+ *  5%. Gleicher Fehlwert fand sich unveraendert auch in ko-strategies.js
+ *  (seit v470/18.08.2026 als Dead Code aus dem Frontend entfernt, daher
+ *  ohne Live-Wirkung, nicht mitkorrigiert). atmna nutzt jetzt wie csp_wheel
+ *  _eicMasterPrompt() (Ebenen 1-22 + §23) — die geschärfte Rollregeln-
+ *  Sperre aus v2.48.2 verhindert strukturell die Rückkehr der erfundenen
+ *  Kurs-Prozent-Regel. Gemeinsames STRATEGIEPRINZIP (Public UND EIC) trägt
+ *  jetzt Ludwigs echte Kriterien. Funktional verifiziert: §23 vorhanden,
+ *  Ludwig-Rollkriterium im EIC-Text, korrigierte 5%-Staffelung in beiden
+ *  Modi, alte 2,5%-Regel vollständig entfernt, alle 14 übrigen Strategien
+ *  fehlerfrei in beiden Modi (kein Kollateralschaden).
+ *
  *  Version: 2.48.2 (07.09.2026) — §23 ROLLREGELN-PASSUS PRÄZISIERT (Live-
  *  Fund, dritter EIC-csp_wheel-Lauf über Options-Desk, Axel-Entscheidung:
  *  "muss hieb- und stichfest gefixt werden", da mittelfristig weitere
@@ -4499,7 +4528,14 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
       ],
       prompt: function(ctx) {
         var mode = 'scan';  // s. Kommentar in _publicOptionsPrompt — gilt fuer Public UND EIC
-        var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, goodHvp: 55, idealHvp: 65, erDays: 30, dte: 21 };
+        // KORRIGIERT (07.09.2026, Axel-Fund + Quellenpruefung gegen Eric
+        // Ludwig, "Optionen unschlagbar handeln"): das gemeinsame Prinzip
+        // enthaelt jetzt die tatsaechlichen Ludwig-Kriterien statt der
+        // erfundenen "Kurs - 2,5%"-Rollregel (s. Fund unten). Gilt fuer
+        // Public UND EIC gleichermassen als Hintergrundwissen — Public
+        // darf daraus trotzdem keine konkrete Exit-/Roll-Regel ableiten
+        // (Abschnitt 8, Grundgesetz #11 bleibt unveraendert in Kraft).
+        var principleText = 'CSP (ATM/NA) folgt der von Eric Ludwig veröffentlichten systematischen ATM-CSP/Wheel-Strategie ("Optionen unschlagbar handeln"): der Put wird bewusst nahe am Geld (At-The-Money) verkauft, um den Zeitwert zu maximieren, mit gestaffelten Gewinnmitnahme-Schwellen (50% bei >50% Restlaufzeit, 60% bei 30-50% Restlaufzeit, 70% bei <30% Restlaufzeit). Ludwigs Rollkriterium (Schritt 4) ist zeit- und ökonomiebasiert, KEIN fester Kursabstand: wird 5 Tage vor Verfall der Put im Geld notieren und kann er nicht mit Teilgewinn geschlossen werden, wird gerollt — Stufe 1: neuer Put, 30-60 Tage Laufzeit, niedrigerer Basispreis, dessen Prämie die Schließungskosten des laufenden Puts deckt; Stufe 2: gleicher Basispreis, neue Laufzeit, gleiches Prämien-Deckungskriterium; Stufe 3: niedrigerer Basispreis, doppelte Kontraktzahl. Maximale Roll-Dauer 90 Tage. Ludwigs Aktienauswahl-Kriterien zusätzlich: Optionsbasispreis-Staffelung maximal 5% des aktuellen Kurses (KORRIGIERT 07.09.2026 — zuvor fälschlich als 2,5% geführt, Ursprung vermutlich eine falsch verallgemeinerte Dollar-Beispielrechnung aus der Quelle, nicht von Axel so vorgegeben), Open Interest/Volumen mindestens dreistellig, idealerweise liquide Wochenoptionen verfügbar.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für eine systematische ATM-Cash-Secured-Put-Strategie (Zeitwert-Maximierung, ~30 Tage Laufzeit).',
@@ -4509,51 +4545,27 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
             maxWords: 500,
             mode: mode,
             istOptionsStrategie: true,
-            principle: 'CSP (ATM/NA) ist eine systematische Variante der Cash-Secured-Put-Strategie: der Put wird bewusst nahe am Geld (At-The-Money) verkauft, um den Zeitwert zu maximieren, mit definierten Gewinnmitnahme-Schwellen (50/60/70%) und einer mehrstufigen Rolllogik zur Andienungsvermeidung. Die Strategie ist auf regelmäßige Wiederholung (~30-Tage-Zyklen) ausgelegt und reagiert empfindlicher auf Volatilitätsschwankungen als klassisches CSP/Wheel, da die ATM-Positionierung strukturell näher am Andienungsrisiko liegt.'
+            principle: principleText
           });
         }
-        return '⛔⛔⛔ EIC-MODUS — ABSOLUTES HALLUZINATIONS-VERBOT ⛔⛔⛔\n'
-          + 'Verwende AUSSCHLIESSLICH Daten aus dem Prompt. Fehlende Werte: "N/A — in IBKR prüfen".\n\n'
-          + 'Du bist ein erfahrener Options-Trader der eine systematische ATM-CSP-Wheel-Strategie anwendet.\n\n'
-          + '## STRATEGIE-GRUNDLAGEN (CSP ATM/NA — At-The-Money-System):\n'
-          + '- CSP wird AT-THE-MONEY verkauft — maximaler Zeitwert\n'
-          + '- Laufzeit: ~30 Tage, bevorzugt 3. Freitag des Monats\n'
-          + '- Frühausstieg (Profit-Taking):\n'
-          + '  • 50% Gewinn: Schliessen wenn noch >50% Laufzeit verbleiben\n'
-          + '  • 60% Gewinn: Standard-Regel bei 30-50% verbleibender Laufzeit\n'
-          + '  • 70% Gewinn: Mindest-Ziel bei <30% Laufzeit\n'
-          + '- Andienung vermeiden durch 3-Stufen-Rollen:\n'
-          + '  Stufe 1: Niedrigerer Strike, 30-60 DTE, prämienneutral\n'
-          + '  Stufe 2: Gleicher Strike, neue Laufzeit, prämienneutral\n'
-          + '  Stufe 3: Niedrigerer Strike, doppelte Kontrakte\n'
-          + '- Maximale Roll-Laufzeit: 90 Tage\n\n'
-          + '## AKTIEN-CHECKLISTE:\n'
-          + '- Kurs $' + cfg.minPrice + '–$' + cfg.maxPrice + '\n'
-          + '- HVP ≥ ' + cfg.minHvp + '% (sonst Prämien zu niedrig)\n'
-          + '- Strike-Staffelung ≤2.5% des Kurses\n'
-          + '- OI/Volumen mindestens dreistellig\n'
-          + '- Weekly Options verfügbar\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTUMFELD: ATM-CSPs sinnvoll? VIX-Level und Implikation. (2-3 Sätze)\n'
-          + '2. TOP 3 ATM/NA-KANDIDATEN:\n'
-          + '   HARTES AUSSCHLUSS-KRITERIUM:\n'
-          + '   • HVP < ' + cfg.minHvp + '%: IGNORIEREN\n'
-          + '   • Kurs < $' + cfg.minPrice + ' oder > $' + cfg.maxPrice + ': IGNORIEREN\n'
-          + '   • ER innerhalb ' + cfg.erDays + ' Tage: IGNORIEREN\n'
-          + '   Für jeden verbleibenden Kandidaten:\n'
-          + '   a) HVP-Bewertung: ≥' + cfg.idealHvp + '% ⭐ · ' + cfg.goodHvp + '-' + (cfg.idealHvp-1) + '% ✅ · ' + cfg.minHvp + '-' + (cfg.goodHvp-1) + '% ⚠️\n'
-          + '   b) ATM-Strike Empfehlung in $\n'
-          + '   c) Laufzeit: nächster 3. Freitag (~' + cfg.dte + ' DTE)\n'
-          + '   d) Prämien-SCHÄTZUNG aus HVP (⚠️ nur Näherung!) + 50/60/70%-Gewinn-Ziele in $\n'
-          + '   e) Roll-Szenario Stufe 1: Strike ≈ Kurs − 2.5%\n'
-          + '   f) PFLICHT-CHECKS: Strike-Staffelung · OI · Weekly Options · ER-Datum\n'
-          + '3. NICHT GEEIGNET: Titel + Grund\n'
-          + '4. ROLLSTRATEGIE-HINWEIS: 3 Roll-Stufen in Erinnerung rufen\n'
-          + '\n⚠️ ATM/NA-Strategie vermeidet Andienung durch systematisches Rollen.\n'
-          + KI_ANTI_HALLUZINATION
-          + '⛔ ABSCHLUSS-ERINNERUNG: Nur Daten aus dem Prompt. Keine Kurse erfinden.\n'
-          + 'Antworte auf Deutsch, strukturiert 1-4. Max. 550 Wörter.';
+        // ERSETZT (07.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // zweite migrierte Strategie nach csp_wheel): der alte EIC-Zweig
+        // instruierte das Modell EXPLIZIT, erfundene $-Prämienbeträge zu
+        // nennen ("d) Prämien-SCHÄTZUNG...+ 50/60/70%-Gewinn-Ziele in $")
+        // und eine erfundene Rollregel ("e) Roll-Szenario Stufe 1: Strike
+        // ≈ Kurs − 2,5%") — beides direkt im Prompt-Text verankert, keine
+        // Modell-Entgleisung. Jetzt _eicMasterPrompt() wie bei csp_wheel;
+        // principleText oben traegt Ludwigs ECHTE Kriterien, §23 verhindert
+        // strukturell die Rueckkehr der erfundenen Rollregel (Praeffrage-
+        // Dreiteilung, s. ko-prompts.js v2.48.2).
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Titel auf strukturelle Eignung für eine systematische ATM-Cash-Secured-Put-Strategie (Zeitwert-Maximierung, ~30 Tage Laufzeit).',
+          stratName: 'CSP (ATM/NA)-Setups',
+          focus: STRATEGIES.atmna.focus,
+          mode: mode,
+          istOptionsStrategie: true,
+          principle: principleText
+        });
       }
     },
 
