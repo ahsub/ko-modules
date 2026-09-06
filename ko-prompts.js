@@ -1,6 +1,45 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.47.0 (07.09.2026) — `meanrev` AUF LONG/OVERSOLD-ONLY '
+ *  PRÄZISIERT (Axel-Entscheidung nach Fund-B-Live-Test). Root Cause: der '
+ *  Fund-B-Fix in index.html v500 (Kandidatenauswahl nach strategie-'
+ *  eigenem Score statt generischem compositeScore) deckte eine bisher '
+ *  verborgene Strategie-Definitions-Diskrepanz auf — `meanrev`s Public-'
+ *  Prompt war BIDIREKTIONAL formuliert ("Wie extrem ist der aktuelle '
+ *  RSI-Wert", ohne Richtungsbeschränkung), waehrend der zugrunde '
+ *  liegende Server-Score `sMrLong`/`score_long_mean_reversion()` STRIKT '
+ *  long/oversold-only ist ("if dist_atr >= 0: return 0" — jeder Titel '
+ *  oberhalb der EMA200 bekommt automatisch 0). Live-Test-Symptom: VOD/'
+ *  GLEN.L/VLO (alle deutlich OBERHALB ihrer EMA200, RSI 69-80 = '
+ *  ueberkauft) bekamen sMrLong=0 wie vermutlich jeder Kandidat im '
+ *  aktuellen Bull-Quiet-Regime — bei durchgaengigem Gleichstand blieb '
+ *  die vorherige Reihenfolge erhalten, daher weiterhin dieselben drei '
+ *  Alt-Kandidaten trotz korrekt funktionierendem Fund-B-Fix. Codebasis-'
+ *  Namenskonvention (score_long_mean_reversion(), sMrLong, Leaderboard-'
+ *  Key long_mr — durchgaengig "long", nie "mr" allein, analog zu '
+ *  short_fading/short_breakdown als eigene, getrennte Short-Strategien) '
+ *  spricht klar dafuer, dass long-only die urspruengliche Design-Absicht '
+ *  war, die bidirektionale Prompt-Formulierung also Drift, keine '
+ *  bewusste Erweiterung. ENTSCHEIDUNG (Option A, nicht B): `meanrev` '
+ *  jetzt explizit auf long/oversold-only geschaerft, mit ausdruecklicher '
+ *  Abgrenzung zu `fading_short` (KO-Short) als der separaten, '
+ *  gehebelten Gegenstrategie fuer die ueberkaufte Richtung. Rolle/'
+ *  Prinzip/focus[]/risikenText/tradeoffKontext und die EIC-Branch-'
+ *  Aufgabenstellung (Zeile mit ">70"-RSI-Kriterium) alle entsprechend '
+ *  umgeschrieben — Letzteres als einzige, bewusst minimale Ausnahme von '
+ *  der sonst fuer EIC-Zweige geltenden Zurueckstellung (reine '
+ *  Konsistenz-Korrektur einer Zeile, keine vollstaendige EIC-'
+ *  Ueberarbeitung). NEUE, explizite Verhaltensregel in risikenText: bei '
+ *  einem Datenkontext ohne echte Unter-EMA200-Kandidaten MUSS das '
+ *  Modell das explizit benennen ("kein Mean-Reversion-Long-Kandidat im '
+ *  aktuellen Snapshot"), NIEMALS ersatzweise unter ueberkauften Titeln '
+ *  ranken. Noch NICHT live/smoke-getestet — naechster sinnvoller Test: '
+ *  ein Regime mit tatsaechlichen Kapitulations-Kandidaten (falls '
+ *  verfuegbar), UND ein erneuter Test im aktuellen Bull-Quiet-Regime '
+ *  (erwartet: explizite "kein Kandidat gefunden"-Aussage statt einer '
+ *  erzwungenen Rangfolge unter ungeeigneten Titeln).
+ *
  *  Version: 2.46.0 (07.09.2026) — ECHTE IV-PERZENTIL-DATEN IN PUBLIC-MODE-'
  *  GUARDRAILS INTEGRIERT. Fortsetzung des market_aggregator.py/index.html-'
  *  Fixes vom selben Tag (neues Feld ivpPercentile aus externer Quelle '
@@ -3549,53 +3588,61 @@ Das bedeutet konkret:
     meanrev: {
       lbKey: 'long_mr',
       label: 'Mean-Reversion-Setups',
-      hint:  '↩️ Mean Reversion: Rückkehr zum Mittelwert · Überverkauft/Überhitzt · ATR-Abstand',
+      hint:  '↩️ Mean Reversion: Rückkehr zum Mittelwert nach Kapitulation · Long/Überverkauft · ATR-Abstand',
       color: 'var(--yellow)',
       focus: [
-        "Ueberverkauft-/Ueberhitzt-Grad: Wie extrem ist der aktuelle RSI-Wert einzuordnen?",
-        "Abstand zum Zielniveau: Distanz des Kurses zur EMA200 als Mean-Reversion-Referenz",
-        "ATR-Distanz: Wie viele ATR-Einheiten trennen Kurs und Mittelwert aktuell?",
-        "Momentum-Fallen-Risiko: spricht das uebergeordnete Trendumfeld gegen eine Mean-Reversion-These?"
+        "Ueberverkauft-Grad: Wie extrem ist der aktuelle RSI-Wert einzuordnen? Je niedriger, desto ausgepraegter die kurzfristige Unterhitzung.",
+        "Abstand zum Zielniveau: Distanz des Kurses UNTERHALB der EMA200 (in ATR-Einheiten) als Mean-Reversion-Referenz — die Strategie betrachtet AUSSCHLIESSLICH Titel unterhalb ihrer EMA200, niemals oberhalb (das waere ein anderes Setup, siehe Abgrenzung unten).",
+        "Volumen-/Bollinger-Signal: bestaetigt ein niedriger Bollinger-Band-Stand (nahe der unteren Bande) und/oder erhoehtes Volumen die Kapitulations-These?",
+        "Historische Volatilitaet als Kontext (HVP): eine hohe HVP spricht eher fuer einen echten, volatilitaetsgetriebenen Ausschlag (Bounce-Kandidat); eine niedrige HVP bei gleichzeitig grossem EMA200-Abstand deutet eher auf einen strukturell schwachen Titel hin (Value-Trap-Risiko, kein klassischer Reversion-Kandidat).",
+        "Momentum-Fallen-Risiko: spricht das uebergeordnete Trendumfeld gegen eine Mean-Reversion-These (z.B. anhaltender, intakter Abwaertstrend statt kurzfristiger Uebertreibung)?"
       ],
       prompt: function(ctx) {
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
-            rolle: 'Du analysierst statistische Über-/Unterverkauft-Situationen (Mean-Reversion-Kontext) auf Basis von Tagesschluss-Daten. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
+            rolle: 'Du analysierst Kapitulations-/Überverkauft-Situationen (Mean-Reversion-Kontext, ausschließlich long/unterhalb der EMA200) auf Basis von Tagesschluss-Daten. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
             stratName: 'Mean-Reversion-Setups',
-            marktumfeldFrage: 'Gibt es aktuell extreme Über-/Unterverkauft-Situationen im Markt?',
+            marktumfeldFrage: 'Gibt es aktuell extreme Unterverkauft-/Kapitulations-Situationen im Markt?',
             focus: STRATEGIES.meanrev.focus,
             maxWords: 450,
             istOptionsStrategie: false,
-            principle: 'Mean-Reversion-Strategien setzen auf die statistische Tendenz von Kursen, nach extremen kurzfristigen Ausschlägen zu einem gleitenden Mittelwert (hier: EMA200) zurückzukehren. Kernindikator ist der RSI als Maß für kurzfristige Über-/Unterhitzung — NICHT der EMA200-Abstand selbst, der lediglich das Zielniveau beschreibt (die Referenzlinie, zu der eine Rückkehr erwartet wird). Die Strategie funktioniert am ehesten bei extremen RSI-Werten in einem übergeordnet neutralen bis leicht trendigen Umfeld; in starken Trendphasen kann eine vermeintliche Übertreibung tatsächlich fortlaufendes Momentum sein (Momentum-Falle). Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.',
-            risikenText: 'Zusätzlich klarstellen (belegter Fund 05.09.2026, Mean-Reversion-Live-'
-              + 'Test — Strategie-/Indikator-Verwechslung): RSI (Über-/Unterhitzung) und EMA200-'
-              + 'Abstand (Distanz zum Zielniveau) sind ZWEI GETRENNTE Kennzahlen mit unterschiedlicher '
-              + 'Funktion. Ein hoher EMA200-Abstand ist NIEMALS selbst ein Beleg für Überverkauftheit/'
-              + 'Überhitzung — diese Einordnung folgt AUSSCHLIESSLICH aus dem RSI-Wert (belegter '
-              + 'Fund: "Kriterium-Erfüllung: Moderate Überverkauftheit" wurde fälschlich aus dem '
-              + 'EMA200-Abstand statt dem RSI-Wert abgeleitet). Beide Kennzahlen in getrennten '
-              + 'Sätzen benennen, niemals kausal vermischen (analog zur SEPA/Bullish-Signalzähler-'
-              + 'Trennung bei Momentum). Ebenso NIEMALS aus einem SIDEWAYS-Regime oder schwacher '
-              + 'Marktbreite eine Aussage ableiten, ob eine Mean-Reversion tatsächlich eintritt oder '
-              + 'ausbleibt (Ebene 3 ohne Backtesting-Beleg, siehe REASONING-GUARDRAILS a/d).',
+            principle: 'Mean-Reversion-Setups (long) setzen auf die statistische Tendenz von Kursen, nach einer Kapitulationsphase weit UNTERHALB eines gleitenden Mittelwerts (hier: EMA200) zu diesem Mittelwert zurückzukehren. Kernindikator ist der RSI als Maß für kurzfristige Unterhitzung — NICHT der EMA200-Abstand selbst, der lediglich das Zielniveau beschreibt (die Referenzlinie, zu der eine Rückkehr erwartet wird). WICHTIGE ABGRENZUNG (07.09.2026 präzisiert): Diese Strategie deckt AUSSCHLIESSLICH die long/unterverkaufte Richtung ab (Kurs unterhalb EMA200, extremer RSI nach unten) — ein Titel, der stattdessen STARK ÜBERKAUFT ist und deutlich OBERHALB seiner EMA200 notiert, gehört NICHT in diese Strategie, auch wenn ein extremer RSI-Wert vorliegt. Für überhitzte, weit oberhalb der EMA200 notierende Titel existiert die separate Strategie "Fading Short" (KO-Zertifikat, Short-Richtung). Die Strategie funktioniert am ehesten bei extremen RSI-Werten in einem übergeordnet neutralen bis leicht trendigen Umfeld; in starken Abwärtstrendphasen kann eine vermeintliche Kapitulation tatsächlich fortlaufendes Abwärtsmomentum sein (Momentum-Falle). Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.',
+            risikenText: 'WICHTIG (07.09.2026, Strategie-Scope-Präzisierung): Titel, die OBERHALB ihrer '
+              + 'EMA200 notieren, erfüllen die Kriterien dieser Strategie NICHT — unabhängig davon, wie '
+              + 'extrem ihr RSI-Wert ist. Sollte der Datenkontext ausschließlich Titel mit positivem '
+              + 'EMA200-Abstand enthalten, ist dies explizit als "kein Mean-Reversion-Long-Kandidat im '
+              + 'aktuellen Snapshot" zu benennen — NIEMALS ersatzweise unter überkauften/oberhalb der '
+              + 'EMA200 liegenden Titeln ranken, auch wenn sie technisch auffällig erscheinen. '
+              + 'Zusätzlich klarstellen (belegter Fund 05.09.2026, Mean-Reversion-Live-Test — Strategie-/'
+              + 'Indikator-Verwechslung): RSI (Unterhitzung) und EMA200-Abstand (Distanz zum Zielniveau) '
+              + 'sind ZWEI GETRENNTE Kennzahlen mit unterschiedlicher Funktion. Ein großer EMA200-'
+              + 'Abstand ist NIEMALS selbst ein Beleg für Überverkauftheit — diese Einordnung folgt '
+              + 'AUSSCHLIESSLICH aus dem RSI-Wert (belegter Fund: "Kriterium-Erfüllung: Moderate '
+              + 'Überverkauftheit" wurde fälschlich aus dem EMA200-Abstand statt dem RSI-Wert '
+              + 'abgeleitet). Beide Kennzahlen in getrennten Sätzen benennen, niemals kausal vermischen. '
+              + 'Ebenso NIEMALS aus einem SIDEWAYS-Regime oder schwacher Marktbreite eine Aussage '
+              + 'ableiten, ob eine Mean-Reversion tatsächlich eintritt oder ausbleibt (Ebene 3 ohne '
+              + 'Backtesting-Beleg, siehe REASONING-GUARDRAILS a/d).',
             tradeoffKontext: '(Reversions-Tiefe ↔ Trendrisiko — der eigentliche Zielkonflikt bei '
-              + 'Mean-Reversion: ein extremerer RSI-Wert beschreibt eine stärkere kurzfristige '
-              + 'Überhitzung/Überverkauftheit und damit im Modell ein potenziell größeres '
-              + 'Rückkehr-Potenzial zum Zielniveau; gleichzeitig kann ein extremer RSI-Wert '
-              + 'innerhalb eines starken übergeordneten Trends auch schlicht anhaltendes Momentum '
-              + 'widerspiegeln statt eine bevorstehende Umkehr (Momentum-Falle). Die Gewichtung '
-              + 'dieser Merkmale ist eine strategische Abwägung, keine Aussage über den '
-              + 'zukünftigen Kursverlauf.)'
+              + 'Mean-Reversion-Long: ein extremerer RSI-Wert (niedriger) beschreibt eine stärkere '
+              + 'kurzfristige Unterhitzung und damit im Modell ein potenziell größeres Rückkehr-'
+              + 'Potenzial zum Zielniveau; gleichzeitig kann ein extrem niedriger RSI-Wert innerhalb '
+              + 'eines intakten Abwärtstrends auch schlicht anhaltendes Abwärtsmomentum widerspiegeln '
+              + 'statt eine bevorstehende Umkehr (Momentum-Falle). Die Gewichtung dieser Merkmale ist '
+              + 'eine strategische Abwägung, keine Aussage über den zukünftigen Kursverlauf.)'
           });
         }
         return KI_ANTI_HALLUZINATION
-          + 'Du bist ein quantitativer Analyst mit Fokus auf Mean-Reversion-Strategien.\n\n'
+          + 'Du bist ein quantitativer Analyst mit Fokus auf Mean-Reversion-Strategien (long, '
+          + 'Kapitulations-Bounce-Kandidaten unterhalb der EMA200).\n\n'
           + ctx.marktkontext
           + '\n\nAUFGABE:\n'
-          + '1. MARKTSTRUKTUR: Gibt es aktuell extreme Über-/Unterverkauft-Situationen? (2-3 Sätze)\n'
-          + '2. TOP 3 MEAN-REVERSION-KANDIDATEN: Titel mit extremem RSI (<30 oder >70) + BB-Abstand. '
-          + 'Entry NUR aus "Kurs:$"-Feld, Ziel = EMA200 aus "EMA200-Kurs:$"-Feld. ATR-Abstand berechnen.\n'
-          + '3. WATCHLIST: Titel die sich noch weiter ausdehnen könnten.\n'
+          + '1. MARKTSTRUKTUR: Gibt es aktuell extreme Unterverkauft-Situationen? (2-3 Sätze)\n'
+          + '2. TOP 3 MEAN-REVERSION-KANDIDATEN (NUR unterhalb der EMA200): Titel mit extrem '
+          + 'niedrigem RSI (<30) UNTERHALB ihrer EMA200 + BB-Abstand. '
+          + 'Entry NUR aus "Kurs:$"-Feld, Ziel = EMA200 aus "EMA200-Kurs:$"-Feld. ATR-Abstand berechnen. '
+          + 'Titel OBERHALB der EMA200 gehören NICHT hierher, unabhaengig vom RSI-Wert.\n'
+          + '3. WATCHLIST: Titel die sich noch weiter nach unten ausdehnen könnten.\n'
           + '4. RISIKEN: Momentum-Falle, trendgetriebene Märkte wo MR gefährlich ist.\n'
           + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter.';
       }
