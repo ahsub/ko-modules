@@ -1,6 +1,26 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.49.2 (07.09.2026) — §23 KANDIDATEN-FOKUS + LÄNGE NACHGESCHÄRFT
+ *  (zweiter Live-Test-Fund am selben Tag, atmna-Zweitlauf über Options-
+ *  Desk — Antwort brach trotz max_tokens 5000 erneut mitten im Satz ab).
+ *  Root Cause 1: "3-5 Titel" wurde als Standard-Zielgröße gelesen, nicht
+ *  als Obergrenze fuer Ausnahmefaelle — das Modell waehlte konsequent 5.
+ *  Fix: Standard auf 3 gesenkt, 4-5 nur bei echtem Sonderfall (z.B. exakter
+ *  Score-/Grade-Gleichstand). Root Cause 2 (der eigentlich groessere Hebel):
+ *  eine reine Gesamt-Wortzahl-Vorgabe reicht nicht, wenn das Modell pro
+ *  Kandidat eine volle Kennzahlen-Tabelle PLUS separate PRO-/CONTRA-/EIC-
+ *  HYPOTHESE-/NÄCHSTE-PRÜFUNG-Absaetze waehlt — das sprengt die Laenge
+ *  selbst bei nur 3 Kandidaten. Fix: explizite Pro-Kandidat-Formatbremse
+ *  (Kennzahlen kompakt im Fliesstext, keine Tabelle pro Kandidat — hoechstens
+ *  EINE gemeinsame Vergleichstabelle fuer alle, PRO/CONTRA/Hypothese je
+ *  1-2 Saetze), plus expliziter Prioritaets-Hinweis: ein vollstaendiger
+ *  §23-Block ist wichtiger als erschoepfende Einzelkandidaten-Tiefe davor.
+ *  Betrifft §23 als Ganzes, also automatisch csp_wheel, atmna und alle
+ *  kuenftig migrierten Strategien. Funktional verifiziert: neue Formulierungen
+ *  vorhanden, §23-Block intakt, alle 14 uebrigen Strategien fehlerfrei in
+ *  beiden Modi.
+ *
  *  Version: 2.49.1 (07.09.2026) — §23 PRÄMIEN-ATTRAKTIVITÄT-PASSUS
  *  PRÄZISIERT (Live-Fund, atmna-Erstlauf über Options-Desk). Root Cause:
  *  das bestehende Verbot ("NIEMALS einen tatsächlichen $-Betrag ...
@@ -3181,13 +3201,17 @@ Das bedeutet konkret:
       + 'KANDIDATEN-FOKUS (Live-Test-Fund 07.09.2026 — ohne diese Vorgabe '
       + 'wurde die komplette Watchlist erschöpfend in Kohorten durchanalysiert, '
       + 'statt sich auf die relevantesten Titel zu konzentrieren): analysiere '
-      + 'im Detail NUR die 3-5 Titel mit der stärksten Kriterien-Übereinstimmung '
-      + 'für ' + o.stratName + ' — analog zum Public-Modus ("bis zu 3 Titel"), '
-      + 'hier etwas grosszügiger wegen der zusätzlichen EIC-Tiefe (Widerspruchs-'
-      + 'analyse, Hypothese, §23). Die übrige Watchlist darf knapp zusammengefasst '
-      + 'erwähnt werden (z.B. "weitere N Titel erfüllen die Kriterien nicht '
-      + 'hinreichend, u.a. wegen niedriger IVP oder ungültigem Strike"), aber '
-      + 'NICHT Titel für Titel einzeln durchgearbeitet werden.\n\n'
+      + 'im Detail STANDARDMÄSSIG 3 Titel mit der stärksten Kriterien-'
+      + 'Übereinstimmung für ' + o.stratName + ' — analog zum Public-Modus '
+      + '("bis zu 3 Titel"). NACHGESCHÄRFT (zweiter Live-Test-Fund, gleicher '
+      + 'Tag): "bis zu 5" wurde als Standard-Zielgröße gelesen, nicht als '
+      + 'Obergrenze für Ausnahmefälle — deshalb jetzt 3 als Standard, 4-5 NUR '
+      + 'wenn ein echter Sonderfall vorliegt (z.B. mehrere Titel mit exakt '
+      + 'gleichem Score/Grade, die sich nicht sinnvoll trennen lassen). Die '
+      + 'übrige Watchlist darf knapp zusammengefasst erwähnt werden (z.B. '
+      + '"weitere N Titel erfüllen die Kriterien nicht hinreichend, u.a. wegen '
+      + 'niedriger IVP oder ungültigem Strike"), aber NICHT Titel für Titel '
+      + 'einzeln durchgearbeitet werden.\n\n'
       + `# 1. DIE FÜNF EBENEN DER EIC-ANALYSE
 
 Jede Aussage ist gedanklich einer dieser Ebenen zuzuordnen:
@@ -3861,9 +3885,21 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
       + 'Wörter), weil EIC zusätzlich Widerspruchsanalyse, Hypothese und den '
       + '§23-Handlungsempfehlungsblock trägt — aber KEIN Freibrief für '
       + 'erschöpfende Tabellen über die gesamte Watchlist (s. KANDIDATEN-FOKUS '
-      + 'oben). Lieber bei 3-5 Kandidaten in der gebotenen Tiefe bleiben, als '
-      + 'durch Breite über die gesamte Watchlist die Länge zu sprengen und '
-      + 'am Ende abzubrechen, bevor §23 überhaupt erreicht ist.';
+      + 'oben). NACHGESCHÄRFT (zweiter Live-Test-Fund, gleicher Tag): eine '
+      + 'Gesamt-Wortzahl allein reicht nicht — das Modell hielt sich an "3-5 '
+      + 'Kandidaten", gab aber jedem eine volle Kennzahlen-Tabelle PLUS je '
+      + 'einen eigenen PRO-/CONTRA-/EIC-HYPOTHESE-/NÄCHSTE-PRÜFUNG-Absatz, '
+      + 'was allein bei 3 Kandidaten die Länge sprengt. Deshalb PRO KANDIDAT: '
+      + 'Kennzahlen kompakt im Fließtext nennen (KEINE eigene Tabelle pro '
+      + 'Kandidat — falls ein Tabellenvergleich hilft, EINE gemeinsame '
+      + 'Vergleichstabelle für alle Kandidaten, nicht eine pro Titel), PRO/'
+      + 'CONTRA in ein bis zwei Sätzen zusammen, Hypothese ebenfalls ein bis '
+      + 'zwei Sätze. Lieber bei wenigen Kandidaten in kompakter, aber '
+      + 'vollständiger Form bleiben (inkl. §23!), als durch ausführliche '
+      + 'Einzelbehandlung abzubrechen, bevor die Handlungsempfehlung überhaupt '
+      + 'erreicht ist — ein vollständiger §23-Block ist wichtiger als eine '
+      + 'erschöpfende Einzelkandidaten-Tiefe davor.'
+;
   }
 
   function _publicOptionsPrompt(ctx, o) {
