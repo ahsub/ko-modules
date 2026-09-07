@@ -1,6 +1,33 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.53.8 (08.09.2026) — VALUE EIC-MIGRATION (siebte Equity-
+ *  Strategie). Quellen: Sven Carlin, "Modern Value Investing" (Axels
+ *  Favorit), Jeroen Bos, "Deep Value Investing", Guy Spier, "Die Value-
+ *  Investor-Ausbildung", Cayden Chang, "Value Investing Simplified" (alle
+ *  vom Nutzer hochgeladen). Carlin liefert eine echte akademische
+ *  Validierung (Fama-French-Daten seit 1927): niedrigstes 30%-P/B-
+ *  Perzentil schlaegt hoechstes 30%-Perzentil um 4,6 Prozentpunkte p.a.
+ *  ueber 10-Jahres-Haltezeitraeume — als RELATIVE Perzentil-Aussage
+ *  gekennzeichnet, KEINE absolute Schwelle (UIQ hat kein P/B-Perzentil-
+ *  Ranking ueber das Scan-Universum). Bos bestaetigt Grahams "Net-Net"-
+ *  Konzept (Kurs unter Netto-Umlaufvermoegen) — als nicht umsetzbares
+ *  Hintergrundwissen dokumentiert (UIQ hat keine Bilanzdaten). Chang
+ *  lieferte nur zeitgebundene Einzelbeispiele (Facebook/Tesla-P/E zum
+ *  Schreibzeitpunkt), nicht uebernommen. ZUSAETZLICH: der alte EIC-Zweig
+ *  enthielt unbelegte Feldschwellen ("peForward<15=attraktiv", "pb<1=tief
+ *  unterbewertet", "roe>10%=Qualitaetsgate") ohne jede Quelle — bewusst
+ *  NICHT in den neuen principleText uebernommen, konsistent zum heutigen
+ *  Muster. WICHTIG: der bestehende Ticker-Bugfix vom 29.08.2026 (ctx.tickers
+ *  wurde nie serialisiert) blieb erhalten UND wurde korrekt an
+ *  _eicMasterPrompt() durchgereicht (eigener Fund beim Migrieren: die
+ *  Funktion liest NUR ctx.marktkontext, nicht ein o.marktkontext-Feld —
+ *  falsch uebergeben haette das die Ticker-Liste im EIC-Modus stillschweigend
+ *  verschluckt). Funktional verifiziert: Equity-Block korrekt, Fama-French-
+ *  Fund in Public UND EIC, Ticker-Liste kommt in beiden Modi an, alte
+ *  unbelegte Schwellen vollstaendig entfernt, alle 14 uebrigen Strategien
+ *  fehlerfrei in beiden Modi.
+ *
  *  Version: 2.53.7 (08.09.2026) — SYSTEMISCHER FUND: FEHLENDE STOP-LOSS-
  *  KONVENTION ALS WIEDERKEHRENDE URSACHE ERKANNT UND BEHOBEN. Auf Axels
  *  Anweisung ("erst sammeln, bevor wir uns im Kleinklein verlieren")
@@ -5386,6 +5413,20 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
               }).join('\n');
         }
         var _marktkontextMitTickern = (ctx.marktkontext || '') + _tickerBlock;
+        // ERGAENZT (08.09.2026, Quellen: Sven Carlin, "Modern Value
+        // Investing" (Axels Favorit), Jeroen Bos, "Deep Value Investing",
+        // Guy Spier, "Die Value-Investor-Ausbildung", Cayden Chang, "Value
+        // Investing Simplified", alle vom Nutzer hochgeladen). Carlin
+        // liefert eine echte akademische Validierung (Fama-French-Daten) —
+        // aber als RELATIVE Perzentil-Aussage, keine absolute Kennzahlen-
+        // Schwelle, die UIQ direkt pruefen koennte (kein Perzentil-Ranking
+        // von P/B ueber das Scan-Universum vorhanden). Bos bestaetigt
+        // Grahams "Net-Net"-Konzept (Kurs unter Netto-Umlaufvermoegen) —
+        // NICHT umsetzbar, UIQ hat keine Bilanzdaten (Umlaufvermoegen/
+        // -verbindlichkeiten). Chang liefert nur zeitgebundene Einzel-
+        // beispiele (Facebook/Tesla-P/E zum Schreibzeitpunkt), keine
+        // uebertragbare Regel — nicht uebernommen.
+        var principleText = 'Value-Investing (nach Graham/Buffett-Prinzipien) sucht Aktien, die gegenüber fundamentalen Kennzahlen (Kurs-Gewinn-Verhältnis, Kurs-Buchwert, Free-Cashflow-Rendite) günstig bewertet erscheinen — vorausgesetzt, die zugrunde liegende Geschäftsqualität (ROE, Wettbewerbsposition) rechtfertigt die niedrige Bewertung. Ein niedriger Kurs allein ist kein Kaufgrund: ohne fundamentale Qualitätsprüfung droht ein "Value Trap" — ein Titel, der aus gutem Grund günstig bewertet ist (schrumpfendes Geschäftsmodell, strukturelle Probleme, Sektor-Gegenwind). Akademische Validierung des Grundprinzips (Sven Carlin, "Modern Value Investing", auf Basis von Fama-French-Daten seit 1927): ein Portfolio aus Aktien mit dem niedrigsten 30%-Perzentil an Kurs-Buchwert-Verhältnissen hat ein Portfolio mit dem höchsten 30%-Perzentil über 10-Jahres-Haltezeiträume um durchschnittlich 4,6 Prozentpunkte pro Jahr geschlagen — das ist eine RELATIVE Perzentil-Aussage über das breite Marktuniversum, KEINE absolute P/B-Schwelle, die UIQ ohne ein eigenes Perzentil-Ranking direkt anwenden kann. Hintergrundwissen, nicht umsetzbar (Jeroen Bos, "Deep Value Investing", Ben Grahams "Net-Net"-Konzept): eine Aktie, die unter ihrem Netto-Umlaufvermögen (Umlaufvermögen minus sämtliche Verbindlichkeiten) gehandelt wird, gilt als besonders tiefer Sicherheitspuffer — UIQ hat keine Bilanzdaten (Umlaufvermögen/-verbindlichkeiten) für diese Prüfung. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung/Neubewertung der Aktie selbst.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt({ marktkontext: _marktkontextMitTickern }, {
             rolle: 'Du analysierst günstig bewertete Qualitätstitel nach Value-Kriterien (Graham/Buffett-Prinzipien) auf Basis fundamentaler und technischer Kennzahlen. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
@@ -5394,7 +5435,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
             focus: STRATEGIES.value.focus,
             maxWords: 450,
             istOptionsStrategie: false,
-            principle: 'Value-Investing (nach Graham/Buffett-Prinzipien) sucht Aktien, die gegenüber fundamentalen Kennzahlen (Kurs-Gewinn-Verhältnis, Kurs-Buchwert, Free-Cashflow-Rendite) günstig bewertet erscheinen — vorausgesetzt, die zugrunde liegende Geschäftsqualität (ROE, Wettbewerbsposition) rechtfertigt die niedrige Bewertung. Ein niedriger Kurs allein ist kein Kaufgrund: ohne fundamentale Qualitätsprüfung droht ein "Value Trap" — ein Titel, der aus gutem Grund günstig bewertet ist (schrumpfendes Geschäftsmodell, strukturelle Probleme, Sektor-Gegenwind). Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung/Neubewertung der Aktie selbst.',
+            principle: principleText,
             risikenText: 'Zusätzlich klarstellen: der analystUpside-Wert (Analyst-Kursziel-Upside) ist '
               + 'eine externe Analystenkonsens-Kennzahl, KEIN von UIQ selbst abgeleitetes Signal — bei '
               + 'Erwähnung explizit als externe Quelle benennen ("Analystenkonsens sieht X% Upside"), '
@@ -5411,32 +5452,20 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
               + 'zukünftige Kursentwicklung.)'
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Value-Investor nach Graham/Buffett-Prinzipien — '
-          + 'günstig bewertete Qualitätstitel mit Sicherheitsmarge.\n'
-          + 'Kein Value-Trap-Jäger: ein niedriger Kurs allein reicht nicht, '
-          + 'ROE und FCF müssen den niedrigen Preis rechtfertigen.\n\n'
-          + _marktkontextMitTickern
-          + '\n\nFELDER-LEGENDE (Value-spezifisch):\n'
-          + '- peForward: Forward Price/Earnings-Ratio (<20x bevorzugt; <15x = attraktiv)\n'
-          + '- pb: Price/Book-Ratio (<3x = günstig; <1x = tief unterbewertet)\n'
-          + '- fcfYield: Free-Cashflow-Rendite in % (>4% = solide Bewertung)\n'
-          + '- roe: Return on Equity in % (>10% = Qualitätsgate)\n'
-          + '- analystUpside: Analyst-Kursziel-Upside in % (>10% = Konsens sieht Potenzial)\n\n'
-          + 'AUFGABE:\n'
-          + '1. MARKTLAGE: Unterstützt das Regime Value-Rotation? '
-          + 'Growth vs. Value-Dynamik, Zinsniveau (TNX) und Sektor-Rotation einordnen. (2 Sätze)\n'
-          + '2. TOP-3 VALUE-KANDIDATEN: Für jeden Titel:\n'
-          + '   a) Bewertung: peForward + pb + fcfYield im Verhältnis zum Sektor\n'
-          + '   b) Qualitätscheck: ROE + fundamentale Stabilität\n'
-          + '   c) Analyst-Konsens: analystUpside-Potenzial bewerten\n'
-          + '   d) Technisches Bild: EMA200-Abstand, RSI — ist der Boden erreicht '
-          + 'oder noch kein Erholungszeichen?\n'
-          + '   e) Sicherheitsmarge: Wie groß ist der Puffer zwischen Kurs und geschätztem fairen Wert?\n'
-          + '3. VALUE-TRAPS: Welche Kandidaten sehen günstig aus, haben aber '
-          + 'strukturelle Risiken (schrumpfendes Geschäftsmodell, Schuldenlast, Sektor-Headwinds)?\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-3. Max. 400 Wörter. '
-          + 'Keine erfundenen Kursziele oder PE-Werte — nur aus den Messdaten.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // siebte migrierte EQUITY-Strategie): der alte EIC-Zweig enthielt
+        // unbelegte Feldschwellen (peForward<15/pb<1/fcfYield>4%/roe>10%
+        // als "attraktiv"/"Qualitaetsgate") ohne Quellenangabe — keine davon
+        // stammt aus den vier geprueften Buechern, deshalb bewusst NICHT in
+        // den neuen principleText uebernommen (konsistent zum heutigen
+        // Muster: keine unbelegte Zahl unveraendert weiterreichen).
+        return _eicMasterPrompt({ marktkontext: _marktkontextMitTickern }, {
+          rolle: 'Du analysierst günstig bewertete Qualitätstitel nach Value-Kriterien (Graham/Buffett-Prinzipien) auf Basis fundamentaler und technischer Kennzahlen. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
+          stratName: 'Value-Setups',
+          focus: STRATEGIES.value.focus,
+          istOptionsStrategie: false,
+          principle: principleText
+        });
       }
     },
 
