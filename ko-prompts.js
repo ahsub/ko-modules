@@ -1,6 +1,47 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.53.6 (08.09.2026) — KO-LONG EIC-MIGRATION (sechste Equity-
+ *  Strategie). Grosser Architektur-Vorschlag eines Reviewers (4-Gate-
+ *  Funnel: Market Regime -> Momentum Quality -> Entry Confirmation ->
+ *  Entry Risk -> separates KO-Product-Suitability-Modul) bewusst NICHT
+ *  uebernommen — Reviewer selbst wollte erst patternEntry/iosScore/
+ *  trendScore/chopIndex-Interna verifizieren und per Backtest/BN
+ *  validieren, bevor Strategielogik geschrieben wird. Als Backlog
+ *  dokumentiert (UIQ_KOLong_Architecture_Proposal_2026-09-08.md), analog
+ *  zum Mean-Reversion-Vorschlag vom selben Tag. STATTDESSEN: die vier vom
+ *  Reviewer genannten, bereits existierenden Aggregator-Felder (trendScore,
+ *  ADX, chopIndex, rsRating) gegen den ECHTEN Code verifiziert (adx_score:
+ *  >35 stark, >=20 Trend; chop_lbl: >=55 "High" — beide Schwellenwerte
+ *  exakt bestaetigt) und ins focus[]-Array konkretisiert, statt der bisher
+ *  vagen "klarer Trendimpuls?"-Formulierung. Bewusst KEINE neue Score-
+ *  Verrechnung (Momentum Quality etc.) eingefuehrt — vier separate
+ *  Beobachtungen bleiben vier separate Beobachtungen. Bestehende, bereits
+ *  gehaertete Underlying-vs-Produkt-Trennung und Totalverlust-Warnung
+ *  unveraendert uebernommen. Funktional verifiziert: Equity-Block korrekt,
+ *  verifizierte Schwellenwerte in Public UND EIC, bestehende Guardrails
+ *  intakt, alle 14 uebrigen Strategien fehlerfrei in beiden Modi.
+ *
+ *  Version: 2.53.5 (08.09.2026) — MEAN-REVERSION EIC-MIGRATION (fuenfte
+ *  Equity-Strategie). Quellen: Ernest P. Chan, "Algorithmic Trading", und
+ *  Tim Leung/Xin Li, "Optimal Mean Reversion Trading" (beide vom Nutzer
+ *  hochgeladen). Chan liefert zwei nuetzliche KONZEPTE ohne uebertragbare
+ *  feste Zahl: Half-Life of Mean Reversion (theoretischer Unterbau fuer
+ *  die bestehende Momentum-Falle-Warnung — eine Reversion ergibt nur Sinn
+ *  bei tatsaechlich mean-revertierenden, nicht bei trendenden/nicht-
+ *  stationaeren Reihen) und Z-Score-Framing (Standardabweichungen vom
+ *  Mittelwert als systematisches Entry/Exit-Konzept — Chans konkretes
+ *  Beispiel entryZscore=1 war fuer einen Paar-Trade, explizit NICHT als
+ *  allgemeine Regel uebernommen). Leung/Li ist fast durchgehend
+ *  mathematisch (Optimal-Stopping-Theorie, stetige Prozesse) und NICHT
+ *  auf UIQs diskrete Tagesschluss-Daten uebertragbar — konsultiert, aber
+ *  bewusst nicht erzwungen (gleiches Vorgehen wie bei Antonaccis Dual-
+ *  Momentum-Buch). Bestehende, bereits mehrfach gehaertete Guardrails
+ *  (RSI≠EMA200-Abstand-Verwechslung, EMA200-Scope-Sperre) unveraendert
+ *  uebernommen. Funktional verifiziert: Equity-Block korrekt, beide neuen
+ *  Konzepte in Public UND EIC, bestehende Guardrails intakt, alle 14
+ *  uebrigen Strategien fehlerfrei in beiden Modi.
+ *
  *  Version: 2.53.4 (08.09.2026) — BREAKOUT EIC-MIGRATION (vierte Equity-
  *  Strategie). Quellen: beide Minervini-Buecher. Zwei echte Korrekturen:
  *  (1) RS-Rating-Schwelle "≥85 = ideal" war unbelegt — Minervinis Trend
@@ -4482,7 +4523,9 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
       focus: [
         "Hebel-Eignung: Passt die Volatilitaet (ATR) des Titels zu einem 3-8x-Hebel, ohne durch normales Kursrauschen ausgeknockt zu werden? WICHTIG (aktualisiert 07.09.2026 — echte IV-Perzentil-Daten integriert, s. ivpPercentile-Feld): weder HVP (historische realisierte Volatilitaet) noch ivpPercentile (implizite Volatilitaet, falls fuer den Titel verfuegbar) sind ein Mass fuer den Hebel, die Produktvolatilitaet oder die KO-Wahrscheinlichkeit eines konkreten Zertifikats — diese haengen ausschliesslich vom gewaehlten Produkt ab.",
         "KO-Abstand (Underlying-Ebene, NICHT das konkrete Produkt): ATR-basierte Naeherung fuer die Kursbeweglichkeit des Basiswerts. WICHTIG: der Abstand zur EMA200 ist NIEMALS mit dem Abstand zur tatsaechlichen KO-Barriere gleichzusetzen — die EMA200 ist ein technischer Trendindikator des Basiswerts, die KO-Barriere ist ein Produktparameter des konkreten Zertifikats. Ein grosser EMA200-Abstand beschreibt eine fortgeschrittene Kursbewegung relativ zum langfristigen Trendmittel des Basiswerts (reine Ebene-1-Beobachtung, KEINE Risiko-/Rueckschlags-Formulierung — siehe REASONING-GUARDRAILS a/d/e) — das ist unabhaengig vom tatsaechlichen Puffer bis zur KO-Barriere, der ausschliesslich vom konkreten Produkt abhaengt.",
-        "Trend-Regime-Eignung: KO-Zertifikate sind Hebel-/Momentum-Instrumente fuer kurzfristiges Trading (Tage bis wenige Wochen) in KLAREN Trendphasen — NICHT fuer Seitwaertsmaerkte oder Buy-and-Hold geeignet. Liegt aktuell ein klarer, starker Trendimpuls vor (z.B. nach Kurstreibern wie starken Quartalszahlen) oder eher ein Seitwaertsumfeld?",
+        "Trend-Regime-Eignung (KONKRETISIERT 08.09.2026 anhand tatsaechlich vorhandener Aggregator-Felder, Reviewer-Vorschlag verifiziert): KO-Zertifikate sind Hebel-/Momentum-Instrumente fuer kurzfristiges Trading (Tage bis wenige Wochen) in KLAREN Trendphasen. Statt einer vagen Trendeinschaetzung liegen dafuer konkrete, im Datenkontext vorhandene Dimensionen vor: trendScore (aggregierter Trendfaktor), ADX (Trendstaerke — ≥35 gilt als starker Trend, ≥20 als Trend, darunter kein ausgepraegter Trend, verifiziert gegen den Aggregator-Code), chopIndex (Trendqualitaet — ≥55 zeigt einen zunehmend seitwaerts-/rauschgetriebenen Markt, ungeeignet fuer KO-Momentum, ebenfalls verifiziert), rsRating (relative Staerke des Titels gegenueber dem Scan-Universum). Diese vier Dimensionen beschreiben gemeinsam Richtung + Staerke + Qualitaet + relative Position — bewusst NICHT zu einem einzelnen Score verrechnet (das waere eine eigene, noch nicht validierte Modellentscheidung), sondern als vier getrennte Beobachtungen zu benennen.",
+        "Entry-Bestaetigung (KONKRETISIERT 08.09.2026): macdHist (Momentum-Richtung/-Dynamik), volRatio (relatives Volumen — beschreibt NUR erhoehte Aktivitaet, NICHT automatisch Kaufdruck), obvTrend (Volumenentwicklung — beschreibt NUR die Entwicklung, NICHT automatisch \"Smart Money\"), pctFromHigh52 (Naehe zum 52-Wochen-Hoch — beschreibt NUR die relative Position, NICHT einen kurzfristigen Ausbruch/Breakout im engeren Sinn, das waere eine andere, hier nicht gemessene Groesse). Diese Felder in Kombination als Bestaetigungskonstellation nennen, niemals einzeln als hinreichendes Signal behandeln.",
+        "Ueberdehnung/Extension-Kontext (KONKRETISIERT 08.09.2026): bbPos (Position innerhalb der Bollinger-Baender) zusaetzlich zum bestehenden EMA200-Abstand als kurzfristigere Ueberdehnungs-Dimension nennen, WENN im Datenkontext vorhanden — ein hoher bbPos-Wert beschreibt eine Position nahe dem oberen Band, KEINE Kursziel- oder Ruecksetzer-Prognose.",
         "Marktzugang: fuer Titel mit homeMarket=US ist die Emission entsprechender Hebelprodukte fuer Privatanleger seit einer US-Steuerregeländerung 2017 eingeschraenkt bzw. gar nicht verfuegbar — der deutsche/europaeische Markt (homeMarket=DE/FR/NL/IT/CH/UK/DK/SE/AU) bietet strukturell das breitere, liquidere Angebot. Bei homeMarket=US zusaetzlich Quellensteuer-Aspekte und typischerweise geringeres Emittenten-Angebot beachten. WICHTIG: homeMarket bezeichnet die Handelsboerse (Handelszeit), NICHT den Firmensitz — auch ADRs nicht-amerikanischer Konzerne (z.B. SAP, ASML, RIO) haben homeMarket=US, da sie selbst auf NYSE/NASDAQ handeln. Dies ist eine allgemeine Marktzugangs-Charakteristik, keine Empfehlung einzelner Titel oder Sektoren durch UIQ.",
         "Gap-/Overnight-Risiko: bei Kandidaten mit dem Datenfeld homeMarket=US (siehe FELDERKLÄRUNG) besteht ein Zeitzonen-Versatz zwischen deutscher und US-Handelszeit — eine schnelle Kursbewegung oder ein Gap kann die KO-Barriere erreichen, bevor eine manuelle Reaktion moeglich ist. Dieses Risiko ist bei gehebelten Produkten strukturell staerker ausgepraegt als bei der Aktie selbst. WICHTIG: homeMarket=US bedeutet Handel auf einer US-Boerse (NYSE/NASDAQ/OTC) und gilt AUCH fuer ADRs nicht-amerikanischer Unternehmen — NIEMALS versuchen, die Boersenzugehoerigkeit stattdessen aus dem Tickersymbol selbst zu erraten (z.B. der Ticker \"DE\" ist Deere & Co., NYSE, NICHT das Laenderkuerzel Deutschland). WICHTIG (Ausgabeform): homeMarket ist ein interner Datenpunkt fuer die Bewertung — NIEMALS die Feldnotation \"homeMarket=US\" wörtlich in den Text uebernehmen, sondern natuerlichsprachlich verbalisieren, z.B. \"diese Titel werden an US-Boersen gehandelt\" oder \"da es sich um einen an einer US-Boerse gehandelten Titel handelt\".",
         "Positionsgroessen-Passung: Wie fuegt sich der Titel ins Limit von max. 2.000 EUR ein (Starter- vs. Aufstockungs-Groesse)? WICHTIG: die 2.000-EUR-Grenze ist eine Obergrenze fuer den maximalen Kapitaleinsatz/potenziellen Totalverlust — KEIN Stop-Loss-Mechanismus und keine Risikobegrenzung waehrend der Positionslaufzeit.",
@@ -4531,17 +4574,25 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
               + 'technische Eignung des Basiswerts, nicht die Eignung eines konkreten Produkts."'
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Knock-out-Trading-Experte (Hebelprodukte auf Aktien, EUR-basiert).\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTUMFELD: Ist jetzt ein günstiger Zeitpunkt für neue KO-Long-Positionen? (2-3 Sätze)\n'
-          + '2. TOP 3 KO-KANDIDATEN: (HVP-Wert irrelevant für KO-Zertifikate — ignorieren). '
-          + 'Welche 3 Titel wählst du? Für jeden: Begründung, Hebel (3-8x), '
-          + 'KO-Abstand in %, Positionsgröße (Starter/Aufstockung, max. €2.000 gesamt), Stop-Loss-Kriterium.\n'
-          + '3. WATCHLIST: Welche Titel haben Potenzial aber brauchen besseres Timing?\n'
-          + '4. HAUPTRISIKEN: Was könnte die Long-These gefährden?\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter. Jeden Punkt vollständig abschließen.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // sechste migrierte EQUITY-Strategie — Reviewer-Vorschlag fuer eine
+        // groessere 4-Gate-Architektur (Momentum Quality/Entry Confirmation/
+        // Entry Risk als separate Scores, eigenes KO-Product-Suitability-
+        // Modul) bewusst NICHT uebernommen, da Reviewer selbst erst noch
+        // patternEntry/iosScore/trendScore/chopIndex-Interna verifizieren
+        // und per Backtest/BN validieren wollte — als Backlog dokumentiert
+        // (UIQ_KOLong_Architecture_Proposal_2026-09-08.md). Heute nur die
+        // verifizierten, bereits existierenden Felder (trendScore/ADX/
+        // chopIndex/rsRating, Schwellenwerte gegen den echten Aggregator-
+        // Code verifiziert) ins focus[]-Array konkretisiert, keine neue
+        // Score-Architektur.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Hebelprodukte (KO-Zertifikate, EUR-basiert, Long-Richtung — UIQ deckt aktuell nur KO-Long ab, keine Short-Zertifikate) auf Basis technischer Kennzahlen DES BASISWERTS. UIQ bewertet ausschliesslich den Basiswert, NICHT ein konkretes KO-Produkt (Barriere, Hebel, Spread, Finanzierungskosten, Emittent und Liquiditaet sind UIQ nicht bekannt).',
+          stratName: 'KO-Zertifikat-Setups',
+          focus: STRATEGIES.ko.focus,
+          istOptionsStrategie: false,
+          principle: 'KO-Zertifikate (Knock-Out) sind gehebelte Hebelprodukte (typisch 3-8x) auf einen Basiswert: sie ermöglichen überproportionale Gewinne bei Kursbewegungen in die gewählte Richtung, verfallen aber wertlos, wenn der Kurs die KO-Barriere berührt. Sie sind reine kurzfristige Trading-Instrumente (Tage bis wenige Wochen) für klare Trendphasen — kein Buy-and-Hold-Instrument. Bei der Produktauswahl sind Laufzeit, Finanzierungskosten, KO-Barriere, Abstand zur Barriere, Emittentenbedingungen und Liquidität des konkreten Produkts zu prüfen — diese sind UIQ nicht bekannt. Für viele US-Aktien ist die Emission solcher Hebelprodukte für Privatanleger seit einer US-Steuerregeländerung 2017 eingeschränkt oder gar nicht verfügbar; der deutsche/europäische Markt bietet daher strukturell das breitere Angebot. UIQ deckt aktuell ausschließlich die Long-Richtung ab. Besonderer Risikohinweis: Ein KO-Ereignis führt in der Regel zum sofortigen Totalverlust des in der Position eingesetzten Kapitals. Wichtige Abgrenzung: UIQ bewertet die technische Eignung des Basiswerts (Underlying) — die Eignung eines konkreten KO-Zertifikats kann ohne produktspezifische Daten nicht beurteilt werden. Für die Trend-Regime-Einordnung des Basiswerts stehen konkrete, verifizierte Aggregator-Felder zur Verfügung: trendScore (aggregierter Trendfaktor), ADX (Trendstärke, ≥35 stark, ≥20 Trend), chopIndex (Trendqualität, ≥55 seitwärts-/rauschgetrieben), rsRating (relative Stärke vs. Scan-Universum) — bewusst als vier getrennte Beobachtungen zu behandeln, nicht zu einem einzelnen Score verrechnet.'
+        });
       }
     },
 
@@ -4846,6 +4897,17 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         "Momentum-Fallen-Risiko: spricht das uebergeordnete Trendumfeld gegen eine Mean-Reversion-These (z.B. anhaltender, intakter Abwaertstrend statt kurzfristiger Uebertreibung)?"
       ],
       prompt: function(ctx) {
+        // ERGAENZT (08.09.2026, Quellen: Ernest P. Chan, "Algorithmic
+        // Trading", und Tim Leung/Xin Li, "Optimal Mean Reversion Trading",
+        // beide vom Nutzer hochgeladen). Chan liefert zwei nuetzliche
+        // KONZEPTE (Half-Life, Z-Score-Framing) ohne universelle feste
+        // Zahl — sein entryZscore=1-Beispiel war fuer einen konkreten
+        // Paar-Trade, keine allgemeine Regel. Leung/Li ist fast durchgehend
+        // mathematisch (Optimal-Stopping-Theorie, stetige Prozesse) und
+        // NICHT direkt auf UIQs diskrete Tagesschluss-Daten uebertragbar —
+        // konsultiert, aber bewusst nicht erzwungen (gleiches Vorgehen wie
+        // bei Antonaccis Dual-Momentum-Buch fuer die momentum-Strategie).
+        var principleText = 'Mean-Reversion-Setups (long) setzen auf die statistische Tendenz von Kursen, nach einer Kapitulationsphase weit UNTERHALB eines gleitenden Mittelwerts (hier: EMA200) zu diesem Mittelwert zurückzukehren. Kernindikator ist der RSI als Maß für kurzfristige Unterhitzung — NICHT der EMA200-Abstand selbst, der lediglich das Zielniveau beschreibt (die Referenzlinie, zu der eine Rückkehr erwartet wird). WICHTIGE ABGRENZUNG: Diese Strategie deckt AUSSCHLIESSLICH die long/unterverkaufte Richtung ab (Kurs unterhalb EMA200, extremer RSI nach unten) — ein Titel, der stattdessen STARK ÜBERKAUFT ist und deutlich OBERHALB seiner EMA200 notiert, gehört NICHT in diese Strategie, auch wenn ein extremer RSI-Wert vorliegt. Für überhitzte, weit oberhalb der EMA200 notierende Titel existiert die separate Strategie "Fading Short" (KO-Zertifikat, Short-Richtung). Theoretischer Hintergrund zur Momentum-Falle (Ernest Chan, "Algorithmic Trading" — Konzept, keine konkrete Zahl übertragbar): eine Mean-Reversion-Wette ergibt nur dann statistisch Sinn, wenn die zugrunde liegende Kursreihe tatsächlich mean-reverting ist (kurze "Half-Life" der Rückkehr zum Mittelwert) — bei einer echt trendenden, nicht-stationären Reihe ist eine "Rückkehr zum Mittelwert" keine sinnvolle Erwartung, sondern methodisch unpassend. UIQ berechnet keine echte Half-Life, RSI/EMA200-Abstand sind Näherungen für dieselbe Grundidee (Ausmaß der Abweichung vom Mittelwert), nicht mathematisch äquivalent zu einer Half-Life-Schätzung. Quantitatives Rahmenkonzept (Chan, ebenfalls konzeptionell): systematische Mean-Reversion-Strategien definieren Einstieg/Ausstieg häufig über die Anzahl Standardabweichungen vom Mittelwert (Z-Score) statt über feste Prozentwerte — UIQs RSI-/Bollinger-Band-Position approximiert dieselbe Grundidee, ohne einen konkreten Z-Score-Schwellenwert zu berechnen; kein fester Z-Score-Wert aus Chans Beispielen (z.B. "1") ist eine allgemeingültige Regel, das war ein konkretes Beispiel für einen anderen Kontext (Paar-Handel). Die Strategie funktioniert am ehesten bei extremen RSI-Werten in einem übergeordnet neutralen bis leicht trendigen Umfeld; in starken Abwärtstrendphasen kann eine vermeintliche Kapitulation tatsächlich fortlaufendes Abwärtsmomentum sein (Momentum-Falle — s. Half-Life-Hintergrund oben). Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Kapitulations-/Überverkauft-Situationen (Mean-Reversion-Kontext, ausschließlich long/unterhalb der EMA200) auf Basis von Tagesschluss-Daten. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
@@ -4854,7 +4916,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
             focus: STRATEGIES.meanrev.focus,
             maxWords: 450,
             istOptionsStrategie: false,
-            principle: 'Mean-Reversion-Setups (long) setzen auf die statistische Tendenz von Kursen, nach einer Kapitulationsphase weit UNTERHALB eines gleitenden Mittelwerts (hier: EMA200) zu diesem Mittelwert zurückzukehren. Kernindikator ist der RSI als Maß für kurzfristige Unterhitzung — NICHT der EMA200-Abstand selbst, der lediglich das Zielniveau beschreibt (die Referenzlinie, zu der eine Rückkehr erwartet wird). WICHTIGE ABGRENZUNG (07.09.2026 präzisiert): Diese Strategie deckt AUSSCHLIESSLICH die long/unterverkaufte Richtung ab (Kurs unterhalb EMA200, extremer RSI nach unten) — ein Titel, der stattdessen STARK ÜBERKAUFT ist und deutlich OBERHALB seiner EMA200 notiert, gehört NICHT in diese Strategie, auch wenn ein extremer RSI-Wert vorliegt. Für überhitzte, weit oberhalb der EMA200 notierende Titel existiert die separate Strategie "Fading Short" (KO-Zertifikat, Short-Richtung). Die Strategie funktioniert am ehesten bei extremen RSI-Werten in einem übergeordnet neutralen bis leicht trendigen Umfeld; in starken Abwärtstrendphasen kann eine vermeintliche Kapitulation tatsächlich fortlaufendes Abwärtsmomentum sein (Momentum-Falle). Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.',
+            principle: principleText,
             risikenText: 'WICHTIG (07.09.2026, Strategie-Scope-Präzisierung): Titel, die OBERHALB ihrer '
               + 'EMA200 notieren, erfüllen die Kriterien dieser Strategie NICHT — unabhängig davon, wie '
               + 'extrem ihr RSI-Wert ist. Sollte der Datenkontext ausschließlich Titel mit positivem '
@@ -4880,19 +4942,18 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
               + 'eine strategische Abwägung, keine Aussage über den zukünftigen Kursverlauf.)'
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein quantitativer Analyst mit Fokus auf Mean-Reversion-Strategien (long, '
-          + 'Kapitulations-Bounce-Kandidaten unterhalb der EMA200).\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTSTRUKTUR: Gibt es aktuell extreme Unterverkauft-Situationen? (2-3 Sätze)\n'
-          + '2. TOP 3 MEAN-REVERSION-KANDIDATEN (NUR unterhalb der EMA200): Titel mit extrem '
-          + 'niedrigem RSI (<30) UNTERHALB ihrer EMA200 + BB-Abstand. '
-          + 'Entry NUR aus "Kurs:$"-Feld, Ziel = EMA200 aus "EMA200-Kurs:$"-Feld. ATR-Abstand berechnen. '
-          + 'Titel OBERHALB der EMA200 gehören NICHT hierher, unabhaengig vom RSI-Wert.\n'
-          + '3. WATCHLIST: Titel die sich noch weiter nach unten ausdehnen könnten.\n'
-          + '4. RISIKEN: Momentum-Falle, trendgetriebene Märkte wo MR gefährlich ist.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // fuenfte migrierte EQUITY-Strategie): der alte EIC-Zweig hatte kein
+        // Ebenen-1-22-Geruest und keinen theoretischen Unterbau fuer die
+        // Momentum-Falle — jetzt Half-Life-/Z-Score-Konzepte (Chan) im
+        // principleText oben ergaenzt, Leung/Li bewusst nicht erzwungen.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Kapitulations-/Überverkauft-Situationen (Mean-Reversion-Kontext, ausschließlich long/unterhalb der EMA200) auf Basis von Tagesschluss-Daten. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
+          stratName: 'Mean-Reversion-Setups',
+          focus: STRATEGIES.meanrev.focus,
+          istOptionsStrategie: false,
+          principle: principleText
+        });
       }
     },
 
