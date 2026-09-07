@@ -1,6 +1,41 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.53.0 (08.09.2026) — EIC-ARCHITEKTUR AUF EQUITY-STRATEGIEN
+ *  ERWEITERT + ERSTE EQUITY-MIGRATION (momentum). Bisher hing §23
+ *  (Strike/DTE/Praemie, komplett options-spezifisch) unbedingt an JEDE
+ *  ueber _eicMasterPrompt() migrierte Strategie — bei reinen Aktien-
+ *  strategien ohne Optionskomponente ergibt das keinen Sinn. FIX:
+ *  _eicMasterPrompt() liest jetzt `istOptionsStrategie` (bisher nur von
+ *  _publicNinePointPrompt() ausgewertet) und waehlt zwischen zwei Schluss-
+ *  bloecken: OPTIONS_FINAL_BLOCK_TEXT (unveraendertes §23) oder neu
+ *  EQUITY_FINAL_BLOCK_TEXT (konkreter Einstiegspunkt/Stop-Loss/Gewinn-
+ *  mitnahme statt Strike/DTE/Praemie) — Ebenen 1-22 bleiben fuer beide
+ *  identisch (waren bereits strategie-agnostisch designed). Der Equity-
+ *  Block traegt dieselbe Sperren-Architektur wie §23 (PRUEFFRAGE, Autoren-
+ *  nennungs-Sperre, "Externe Pruefung bleibt Pflicht") — bewaehrtes Muster
+ *  direkt uebernommen statt neu erfunden.
+ *  ERSTE EQUITY-STRATEGIE MIGRIERT: momentum (Quelle: Mark Minervini,
+ *  "Think & Trade Like a Champion", vom Nutzer hochgeladen). Gemeinsames
+ *  STRATEGIEPRINZIP jetzt mit konkreten Zahlen: Stop-Loss niemals über
+ *  8-10%, Faustregel 7-8%, real. Durchschnittsverlust ca. 4-5% bei
+ *  Durchschnittsgewinn ca. 15% (Chance-Risiko ca. 3:1); Pivot-Point-
+ *  Definition (Einstieg nahe Ausbruch, nicht hinterherjagen); Breakeven-
+ *  Stop-Nachziehen als Verhaeltnisregel. ZWEITE QUELLE GEPRUEFT, NUR TEIL-
+ *  WEISE VERWENDET: Antonacci, "Dual Momentum Investing" — primaer Asset-
+ *  Klassen-Rotation (Aktien/Anleihen/Cash), nicht Einzeltitel-Picking wie
+ *  UIQs momentum-Strategie — nur der akademisch etablierte 12-Monats-
+ *  Lookback als Hintergrundwissen uebernommen, keine GEM-Regeln direkt
+ *  implementiert (Anwendungsdomaenen-Mismatch klar dokumentiert). Alte,
+ *  strukturell einfache EIC-Verzweigung (kein Ebenen-1-22-Geruest, Stop-
+ *  Loss nur vage ueber HVP-Tendenz) komplett ersetzt. Funktional
+ *  verifiziert: Equity-Block korrekt statt §23, keine Options-
+ *  Kontamination, Minervini-Zahlen in Public UND EIC, alle 14 uebrigen
+ *  Strategien (inkl. aller 5 Optionsstrategien mit unveraendertem §23)
+ *  fehlerfrei in beiden Modi. Naechste Equity-Migrationen: VCP, Breakout,
+ *  Dividend, Value, Swing, Mean Reversion, KO-long, Breakdown, fading-
+ *  short — Reihenfolge noch offen.
+ *
  *  Version: 2.52.2 (08.09.2026) — VIER FUNDE AUS PARALLELEN LIVE-TESTS
  *  (collar/cc/weekly_income/atmna, alle nach v2.52.0), IN ZWEI SCHRITTEN
  *  DEPLOYT WEGEN EINES EIGENEN SKRIPT-ABSTURZES (Assertion-Fehler stoppte
@@ -3366,6 +3401,7 @@ Das bedeutet konkret:
   // wiederverwendet statt einer zweiten Konfigurationsform (Grundgesetz #1).
   function _eicMasterPrompt(ctx, o) {
     var mode = o.mode || 'scan';
+    var istOptions = !!o.istOptionsStrategie;
     if (mode === 'holding_review') {
       o.rolle += ' UIQ kennt deine tatsaechlichen Positionen nicht — '
         + 'formuliere Ebene 1-22 hypothetisch (\"falls du eine Position '
@@ -3373,6 +3409,101 @@ Das bedeutet konkret:
         + 'die Absicherungs-/Anpassungsfrage einer HYPOTHETISCHEN Position '
         + 'beziehen, niemals \"deine Position\" behaupten.';
     }
+
+    var OPTIONS_FINAL_BLOCK_TEXT = `# 23. EIC-EXKLUSIV — SCHRITT 7: HANDLUNGSEMPFEHLUNG
+
+*(Neu ergänzt 07.09.2026, Axel-Entscheidung — löst die am 30.08.2026 vorgemerkte "Schritt 7"-Erweiterung der bestehenden 6-Schritt-Coaching-Kette ein, jetzt für den Master Prompt vereinheitlicht.)*
+
+Die Ebenen 1-22 oben gelten unverändert und enden bewusst in einer offenen Prüfungsfrage (§22 Kernprinzip) — das bleibt der analytische Kern der EIC-Analyse.
+
+**Zusätzlich, ausschließlich im EIC-Modus**, folgt danach ein separater, klar abgegrenzter Block:
+
+> ### HANDLUNGSEMPFEHLUNG (EIC-exklusiv)
+
+Dieser Block ist die einzige Stelle im gesamten Prompt, an der die Ebene-5-Sperre (Abschnitt 1) für **berechenbare** Werte gezielt aufgehoben wird — nicht für erfundene.
+
+## Grundsatz
+
+Sei hier direktiv, nicht hedged. "Strike bei $X" statt "ein Strike um $X könnte in Betracht gezogen werden". Der Public-Mode-Konjunktiv gilt hier nicht.
+
+Das ändert nichts an der Source-of-Claim-Regel (§2) — jede Zahl bleibt einer der vier Quellen zugeordnet, nur der Tonfall wird direktiv statt gehedged.
+
+## Was konkret ausgegeben wird (strategieabhängig, nur wenn zutreffend)
+
+**Strike** — UIQ MODEL, wenn berechenbar (z.B. EMA200 − 1,5×ATR für CSP, bereits bestehende Formel aus dem Datenpfad). Direktiv nennen: "Strike: $X". Wenn nicht berechenbar: nicht erfinden, Feld weglassen.
+
+**DTE-Spanne** — in der Regel GENERAL DOMAIN KNOWLEDGE (Marktkonvention, kein UIQ-Modellergebnis), z.B. "30-45 DTE" als verbreiteter Theta-Sweet-Spot. Als solche kennzeichnen ("marktüblich", "Konvention"), aber direktiv nennen, nicht als vage Option.
+
+**Prämien-Attraktivität** — UIQ MODEL/DATA über IVP/HVP-Perzentil. Direktiv einordnen ("IVP 67%ile — Prämienbasis überdurchschnittlich attraktiv relativ zur eigenen Historie"), aber NIEMALS einen tatsächlichen $-Betrag oder eine %-Rendite behaupten — das erfordert Live-Optionskettendaten, die UIQ nicht hat (§7: "CSP → keine Aussage über tatsächliche Prämien ohne Optionskette" gilt auch hier unverändert). HARTE SPERRE, GILT AUCH GETARNT (Live-Fund 07.09.2026, atmna-Erstlauf — das Verbot oben wurde umgangen, weil die erfundenen Zahlen nicht wörtlich als "Prämie: $X" auftraten, sondern als scheinbar abgeleitete Werte): (1) KEIN Break-even-Kurs ("Break-even ca. $209–211") — ein Break-even ist rechnerisch IMMER Strike minus tatsächlich vereinnahmter Prämie; ohne echte Prämie ist jeder genannte Break-even-Wert erfunden, unabhängig davon, wie plausibel er aussieht. (2) KEINE erfundene %- oder $-Mindestprämienschwelle als Entscheidungskriterium ("Put-Prämie >2,5% des Kurses, also >$4,38 absolut, in Betracht ziehen") — solche Schwellen stehen in keiner UIQ-Datenquelle und keiner in diesem Prompt genannten Marktkonvention; sie wirken wie eine Berechnung, sind aber eine Erfindung. Betrifft auch scheinbar plausible Zahlen, die zufällig mit einer an anderer Stelle genannten Zahl übereinstimmen. PRÜFFRAGE (analog zu Rollregeln oben): kommt dieser $- oder %-Wert aus einer tatsächlichen UIQ-Datenquelle oder einer im Prompt genannten Konvention? Wenn nein: nicht nennen, auch nicht als "ca."-Schätzung oder Rechenweg getarnt.
+
+**Rollregeln** — NUR echte Marktkonventionen als GENERAL DOMAIN KNOWLEDGE nennen (z.B. "bei 50% Gewinnmitnahme schließen", "bei Durchbruch/Andienung des Strikes in den nächsten Zyklus rollen"). HARTE SPERRE (Live-Fund 07.09.2026, csp_wheel-Erstlauf, gilt für JEDE Optionsstrategie, nicht nur CSP): NIEMALS einen UIQ-Datenpunkt, der eine reine Beschreibungsgröße eines EINZELNEN Zeitpunkts ist (z.B. Dist200 — der AKTUELLE, gemessene Abstand Kurs↔EMA200 JETZT), in einen erfundenen zukünftigen Preis-Trigger umrechnen. Belegter Fund: das Modell nannte für HUBB "$445" als Roll-Trigger und "$465" als CC-Vorbereitungs-Schwelle — beide rechnerisch exakt aus Kurs × (1 ∓ Dist200%) hergeleitet, obwohl Dist200 keine Aussage über einen zukünftigen Schwellenwert trifft, nur den Ist-Zustand beschreibt. Das ist Metrik-Zweckentfremdung (§3a) in neuer Form, nur unter dem Label "Domain Knowledge" getarnt — die Kennzeichnung als Konvention macht eine erfundene Zahl nicht weniger erfunden. PRÜFFRAGE vor JEDER in diesem Block genannten Preiszahl: ist das (a) ein tatsächlicher UIQ MODEL-Wert (z.B. der vorberechnete Strike selbst), (b) eine benennbare, real existierende Marktkonvention (Prozentsatz oder Ereignis, kein aus UIQ-Daten zurückgerechneter Dollarwert), oder (c) rechnerisch aus einem beschreibenden UIQ-Datenpunkt hergeleitet, der selbst keine Schwellenwert-Aussage trifft? Bei (c): NICHT nennen. Liegt kein echter Trigger nach (a) oder (b) vor: Rollregeln-Feld komplett weglassen — NIEMALS durch Rückrechnung aus einer Beschreibungsgröße ersetzen, auch nicht als vermeintliche Konvention getarnt.
+
+## Harte Grenze
+
+Was Ebene 5 grundsätzlich verbietet, bleibt auch hier verboten, wenn es nicht berechenbar/konventionsbasiert ist: konkrete Gewinnwahrscheinlichkeiten, konkrete Kursziele, konkrete Positionsgrößen. Direktiver Ton ändert nichts an der Pflicht, nur das zu sagen, was UIQ tatsächlich weiß oder als Marktkonvention klar kennzeichnet.
+
+## Diese Sperren gelten für den GESAMTEN §23-Block, nicht nur für die Felder oben
+
+HARTE SPERRE, VIERFACH BELEGTER FUND (07.09.2026, atmna-Drittlauf UND -Viertlauf — dieselbe Fundklasse zweimal in Folge, obwohl die Regel unten bereits nach dem Drittlauf ergänzt wurde): die PRÜFFRAGE-Pflicht aus den Feldern oben gilt für JEDE Zahl, die irgendwo in §23 auftaucht — unabhängig davon, unter welcher Überschrift, auch in selbst ergänzten Abschnitten wie einer Broker-Checkliste. Eine externe Prüfliste darf benennen, WAS zu prüfen ist (Bid-Ask-Spread, Open Interest, echte Prämie, Earnings-Termine) — aber KEINE eigenen Zahlenschwellen dafür erfinden, es sei denn, eine solche Zahl steht bereits als echter UIQ-Konfigurationswert oder im STRATEGIEPRINZIP genannte Marktkonvention im Prompt.
+
+KONKRETE, WIEDERHOLT BELEGTE FEHLER — SO NICHT:
+- "Bid-Ask-Spread <$0,15 ideal, <$0,30 akzeptabel" — KEINE Quelle nennt einen Dollar-Betrag für Bid-Ask-Spreads, auch Ludwig nicht (dessen Kriterium ist rein qualitativ: "Spanne bleibt eng", ohne Zahl).
+- "Open Interest mindestens 50 Kontrakte" — falsch UND unnötig erfunden, obwohl die korrekte Zahl im STRATEGIEPRINZIP jener damaligen Anfrage bereits vorgegeben war (als Grössenordnung, nicht als exakte Zahl) — dritter Beleg dafür, dass selbst eine im eigenen Prompt bereitgestellte korrekte Angabe ignoriert und durch eine erfundene ersetzt wurde. Diese Grössenordnung galt NUR für die damalige Strategie und deren eigenes STRATEGIEPRINZIP — nicht als wiederverwendbare Zahl für andere Strategien übernehmen.
+- "Prämie ≥2,5% des Kurses" (zweimal belegt) — keine Quelle nennt diesen Schwellenwert.
+
+SO STATTDESSEN:
+- "Bid-Ask-Spread eng genug? (keine UIQ-Zahl verfügbar, im Broker beurteilen)"
+- "Open Interest [NUR eine konkrete Zahl/Grössenordnung nennen, wenn das STRATEGIEPRINZIP DIESER Anfrage eine enthält — sonst 'ausreichend liquide?' ohne jede Zahl]" — WICHTIG: keine konkrete Liquiditäts-Grössenordnung aus einer anderen Strategie, einem anderen Quellenbuch oder einem frühereren Beispiel in dieser Anweisung übernehmen, wenn sie nicht im eigenen STRATEGIEPRINZIP steht (belegter Fund 08.09.2026, cc-Erstlauf: genau das geschah, mit einer vagen Zuschreibung statt eines konkreten falschen Autors — trotzdem erfunden, da cc kein solches Kriterium führt).
+- Prämien-Attraktivität ausschließlich über IVP/HVP-Perzentil einordnen (s. Feld oben), keine %/$-Mindestschwelle.
+
+Wenn eine Zahl im STRATEGIEPRINZIP bereits vorgegeben ist: genau DIESE Zahl verwenden, keine eigene erfinden, auch keine "naheliegend wirkende" Alternative. Wenn keine Zahl vorgegeben ist: qualitativ bleiben ("eng genug", "ausreichend liquide"), niemals eine plausibel klingende Zahl ergänzen, um die Checkliste vollständiger wirken zu lassen.
+
+HARTE SPERRE, NEUE FUNDKLASSE (08.09.2026, weekly_income-Erstlauf): §23 wird von mehreren Strategien geteilt, die auf UNTERSCHIEDLICHEN Quellenbüchern beruhen (z.B. csp_wheel/atmna nach Eric Ludwig, weekly_income nach T.R. Lawrence). Belegter Fund: eine weekly_income-Analyse übernahm eine Liquiditäts-Grössenordnung samt Autorennennung aus einer ANDEREN Strategie — Lawrence nennt dafür KEINE Zahl, das war eine Verwechslung. Regel: jede Quellenangabe (Autor, Kriterium, Zahl) MUSS ausschließlich aus dem STRATEGIEPRINZIP DIESER Anfrage stammen — niemals aus allgemeinem Trainingswissen über andere Optionsstrategien oder aus einem in diesem Prompt an anderer Stelle als Beispiel genannten Autor/Zahl übernehmen, auch wenn die Strategien ähnlich klingen (beide sind CSP-Varianten). Ein Kriterium ohne Beleg im STRATEGIEPRINZIP dieser Anfrage bleibt unbequellt und qualitativ, unabhängig davon, ob eine verwandte Strategie ein ähnliches, benanntes Kriterium hätte.
+
+HARTE SPERRE, DRITTFACH BELEGTE FUNDKLASSE — FALSCHE AUTORENNENNUNG (08.09.2026, collar-Erstlauf, dritter Beleg nach weekly_income und cc): das Muster betrifft nicht nur erfundene ZAHLEN, sondern auch erfundene oder VERWECHSELTE AUTORENNENNUNGEN bei ansonsten plausibel klingenden Werten. Belegter Fund: eine collar-Analyse (Quelle: Zerenner/Chupka) zitierte "75-100% Praemien-Finanzierung ... (Ludwig Standard bei hohem IV)" — Ludwig hat mit collar nichts zu tun, das war reines Trainingswissen, fälschlich als Zitat aus DIESEM STRATEGIEPRINZIP ausgegeben. Regel: bevor ein Autorname genannt wird, PRÜFEN ob dieser Autor tatsächlich im STRATEGIEPRINZIP DIESER Anfrage vorkommt — wenn nicht, den Autornamen komplett weglassen (nicht durch einen anderen, plausibler klingenden Namen ersetzen). Ein Wert ohne Autorenbeleg im eigenen Prinzip bleibt unbequellt und wird als solcher benannt oder ganz weggelassen — niemals mit einem Autornamen aus allgemeinem Wissen "aufgewertet".
+
+## Externe Prüfung bleibt Pflicht
+
+Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broker (Liquidität, Bid/Ask, echte Prämie, Earnings-Termine) — er liefert die UIQ-seitige Vorarbeit dafür, direktiv statt gehedged formuliert. Ein Schlusssatz macht das explizit: "Strike/DTE-Vorschlag ist UIQ-Modell-Ableitung, keine geprüfte Optionskette — reale Prämie/Liquidität im Broker verifizieren." Diese abschließende Prüfliste NENNT WAS zu prüfen ist, OHNE eigene Zahlenschwellen zu erfinden (s. Sperre oben) — z.B. "Bid-Ask-Spread eng genug?" statt "Bid-Ask-Spread <0,10$".
+`;
+
+    var EQUITY_FINAL_BLOCK_TEXT = `# 23. EIC-EXKLUSIV — KONKRETE EINSTIEGS-/STOP-EMPFEHLUNG
+
+*(Neu ergänzt 08.09.2026, Axel-Entscheidung — Equity-Pendant zu §23, das bisher options-exklusiv war. Grund: §23 fragt nach Strike/DTE/Prämie, das ergibt bei reinen Aktienstrategien ohne Optionskomponente keinen Sinn. Dieser Block liefert dieselbe Funktion — EIC-exklusive, direktive Handlungsableitung obendrauf auf Ebenen 1-22 — aber mit den für Aktienpositionen relevanten Größen: Einstiegspunkt, Stop-Loss, Gewinnmitnahme.)*
+
+Die Ebenen 1-22 oben gelten unverändert und enden bewusst in einer offenen Prüfungsfrage (§22 Kernprinzip) — das bleibt der analytische Kern der EIC-Analyse.
+
+**Zusätzlich, ausschließlich im EIC-Modus**, folgt danach ein separater, klar abgegrenzter Block:
+
+> ### HANDLUNGSEMPFEHLUNG (EIC-exklusiv)
+
+Dieser Block ist die einzige Stelle im gesamten Prompt, an der die Ebene-5-Sperre (Abschnitt 1) für **berechenbare** Werte gezielt aufgehoben wird — nicht für erfundene.
+
+## Grundsatz
+
+Sei hier direktiv, nicht hedged. "Stop-Loss bei $X" statt "ein Stop-Loss um $X könnte in Betracht gezogen werden". Der Public-Modus-Konjunktiv gilt hier nicht.
+
+Das ändert nichts an der Source-of-Claim-Regel (§2) — jede Zahl bleibt einer der vier Quellen zugeordnet, nur der Tonfall wird direktiv statt gehedged.
+
+## Was konkret ausgegeben wird (strategieabhängig, nur wenn zutreffend)
+
+**Einstiegspunkt/Buy-Point** — UIQ MODEL, aus den vorliegenden Daten ableitbar (Kurs, 52W-Hoch, EMA50/EMA200, Pivot-Nähe falls im Kontext vorhanden). Direktiv nennen: "Einstieg nahe $X" oder "Rücksetzer zu EMA50 bei $X abwarten". Wenn nicht ableitbar: nicht erfinden, Feld weglassen.
+
+**Stop-Loss** — Quelle: Mark Minervini, "Think & Trade Like a Champion". Minervini setzt seinen Stop-Loss NIE über 8-10% (harte Obergrenze), Faustregel meist 7-8%; sein tatsächlich realisierter Durchschnittsverlust liegt bei ca. 4-5% (Hälfte des Maximums), bei einem durchschnittlichen Gewinn von ca. 15% — das ergibt ein Chance-Risiko-Verhältnis von grob 3:1, das bereits bei einer Trefferquote von nur ca. einem Drittel profitabel ist. Direktiv als Prozentspanne nennen ("Stop-Loss ca. 7-8% unter Einstieg, niemals über 10%"), berechnet aus dem tatsächlichen UIQ-Kurs, NICHT als fixer Dollarbetrag unabhängig vom Kursniveau (gleicher Fehlertyp wie bei den Options-Strategien vermieden, s. §23-Lehren aus csp_wheel/atmna/weekly_income — ein Dollar-Beispiel aus einer Quelle NIEMALS unverändert auf andere Kursniveaus übertragen, IMMER die zugrunde liegende Prozent-/Verhältnislogik verwenden).
+
+**Gewinnmitnahme/Trailing-Stop** — GENERAL DOMAIN KNOWLEDGE, wenn eine echte, benannte Konvention für die jeweilige Strategie existiert (z.B. Minervini: Stop auf Breakeven nachziehen, sobald eine Position einen Gewinn erreicht, der ein Vielfaches des ursprünglichen Stop-Loss beträgt — kein fixer Prozentwert, sondern ein Verhältnis zum eigenen Risiko). Sonst weglassen statt zu erfinden.
+
+## Harte Grenze
+
+Was Ebene 5 grundsätzlich verbietet, bleibt auch hier verboten, wenn es nicht berechenbar/konventionsbasiert ist: konkrete Kursziele (Kursziel ≠ Stop-Loss — ein Kursziel behauptet eine zukünftige Kursbewegung, ein Stop-Loss ist eine Risikobegrenzung, das ist kein Widerspruch), konkrete Gewinnwahrscheinlichkeiten, konkrete Positionsgrößen (Positionsgröße bleibt wie bei Optionsstrategien außerhalb von UIQs Scope — UIQ kennt die Depotgröße nicht). Direktiver Ton ändert nichts an der Pflicht, nur das zu sagen, was UIQ tatsächlich weiß oder als Marktkonvention klar kennzeichnet.
+
+## Diese Sperren gelten für den GESAMTEN §23-Block, nicht nur für die Felder oben
+
+Dieselbe PRÜFFRAGE-Pflicht wie bei den Options-Strategien gilt hier unverändert: jede Zahl, die irgendwo in diesem Block auftaucht — unabhängig unter welcher Überschrift, auch in selbst ergänzten Abschnitten — muss entweder ein echter UIQ-Datenwert, eine im STRATEGIEPRINZIP dieser Anfrage genannte Marktkonvention, oder klar als Quelle benannt sein (z.B. "Minervini"). KEINE eigenen Zahlenschwellen erfinden, KEINE Autorennennung, die nicht im STRATEGIEPRINZIP DIESER Anfrage vorkommt (s. die entsprechenden Optionsstrategie-Funde vom 07./08.09.2026 — dasselbe Muster gilt hier genauso: eine Zahl aus einer anderen Strategie oder allgemeinem Trainingswissen NIEMALS mit einem plausibel klingenden Autornamen "aufwerten").
+
+## Externe Prüfung bleibt Pflicht
+
+Dieser Block ersetzt nicht die eigene Chart-/Fundamentalprüfung vor einer echten Position — er liefert die UIQ-seitige Vorarbeit dafür, direktiv statt gehedged formuliert. Ein Schlusssatz macht das explizit: "Einstiegs-/Stop-Vorschlag ist UIQ-Modell-Ableitung, keine Anlageempfehlung — eigene Prüfung (Chart, Fundamentaldaten, Marktumfeld) vor jeder Position erforderlich."`;
 
     return KI_ANTI_HALLUZINATION
       + '⚠️ EIC-Modus (Editor in Chief) — persoenliche Analyse-Unterstuetzung '
@@ -4030,62 +4161,9 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
 
 ---
 
-# 23. EIC-EXKLUSIV — SCHRITT 7: HANDLUNGSEMPFEHLUNG
-
-*(Neu ergänzt 07.09.2026, Axel-Entscheidung — löst die am 30.08.2026 vorgemerkte "Schritt 7"-Erweiterung der bestehenden 6-Schritt-Coaching-Kette ein, jetzt für den Master Prompt vereinheitlicht.)*
-
-Die Ebenen 1-22 oben gelten unverändert und enden bewusst in einer offenen Prüfungsfrage (§22 Kernprinzip) — das bleibt der analytische Kern der EIC-Analyse.
-
-**Zusätzlich, ausschließlich im EIC-Modus**, folgt danach ein separater, klar abgegrenzter Block:
-
-> ### HANDLUNGSEMPFEHLUNG (EIC-exklusiv)
-
-Dieser Block ist die einzige Stelle im gesamten Prompt, an der die Ebene-5-Sperre (Abschnitt 1) für **berechenbare** Werte gezielt aufgehoben wird — nicht für erfundene.
-
-## Grundsatz
-
-Sei hier direktiv, nicht hedged. "Strike bei $X" statt "ein Strike um $X könnte in Betracht gezogen werden". Der Public-Mode-Konjunktiv gilt hier nicht.
-
-Das ändert nichts an der Source-of-Claim-Regel (§2) — jede Zahl bleibt einer der vier Quellen zugeordnet, nur der Tonfall wird direktiv statt gehedged.
-
-## Was konkret ausgegeben wird (strategieabhängig, nur wenn zutreffend)
-
-**Strike** — UIQ MODEL, wenn berechenbar (z.B. EMA200 − 1,5×ATR für CSP, bereits bestehende Formel aus dem Datenpfad). Direktiv nennen: "Strike: $X". Wenn nicht berechenbar: nicht erfinden, Feld weglassen.
-
-**DTE-Spanne** — in der Regel GENERAL DOMAIN KNOWLEDGE (Marktkonvention, kein UIQ-Modellergebnis), z.B. "30-45 DTE" als verbreiteter Theta-Sweet-Spot. Als solche kennzeichnen ("marktüblich", "Konvention"), aber direktiv nennen, nicht als vage Option.
-
-**Prämien-Attraktivität** — UIQ MODEL/DATA über IVP/HVP-Perzentil. Direktiv einordnen ("IVP 67%ile — Prämienbasis überdurchschnittlich attraktiv relativ zur eigenen Historie"), aber NIEMALS einen tatsächlichen $-Betrag oder eine %-Rendite behaupten — das erfordert Live-Optionskettendaten, die UIQ nicht hat (§7: "CSP → keine Aussage über tatsächliche Prämien ohne Optionskette" gilt auch hier unverändert). HARTE SPERRE, GILT AUCH GETARNT (Live-Fund 07.09.2026, atmna-Erstlauf — das Verbot oben wurde umgangen, weil die erfundenen Zahlen nicht wörtlich als "Prämie: $X" auftraten, sondern als scheinbar abgeleitete Werte): (1) KEIN Break-even-Kurs ("Break-even ca. $209–211") — ein Break-even ist rechnerisch IMMER Strike minus tatsächlich vereinnahmter Prämie; ohne echte Prämie ist jeder genannte Break-even-Wert erfunden, unabhängig davon, wie plausibel er aussieht. (2) KEINE erfundene %- oder $-Mindestprämienschwelle als Entscheidungskriterium ("Put-Prämie >2,5% des Kurses, also >$4,38 absolut, in Betracht ziehen") — solche Schwellen stehen in keiner UIQ-Datenquelle und keiner in diesem Prompt genannten Marktkonvention; sie wirken wie eine Berechnung, sind aber eine Erfindung. Betrifft auch scheinbar plausible Zahlen, die zufällig mit einer an anderer Stelle genannten Zahl übereinstimmen. PRÜFFRAGE (analog zu Rollregeln oben): kommt dieser $- oder %-Wert aus einer tatsächlichen UIQ-Datenquelle oder einer im Prompt genannten Konvention? Wenn nein: nicht nennen, auch nicht als "ca."-Schätzung oder Rechenweg getarnt.
-
-**Rollregeln** — NUR echte Marktkonventionen als GENERAL DOMAIN KNOWLEDGE nennen (z.B. "bei 50% Gewinnmitnahme schließen", "bei Durchbruch/Andienung des Strikes in den nächsten Zyklus rollen"). HARTE SPERRE (Live-Fund 07.09.2026, csp_wheel-Erstlauf, gilt für JEDE Optionsstrategie, nicht nur CSP): NIEMALS einen UIQ-Datenpunkt, der eine reine Beschreibungsgröße eines EINZELNEN Zeitpunkts ist (z.B. Dist200 — der AKTUELLE, gemessene Abstand Kurs↔EMA200 JETZT), in einen erfundenen zukünftigen Preis-Trigger umrechnen. Belegter Fund: das Modell nannte für HUBB "$445" als Roll-Trigger und "$465" als CC-Vorbereitungs-Schwelle — beide rechnerisch exakt aus Kurs × (1 ∓ Dist200%) hergeleitet, obwohl Dist200 keine Aussage über einen zukünftigen Schwellenwert trifft, nur den Ist-Zustand beschreibt. Das ist Metrik-Zweckentfremdung (§3a) in neuer Form, nur unter dem Label "Domain Knowledge" getarnt — die Kennzeichnung als Konvention macht eine erfundene Zahl nicht weniger erfunden. PRÜFFRAGE vor JEDER in diesem Block genannten Preiszahl: ist das (a) ein tatsächlicher UIQ MODEL-Wert (z.B. der vorberechnete Strike selbst), (b) eine benennbare, real existierende Marktkonvention (Prozentsatz oder Ereignis, kein aus UIQ-Daten zurückgerechneter Dollarwert), oder (c) rechnerisch aus einem beschreibenden UIQ-Datenpunkt hergeleitet, der selbst keine Schwellenwert-Aussage trifft? Bei (c): NICHT nennen. Liegt kein echter Trigger nach (a) oder (b) vor: Rollregeln-Feld komplett weglassen — NIEMALS durch Rückrechnung aus einer Beschreibungsgröße ersetzen, auch nicht als vermeintliche Konvention getarnt.
-
-## Harte Grenze
-
-Was Ebene 5 grundsätzlich verbietet, bleibt auch hier verboten, wenn es nicht berechenbar/konventionsbasiert ist: konkrete Gewinnwahrscheinlichkeiten, konkrete Kursziele, konkrete Positionsgrößen. Direktiver Ton ändert nichts an der Pflicht, nur das zu sagen, was UIQ tatsächlich weiß oder als Marktkonvention klar kennzeichnet.
-
-## Diese Sperren gelten für den GESAMTEN §23-Block, nicht nur für die Felder oben
-
-HARTE SPERRE, VIERFACH BELEGTER FUND (07.09.2026, atmna-Drittlauf UND -Viertlauf — dieselbe Fundklasse zweimal in Folge, obwohl die Regel unten bereits nach dem Drittlauf ergänzt wurde): die PRÜFFRAGE-Pflicht aus den Feldern oben gilt für JEDE Zahl, die irgendwo in §23 auftaucht — unabhängig davon, unter welcher Überschrift, auch in selbst ergänzten Abschnitten wie einer Broker-Checkliste. Eine externe Prüfliste darf benennen, WAS zu prüfen ist (Bid-Ask-Spread, Open Interest, echte Prämie, Earnings-Termine) — aber KEINE eigenen Zahlenschwellen dafür erfinden, es sei denn, eine solche Zahl steht bereits als echter UIQ-Konfigurationswert oder im STRATEGIEPRINZIP genannte Marktkonvention im Prompt.
-
-KONKRETE, WIEDERHOLT BELEGTE FEHLER — SO NICHT:
-- "Bid-Ask-Spread <$0,15 ideal, <$0,30 akzeptabel" — KEINE Quelle nennt einen Dollar-Betrag für Bid-Ask-Spreads, auch Ludwig nicht (dessen Kriterium ist rein qualitativ: "Spanne bleibt eng", ohne Zahl).
-- "Open Interest mindestens 50 Kontrakte" — falsch UND unnötig erfunden, obwohl die korrekte Zahl im STRATEGIEPRINZIP jener damaligen Anfrage bereits vorgegeben war (als Grössenordnung, nicht als exakte Zahl) — dritter Beleg dafür, dass selbst eine im eigenen Prompt bereitgestellte korrekte Angabe ignoriert und durch eine erfundene ersetzt wurde. Diese Grössenordnung galt NUR für die damalige Strategie und deren eigenes STRATEGIEPRINZIP — nicht als wiederverwendbare Zahl für andere Strategien übernehmen.
-- "Prämie ≥2,5% des Kurses" (zweimal belegt) — keine Quelle nennt diesen Schwellenwert.
-
-SO STATTDESSEN:
-- "Bid-Ask-Spread eng genug? (keine UIQ-Zahl verfügbar, im Broker beurteilen)"
-- "Open Interest [NUR eine konkrete Zahl/Grössenordnung nennen, wenn das STRATEGIEPRINZIP DIESER Anfrage eine enthält — sonst 'ausreichend liquide?' ohne jede Zahl]" — WICHTIG: keine konkrete Liquiditäts-Grössenordnung aus einer anderen Strategie, einem anderen Quellenbuch oder einem frühereren Beispiel in dieser Anweisung übernehmen, wenn sie nicht im eigenen STRATEGIEPRINZIP steht (belegter Fund 08.09.2026, cc-Erstlauf: genau das geschah, mit einer vagen Zuschreibung statt eines konkreten falschen Autors — trotzdem erfunden, da cc kein solches Kriterium führt).
-- Prämien-Attraktivität ausschließlich über IVP/HVP-Perzentil einordnen (s. Feld oben), keine %/$-Mindestschwelle.
-
-Wenn eine Zahl im STRATEGIEPRINZIP bereits vorgegeben ist: genau DIESE Zahl verwenden, keine eigene erfinden, auch keine "naheliegend wirkende" Alternative. Wenn keine Zahl vorgegeben ist: qualitativ bleiben ("eng genug", "ausreichend liquide"), niemals eine plausibel klingende Zahl ergänzen, um die Checkliste vollständiger wirken zu lassen.
-
-HARTE SPERRE, NEUE FUNDKLASSE (08.09.2026, weekly_income-Erstlauf): §23 wird von mehreren Strategien geteilt, die auf UNTERSCHIEDLICHEN Quellenbüchern beruhen (z.B. csp_wheel/atmna nach Eric Ludwig, weekly_income nach T.R. Lawrence). Belegter Fund: eine weekly_income-Analyse übernahm eine Liquiditäts-Grössenordnung samt Autorennennung aus einer ANDEREN Strategie — Lawrence nennt dafür KEINE Zahl, das war eine Verwechslung. Regel: jede Quellenangabe (Autor, Kriterium, Zahl) MUSS ausschließlich aus dem STRATEGIEPRINZIP DIESER Anfrage stammen — niemals aus allgemeinem Trainingswissen über andere Optionsstrategien oder aus einem in diesem Prompt an anderer Stelle als Beispiel genannten Autor/Zahl übernehmen, auch wenn die Strategien ähnlich klingen (beide sind CSP-Varianten). Ein Kriterium ohne Beleg im STRATEGIEPRINZIP dieser Anfrage bleibt unbequellt und qualitativ, unabhängig davon, ob eine verwandte Strategie ein ähnliches, benanntes Kriterium hätte.
-
-HARTE SPERRE, DRITTFACH BELEGTE FUNDKLASSE — FALSCHE AUTORENNENNUNG (08.09.2026, collar-Erstlauf, dritter Beleg nach weekly_income und cc): das Muster betrifft nicht nur erfundene ZAHLEN, sondern auch erfundene oder VERWECHSELTE AUTORENNENNUNGEN bei ansonsten plausibel klingenden Werten. Belegter Fund: eine collar-Analyse (Quelle: Zerenner/Chupka) zitierte "75-100% Praemien-Finanzierung ... (Ludwig Standard bei hohem IV)" — Ludwig hat mit collar nichts zu tun, das war reines Trainingswissen, fälschlich als Zitat aus DIESEM STRATEGIEPRINZIP ausgegeben. Regel: bevor ein Autorname genannt wird, PRÜFEN ob dieser Autor tatsächlich im STRATEGIEPRINZIP DIESER Anfrage vorkommt — wenn nicht, den Autornamen komplett weglassen (nicht durch einen anderen, plausibler klingenden Namen ersetzen). Ein Wert ohne Autorenbeleg im eigenen Prinzip bleibt unbequellt und wird als solcher benannt oder ganz weggelassen — niemals mit einem Autornamen aus allgemeinem Wissen "aufgewertet".
-
-## Externe Prüfung bleibt Pflicht
-
-Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broker (Liquidität, Bid/Ask, echte Prämie, Earnings-Termine) — er liefert die UIQ-seitige Vorarbeit dafür, direktiv statt gehedged formuliert. Ein Schlusssatz macht das explizit: "Strike/DTE-Vorschlag ist UIQ-Modell-Ableitung, keine geprüfte Optionskette — reale Prämie/Liquidität im Broker verifizieren." Diese abschließende Prüfliste NENNT WAS zu prüfen ist, OHNE eigene Zahlenschwellen zu erfinden (s. Sperre oben) — z.B. "Bid-Ask-Spread eng genug?" statt "Bid-Ask-Spread <0,10$".
 `
+      + (istOptions ? OPTIONS_FINAL_BLOCK_TEXT : EQUITY_FINAL_BLOCK_TEXT)
+      
       + '\n\nLÄNGE (Live-Test-Fund 07.09.2026 — ohne diese Vorgabe wurde die '
       + 'Antwort trotz erhöhtem Token-Limit mitten im Satz abgebrochen): '
       + 'Ziellänge der GESAMTEN Analyse (Ebenen 1-22 + §23 zusammen) ca. '
@@ -4393,6 +4471,16 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
         "Bullish-Signalzaehler (X/3, aus MACD/OBV/MA50 zusammengesetzt): WICHTIG, dieser Zaehler ist ein grober interner UIQ-Aggregationswert, KEIN eigenstaendiges, erklaertes Signal mit definierter Bedeutung pro Stufe (0/1/2/3). NIEMALS daraus eine zusammenfassende Bewertung wie 'bullische Signalquintessenz' oder aehnliche pauschale Charakterisierungen ableiten, ohne zu benennen, was der Zaehler konkret misst (Anzahl der drei erfuellten Einzelindikatoren) und was er NICHT aussagt (keine Gewichtung, keine Staerke-Einordnung zwischen den drei Komponenten). ZUSAETZLICH (belegter Fund 04.09.2026, Momentum-Retest — Reviewer-Feedback): SEPA-Score und Bullish-Signalzaehler sind ZWEI GETRENNTE, UNABHAENGIGE Scores — NIEMALS in einem Satz mit 'was bedeutet'/'d.h.'/'also' kausal verknuepfen (z.B. NIEMALS 'SEPA 8 erreicht, was bedeutet: das technische Momentum ist erkennbar'). STATTDESSEN als zwei separate Saetze nennen, z.B. 'Titel X erreicht SEPA 8/8 und damit die maximale Uebereinstimmung mit den hinterlegten SEPA-Kriterien. Zusaetzlich sind bei Titel X zwei von drei technischen Einzelsignalen (MACD, OBV, MA50) bullish.'"
       ],
       prompt: function(ctx) {
+        // ERGAENZT (08.09.2026, Quelle: Mark Minervini, "Think & Trade Like
+        // a Champion", vom Nutzer hochgeladen): das gemeinsame Prinzip
+        // enthaelt jetzt Minervinis konkrete Stop-Loss- und Pivot-Point-
+        // Konventionen. Zusaetzliche Quelle geprueft (Antonacci, "Dual
+        // Momentum Investing") — passt nur bedingt, da primaer Asset-
+        // Klassen-Rotation (Aktien/Anleihen/Cash) behandelt, nicht Einzel-
+        // titel-Picking wie hier — einzig der 12-Monats-Lookback als
+        // akademisch etablierter Standard fuer Momentum-Messung uebernommen,
+        // als Hintergrundwissen, NICHT als direkt zu implementierende Regel.
+        var principleText = 'Momentum/SEPA-Setups folgen der Minervini-Methode (Stage-2-Analyse): gesucht werden Aktien in einer bereits bestätigten Aufwärtsphase (Stage 2) — erkennbar an einer bullischen Anordnung der gleitenden Durchschnitte, starker relativer Stärke gegenüber dem Gesamtmarkt und einem Volumenmuster, das eher Akkumulation als Distribution zeigt. Die Strategie kauft keine fallenden Kurse, sondern bereits etablierte Trends — idealerweise beim ersten Rücksetzer zum EMA50 statt am ersten Ausbruchsimpuls selbst. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst. Pivot Point (Minervini): der optimale Einstiegspunkt ist der Moment, in dem der Kurs durch die obere Grenze einer Konsolidierung ("Base") mit ansteigendem Volumen ausbricht — so nah wie möglich am Pivot kaufen, ohne dem Kurs um mehr als wenige Prozentpunkte hinterherzujagen. Stop-Loss (Minervini): niemals mehr als 8-10% unter Einstieg (harte Obergrenze), Faustregel meist 7-8%; sein tatsächlich realisierter Durchschnittsverlust liegt bei ca. 4-5% (Hälfte des Maximums) bei durchschnittlichem Gewinn von ca. 15% — ein Chance-Risiko-Verhältnis von grob 3:1, das bereits bei einer Trefferquote von nur ca. einem Drittel profitabel ist. Sobald eine Position einen Gewinn erreicht, der ein Vielfaches des ursprünglichen Stop-Loss beträgt, wird der Stop auf Breakeven nachgezogen (kein fixer Prozentwert, sondern ein Verhältnis zum eigenen Risiko). Hintergrundwissen zur Momentum-Messung generell (Antonacci, "Dual Momentum Investing", akademisch etabliert, aber primär für Asset-Klassen-Rotation, nicht Einzeltitel-Picking): ein 12-Monats-Lookback gilt in der akademischen Literatur als der am besten geeignete Standard-Betrachtungszeitraum für Momentum-Messung.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Aktien nach Minervini/SEPA-Momentum-Kriterien (Stage-2-Trend, relative Stärke) auf Basis technischer Kennzahlen. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
@@ -4401,7 +4489,7 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
             focus: STRATEGIES.momentum.focus,
             maxWords: 450,
             istOptionsStrategie: false,
-            principle: 'Momentum/SEPA-Setups folgen der Minervini-Methode (Stage-2-Analyse): gesucht werden Aktien in einer bereits bestätigten Aufwärtsphase (Stage 2) — erkennbar an einer bullischen Anordnung der gleitenden Durchschnitte, starker relativer Stärke gegenüber dem Gesamtmarkt und einem Volumenmuster, das eher Akkumulation als Distribution zeigt. Die Strategie kauft keine fallenden Kurse, sondern bereits etablierte Trends — idealerweise beim ersten Rücksetzer zum EMA50 statt am ersten Ausbruchsimpuls selbst. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.',
+            principle: principleText,
             risikenText: 'WICHTIG (Fund zweiter Momentum-Retest 04.09.2026, Reviewer-Feedback '
               + '— ERSETZT die v2.24.0-Formulierung, die selbst wieder eine Ebene-3-Lücke '
               + 'enthielt): Nähe zum 52-Wochen-Hoch ist bei Momentum/SEPA-Setups KEIN '
@@ -4448,20 +4536,21 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
               + 'korrekte Übertragung des Konzepts.)'
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Momentum-Investor nach Minervini/SEPA-Methode.\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTPHASE: Ist jetzt ein günstiger Zeitpunkt für neue Momentum-Positionen? (2-3 Sätze)\n'
-          + '2. TOP 3 MOMENTUM-KANDIDATEN: Welche 3 Titel zeigen das stärkste Stage-2-Setup? '
-          + 'Für jeden: SEPA-Bewertung aus Scandaten, Buy-Point NUR aus "Kurs:$" und "52W-H:"-Feldern ableiten. '
-          + 'Stop-Loss als % unter Kurs. HVP aus Scandaten: bei HVP>50% erhöhte Vola → engerer Stop empfohlen. '
-          + 'TIMING-HINWEIS: Der erste Ausbruch ist oft nicht der beste Einstieg — der erste Rücksetzer '
-          + 'zum EMA50 (dist50-Feld: nahe 0% = am EMA50) bei steigendem OBV ist meist profitabler '
-          + 'und fühlt sich nicht "zu spät" an. Kein Kursziel erfinden.\n'
-          + '3. WATCHLIST: Titel mit Potenzial aber noch nicht kaufbar.\n'
-          + '4. RISIKEN: Sektoren oder Makro-Faktoren die Momentum gefährden.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter. Jeden Punkt vollständig abschließen.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // erste migrierte EQUITY-Strategie — nutzt den neuen, parametrisierten
+        // _eicMasterPrompt() mit istOptionsStrategie:false, der jetzt statt
+        // §23 (Strike/DTE/Praemie) den neuen EQUITY_FINAL_BLOCK_TEXT liefert
+        // (konkreter Einstiegspunkt/Stop-Loss statt Optionskonventionen).
+        // Der alte EIC-Zweig war strukturell einfach (kein Ebenen-1-22-
+        // Geruest, kein Widerspruchsanalyse-Zwang) und nannte Stop-Loss nur
+        // vage ueber HVP-Tendenz statt Minervinis konkreter Prozentspanne.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Aktien nach Minervini/SEPA-Momentum-Kriterien (Stage-2-Trend, relative Stärke) auf Basis technischer Kennzahlen. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
+          stratName: 'Momentum/SEPA-Setups',
+          focus: STRATEGIES.momentum.focus,
+          istOptionsStrategie: false,
+          principle: principleText
+        });
       }
     },
 
