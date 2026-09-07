@@ -1,6 +1,39 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.53.7 (08.09.2026) — SYSTEMISCHER FUND: FEHLENDE STOP-LOSS-
+ *  KONVENTION ALS WIEDERKEHRENDE URSACHE ERKANNT UND BEHOBEN. Auf Axels
+ *  Anweisung ("erst sammeln, bevor wir uns im Kleinklein verlieren")
+ *  wurden vier parallele Live-Tests (vcp/breakout/meanrev/ko) gesammelt,
+ *  BEVOR gefixt wurde — alle vier zeigten dasselbe Grundmuster: eine
+ *  fehlende Stop-Loss-Konvention im tatsaechlichen STRATEGIEPRINZIP fuehrt
+ *  zuverlaessig zu einer erfundenen Zahl, in JEWEILS ANDERER Tarnung:
+ *  (1) vcp/breakout: mehrere unterschiedliche Stop-/Gewinn-Prozentzahlen
+ *  je Testlauf, teils faelschlich MIT KORREKTEM AUTORNAMEN (Minervini)
+ *  versehen — Fund, dass die bisherige PRUEFFRAGE-Regel ("Autor pruefen")
+ *  NICHT ausreicht, wenn der Autorname stimmt, aber die Zahl trotzdem
+ *  erfunden ist. (2) ko: erfundene "-8%"-Schwelle explizit als "GENERAL
+ *  DOMAIN KNOWLEDGE" gelabelt — das eigene Kennzeichnungssystem als
+ *  Tarnung missbraucht. (3) meanrev: Bezug auf "gestrige Tagestiefst-
+ *  Range" (kein UIQ-Feld) mit einer in sich widersprueflichen Rechnung
+ *  ("1/2 ATR" und "2 ATR-Einheiten" fuer dieselbe Differenz, die exakt 1x
+ *  ATR entsprach). ROOT CAUSE fuer vcp/breakout: Code-KOMMENTARE hatten
+ *  behauptet, diese Strategien "folgen implizit Minervinis Standard" —
+ *  aber das stand NIE tatsaechlich im STRATEGIEPRINZIP, das dem Modell
+ *  vorliegt. Fix: Minervinis echte 7-8%/max.10%-Stop-Loss-Konvention (und
+ *  bei breakout zusaetzlich die ca. 15%-Gewinn-Konvention) TATSAECHLICH
+ *  in beide principleTexte geschrieben. Fuer meanrev/ko (keine saubere
+ *  Ein-Autor-Anknuepfung) stattdessen die geteilte Equity-Block-Sperre um
+ *  alle drei neu belegten Umgehungsmuster erweitert — gilt automatisch
+ *  fuer alle sechs Equity-Strategien. Funktional verifiziert: beide echten
+ *  Stop-Loss-Konventionen vorhanden, neue Sperre im geteilten Block (auch
+ *  bei meanrev/ko bestaetigt), alle 13 uebrigen Strategien fehlerfrei in
+ *  beiden Modi. NAECHSTER TEST SOLLTE ZEIGEN: ob die explizite "richtiger
+ *  Autor, falsche Zahl"-Sperre robuster wirkt als die bisherige reine
+ *  Autoren-Pruefung — falls nicht, waere das ein Kandidat fuer eine
+ *  serverseitige Erweiterung des Scanners (Autor-Erwaehnung + Zahl
+ *  gemeinsam gegen das Payload abgleichen, nicht nur die Zahl allein).
+ *
  *  Version: 2.53.6 (08.09.2026) — KO-LONG EIC-MIGRATION (sechste Equity-
  *  Strategie). Grosser Architektur-Vorschlag eines Reviewers (4-Gate-
  *  Funnel: Market Regime -> Momentum Quality -> Entry Confirmation ->
@@ -3629,6 +3662,11 @@ Was Ebene 5 grundsätzlich verbietet, bleibt auch hier verboten, wenn es nicht b
 
 Dieselbe PRÜFFRAGE-Pflicht wie bei den Options-Strategien gilt hier unverändert: jede Zahl, die irgendwo in diesem Block auftaucht — unabhängig unter welcher Überschrift, auch in selbst ergänzten Abschnitten — muss entweder ein echter UIQ-Datenwert, eine im STRATEGIEPRINZIP dieser Anfrage genannte Marktkonvention, oder klar als Quelle benannt sein. KEINE eigenen Zahlenschwellen erfinden, KEINE Autorennennung, die nicht im STRATEGIEPRINZIP DIESER Anfrage vorkommt — auch KEINE Autorennennung/Konvention einer ANDEREN Equity-Strategie übernehmen, selbst wenn beide Strategien ähnlich klingen (belegter Fund 08.09.2026: swing importierte Minervinis Stop-Loss-Regel, obwohl swing eine eigene, andere Konvention — Spears — hat). Ein Wert ohne Autorenbeleg im eigenen Prinzip bleibt unbequellt und wird als solcher benannt oder ganz weggelassen.
 
+HARTE SPERRE, DREI WEITERE BELEGTE UMGEHUNGSVARIANTEN (08.09.2026, vier parallele Live-Tests am selben Tag — vcp/breakout/meanrev/ko zeigten ALLE dasselbe Grundmuster: fehlende Stop-Loss-Konvention im STRATEGIEPRINZIP führt zuverlässig zu einer erfundenen Zahl, unabhängig von der Tarnung):
+1. **Richtiger Autor, falsche Zahl** — ein vcp-Test zitierte "Stop-Loss ... ca. 2-3% ... Nach Minervini-Konvention", obwohl Minervinis tatsächliche Regel 7-8%/max. 10% ist (im STRATEGIEPRINZIP dieser Anfrage stehend) — der Autorname war korrekt, die Zahl trotzdem erfunden. PRÜFFRAGE reicht hier nicht: auch bei korrektem Autornamen muss die genannte ZAHL tatsächlich im STRATEGIEPRINZIP stehen, nicht nur der Name plausibel klingen.
+2. **Eigenes Kennzeichnungssystem als Tarnung** — ein ko-Test labelte eine erfundene "-8%"-Schwelle explizit als "GENERAL DOMAIN KNOWLEDGE", obwohl keine solche Konvention existiert. Das Label "GENERAL DOMAIN KNOWLEDGE" ist selbst KEIN Beleg — es gilt nur für tatsächlich allgemein bekannte, benennbare Konventionen (wie "30-45 DTE" bei Optionen), niemals als pauschale Rechtfertigung für eine beliebige Zahl.
+3. **Erfundene Referenzgröße mit in sich widersprüchlicher Rechnung** — ein meanrev-Test bezog sich auf "die gestrige Tagestiefst-Range" (kein UIQ-Feld) und rechnete zusätzlich falsch (nannte "1/2 ATR" und "2 ATR-Einheiten" für dieselbe Differenz, die tatsächlich exakt 1× ATR entsprach). Jede genannte Rechnung muss nachvollziehbar UND mit tatsächlich vorhandenen UIQ-Feldern nachrechenbar sein — keine Rechnung mit einer nicht existierenden Eingangsgröße aufbauen.
+
 ## Externe Prüfung bleibt Pflicht
 
 Dieser Block ersetzt nicht die eigene Chart-/Fundamentalprüfung vor einer echten Position — er liefert die UIQ-seitige Vorarbeit dafür, direktiv statt gehedged formuliert. Ein Schlusssatz macht das explizit: "Einstiegs-/Stop-Vorschlag ist UIQ-Modell-Ableitung, keine Anlageempfehlung — eigene Prüfung (Chart, Fundamentaldaten, Marktumfeld) vor jeder Position erforderlich."`;
@@ -4712,7 +4750,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         // volumen-Schwellen (volRatio>=1.2/1.5, vcpBreakoutVol>=2.0) lagen
         // deutlich UNTER Minervinis tatsaechlicher Erwartung: "300 bis 400
         // Prozent (oder mehr) des Durchschnittsvolumens" am Ausbruchstag.
-        var principleText = 'Breakout-Setups suchen einen technischen Ausbruch über ein etabliertes Pivot-Niveau (typischerweise ein vorheriges 52-Wochen-Hoch oder eine enge Konsolidierungszone) im Kontext eines übergeordneten Stage-2-Aufwärtstrends (Methodik: Minervini/O\'Neil/IBD). Entscheidend ist die Kombination aus Kursnähe zum Pivot UND Volumenbestätigung (steigendes Volumen beim Ausbruch, vorherige Volumen-Austrocknung während der Konsolidierung) — ein Ausbruch ohne Volumenbestätigung gilt als weniger belastbar (False-Breakout-Risiko). RS-Rating-Kriterium (Minervini Trend Template, KORRIGIERT 08.09.2026 — der alte Prompt nannte fälschlich "≥85 = ideal" als feste Schwelle): mindestens 70, idealerweise in den 80ern oder 90ern — kein starrer 85er-Cutoff. Ausbruchsvolumen (Minervini, KORRIGIERT 08.09.2026 — die bisherigen volRatio/vcpBreakoutVol-Schwellen im Prompt lagen deutlich unter Minervinis tatsächlicher Erwartung): am Ausbruchstag idealerweise 300-400% (3-4x) des durchschnittlichen Tagesvolumens oder mehr — spürbar höher als die zuvor genannten 1,2-2,0x. Grundsatz: erst NACH dem tatsächlichen Durchbruch des Pivot-Niveaus einsteigen, nicht vorher antizipieren ("assuming that a stock will break out is dangerous") — ein früher Einstieg bringt keinen Vorteil, nur unnötiges Risiko. UIQ analysiert ausschließlich Tagesschluss-Daten; Intraday-Techniken sind nicht Teil der Strategie. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.';
+        var principleText = 'Breakout-Setups suchen einen technischen Ausbruch über ein etabliertes Pivot-Niveau (typischerweise ein vorheriges 52-Wochen-Hoch oder eine enge Konsolidierungszone) im Kontext eines übergeordneten Stage-2-Aufwärtstrends (Methodik: Minervini/O\'Neil/IBD). Entscheidend ist die Kombination aus Kursnähe zum Pivot UND Volumenbestätigung (steigendes Volumen beim Ausbruch, vorherige Volumen-Austrocknung während der Konsolidierung) — ein Ausbruch ohne Volumenbestätigung gilt als weniger belastbar (False-Breakout-Risiko). RS-Rating-Kriterium (Minervini Trend Template, KORRIGIERT 08.09.2026 — der alte Prompt nannte fälschlich "≥85 = ideal" als feste Schwelle): mindestens 70, idealerweise in den 80ern oder 90ern — kein starrer 85er-Cutoff. Ausbruchsvolumen (Minervini, KORRIGIERT 08.09.2026 — die bisherigen volRatio/vcpBreakoutVol-Schwellen im Prompt lagen deutlich unter Minervinis tatsächlicher Erwartung): am Ausbruchstag idealerweise 300-400% (3-4x) des durchschnittlichen Tagesvolumens oder mehr — spürbar höher als die zuvor genannten 1,2-2,0x. Grundsatz: erst NACH dem tatsächlichen Durchbruch des Pivot-Niveaus einsteigen, nicht vorher antizipieren ("assuming that a stock will break out is dangerous") — ein früher Einstieg bringt keinen Vorteil, nur unnötiges Risiko. Stop-Loss und Gewinnerwartung (Minervini, ERGÄNZT 08.09.2026 — Live-Test-Fund: ohne diese Angabe im Prinzip wurden mehrere unterschiedliche, unbelegte Stop-/Gewinn-Zahlen erfunden, teils fälschlich Minervini zugeschrieben): Stop-Loss niemals mehr als 8-10% unter Einstieg, Faustregel meist 7-8%; sein tatsächlich realisierter Durchschnittsverlust liegt bei ca. 4-5%, bei durchschnittlichem Gewinn von ca. 15% (dieselbe Konvention wie bei der momentum-Strategie, gleicher Autor). UIQ analysiert ausschließlich Tagesschluss-Daten; Intraday-Techniken sind nicht Teil der Strategie. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst technische Breakout-Setups (52W-Hoch-Nähe, Volumenbestätigung, Stage-2-Kontext nach Minervini/O\'Neil/IBD) auf Basis von Tagesschluss-Daten. UIQ ist KEIN Intraday-Scanner — Gap & Go, ORB, Pre-Market-Gaps, RVOL 5x oder Float-Screening sind NICHT verfügbar. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
@@ -4772,7 +4810,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         // Market Wizard" — zweites Minervini-Buch, spezifisch zum VCP-
         // Konzept, vom Nutzer hochgeladen; ergaenzt "Think & Trade Like a
         // Champion", das nur die allgemeinen Stop-Loss-Regeln lieferte).
-        var principleText = 'VCP (Volatility Contraction Pattern) nach Mark Minervini kennzeichnet sich durch sukzessiv enger werdende Korrekturen (Contractions) innerhalb eines übergeordneten Stage-2-Aufwärtstrends — jede Contraction pendelt typischerweise enger als die vorherige, begleitet von abnehmendem Volumen (Volumen-Austrocknung). Das Setup gilt als reif, wenn Volumen und Kursspanne auf ein Minimum komprimiert wurden und ein Ausbruch mit deutlich erhöhtem Volumen unmittelbar bevorsteht — ohne diese Volumen-Bestätigung bleibt ein Ausbruch weniger belastbar. Halbierungsregel (Minervini, Kernkriterium für VCP-Reife): als Faustregel sollte jede nachfolgende Kontraktion ungefähr HALB so groß sein wie die vorherige (± angemessene Toleranz) — typisches Beispiel einer reifen Progression: 25% → 15% → 8%, oder 25% → 10% → 5%. Typischerweise entstehen VCP-Setups aus 2 bis 4 Kontraktionen, gelegentlich bis zu 5-6 — bereits 2 Kontraktionen können ein valides VCP bilden, "mindestens 3" ist KEINE Minervini-Vorgabe (KORRIGIERT 08.09.2026 — der alte Prompt nannte fälschlich eine feste Mindestanzahl als Schwelle für ein "klassisches" VCP). Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.';
+        var principleText = 'VCP (Volatility Contraction Pattern) nach Mark Minervini kennzeichnet sich durch sukzessiv enger werdende Korrekturen (Contractions) innerhalb eines übergeordneten Stage-2-Aufwärtstrends — jede Contraction pendelt typischerweise enger als die vorherige, begleitet von abnehmendem Volumen (Volumen-Austrocknung). Das Setup gilt als reif, wenn Volumen und Kursspanne auf ein Minimum komprimiert wurden und ein Ausbruch mit deutlich erhöhtem Volumen unmittelbar bevorsteht — ohne diese Volumen-Bestätigung bleibt ein Ausbruch weniger belastbar. Halbierungsregel (Minervini, Kernkriterium für VCP-Reife): als Faustregel sollte jede nachfolgende Kontraktion ungefähr HALB so groß sein wie die vorherige (± angemessene Toleranz) — typisches Beispiel einer reifen Progression: 25% → 15% → 8%, oder 25% → 10% → 5%. Typischerweise entstehen VCP-Setups aus 2 bis 4 Kontraktionen, gelegentlich bis zu 5-6 — bereits 2 Kontraktionen können ein valides VCP bilden, "mindestens 3" ist KEINE Minervini-Vorgabe (KORRIGIERT 08.09.2026 — der alte Prompt nannte fälschlich eine feste Mindestanzahl als Schwelle für ein "klassisches" VCP). Stop-Loss (Minervini, ERGÄNZT 08.09.2026 — Live-Test-Fund: ohne diese Angabe im Prinzip wurde eine erfundene "2-3%"-Regel fälschlich als "Minervini-Konvention" zitiert, obwohl Minervinis reale Regel eine andere ist): niemals mehr als 8-10% unter Einstieg (harte Obergrenze), Faustregel meist 7-8%; realistisch oft näher am unteren Ende dieser Spanne, wenn der Stop knapp unter dem letzten Kontraktionstief platziert wird, da ein valides VCP dort ohnehin ungültig würde. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Volatility-Contraction-Pattern-Setups (VCP nach Mark Minervini) — sukzessiv enger werdende Korrekturen in einem Stage-2-Aufwärtstrend, auf Basis von Tagesschluss-Daten. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
