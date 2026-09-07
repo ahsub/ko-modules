@@ -1,6 +1,25 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.51.0 (08.09.2026) — CC EIC MASTER PROMPT MIGRATION (vierte
+ *  migrierte Strategie nach csp_wheel/atmna/weekly_income). Zwei Funde:
+ *  (1) unbelegte Liquiditaetsschwellen ("OI > 300, Bid-Ask < 10%") im alten
+ *  EIC-Zweig ohne erkennbare Quelle — entfernt, konsistent zum bei den drei
+ *  vorherigen Migrationen etablierten Standard (Zahl auch nicht als "war
+ *  falsch"-Zitat im principle belassen, gleiches Echo-Vorsichtsprinzip wie
+ *  bei weekly_income). (2) WICHTIGERER FUND, VOR LIVE-TEST ENTDECKT: `cc`
+ *  war die erste Strategie, deren Public-Zweig `risikoBegriff`/`risikenText`
+ *  nutzt (Begriffs-Integritaet Assignment≠Andienung, D200-Zielkonflikt-
+ *  Umkehrlogik ggue. CSP) — `_eicMasterPrompt()` liest diese Felder aber
+ *  GAR NICHT (nur `principle` wird verwendet), waeren beim EIC-Aufruf also
+ *  wirkungslos verpufft. Fix: beide kritischen Inhalte in den principleText
+ *  eingearbeitet statt als eigene Parameter uebergeben. Vorsorglich alle
+ *  drei vorherigen Migrationen auf denselben Fehler geprueft (Node-Test) —
+ *  keine betroffen, da deren Public-Zweige risikoBegriff/risikenText nie
+ *  genutzt hatten. Funktional verifiziert: §23 vorhanden, Begriffs-
+ *  Integritaet UND D200-Zielkonflikt im EIC-Text, alte Zahlen vollstaendig
+ *  entfernt, alle 14 uebrigen Strategien fehlerfrei in beiden Modi.
+ *
  *  Version: 2.50.1 (08.09.2026) — §23 QUELLEN-VERMISCHUNGS-SPERRE ERGÄNZT
  *  (Live-Test-Fund, weekly_income-Erstlauf über Options-Desk). Neue
  *  Fundklasse, nicht dieselbe wie die bisherigen Zahlen-Erfindungen: §23
@@ -4790,8 +4809,7 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
       ],
       prompt: function(ctx) {
         var mode = 'scan';  // s. Kommentar in _publicOptionsPrompt — gilt fuer Public UND EIC
-        var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 300, minHvp: 30, goodHvp: 45, idealHvp: 60, erDays: 30, dte: 30 };
-        var rules = getEffectiveRules('cc', cfg) || { deltaRange: [0.20, 0.30], dteRange: [cfg.dte, 45] };
+        var principleText = 'Covered Call (Buy-Write) ist eine Prämien-Einkommensstrategie auf bestehende oder neu erworbene Aktienpositionen (100 Aktien pro Kontrakt): auf die gehaltenen Aktien wird ein Call out-of-the-money verkauft und dafür Prämie vereinnahmt. Im Gegenzug wird das weitere Aufwärtspotenzial der Aktie bis zum Strike gedeckelt — steigt der Kurs über den Strike, kann der Call ausgeübt werden und die Aktien werden zum Strike-Preis abgegeben. Goldene Regel: Calls nur auf Titel schreiben, die man auch ohne die Optionsstrategie langfristig halten würde — CC ersetzt keine eigene Aktienanalyse, die Rendite kommt primär von der Aktie selbst. In der Praxis betrifft CC meist bereits gehaltene Positionen oder Positionen, die gezielt zur Fortführung der Wheel-Strategie erworben werden ("buy-to-open"). Dividendenrendite und Cashflow-Stabilität können bei der Titelauswahl relevant sein, sind aber keine zwingende Voraussetzung — ein CC kann auch auf einem nicht-dividendenstarken Titel sinnvoll sein, wenn die Aktie bewusst gehalten und Upside gezielt gegen Prämieneinnahme getauscht werden soll. Wichtiger Rahmen: Der CC-Strategy-Fit bewertet ausschließlich die Eignung einer Aktie zum Überschreiben mit einem Call — er setzt eine bereits gehaltene oder bewusst geplante Aktienposition voraus und ist keine Empfehlung zum erstmaligen Erwerb der zugrunde liegenden Aktie. Strike-Kompromiss (allgemeine Marktkonvention, keinem spezifischen Autor zugeschrieben): ein näher am Kurs liegender Strike (ca. 5-8% OTM) bringt typischerweise höhere Prämie bei höherer Ausübungswahrscheinlichkeit ("aggressiv"), ein weiter entfernter Strike (ca. 10-15% OTM) geringere Prämie bei mehr Kursspielraum ("konservativ"). Laufzeit üblicherweise 30-45 DTE. KORRIGIERT 08.09.2026 (konsistent zum bei csp_wheel/atmna/weekly_income etablierten Standard): der alte EIC-Prompt nannte konkrete Zahlenschwellen für Open Interest und Bid-Ask-Spread ohne erkennbare Quelle — diese wurden entfernt, Liquidität bleibt qualitativ zu prüfen (im Broker). BEGRIFFS-INTEGRITÄT (wichtig, s. 29.08.2026 Reviewer-Punkt 6 — gilt für EIC genauso wie für Public, _eicMasterPrompt() liest KEIN separates risikoBegriff/risikenText-Feld, deshalb hier im principle verankert): das relevante Risiko-Ereignis bei CC heißt Ausübung/Assignment des Short Calls (Kursbewegung ÜBER den Strike) — NICHT "Andienung" (das ist CSP-spezifisch, Kursbewegung UNTER den Put-Strike, ein anderes Konzept). CC-SPEZIFISCHER D200-ZIELKONFLIKT (Unterschied zu CSP wichtig): ein hoher positiver D200-Abstand ist bei CC NICHT per se günstig wie bei CSP — je stärker ein Titel strukturell steigt, desto größer der potenzielle Opportunitätsverlust durch den gedeckelten Short Call. Bei CSP kann ein starker Aufwärtstrend dagegen unproblematischer sein, da eine Andienung dort in eine gewünschte Aktienposition führt — diese beiden Logiken nicht vermischen.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für Covered-Call-Writing (Call-Verkauf auf bestehende oder neu erworbene Aktienpositionen, Buy-Write).',
@@ -4801,7 +4819,7 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
             maxWords: 500,
             mode: mode,
             istOptionsStrategie: true,
-            principle: 'Covered Call (Buy-Write) ist eine Prämien-Einkommensstrategie auf bestehende oder neu erworbene Aktienpositionen (100 Aktien pro Kontrakt): auf die gehaltenen Aktien wird ein Call out-of-the-money verkauft und dafür Prämie vereinnahmt. Im Gegenzug wird das weitere Aufwärtspotenzial der Aktie bis zum Strike gedeckelt — steigt der Kurs über den Strike, kann der Call ausgeübt werden und die Aktien werden zum Strike-Preis abgegeben. Goldene Regel: Calls nur auf Titel schreiben, die man auch ohne die Optionsstrategie langfristig halten würde — CC ersetzt keine eigene Aktienanalyse, die Rendite kommt primär von der Aktie selbst. In der Praxis betrifft CC meist bereits gehaltene Positionen oder Positionen, die gezielt zur Fortführung der Wheel-Strategie erworben werden ("buy-to-open"). Dividendenrendite und Cashflow-Stabilität können bei der Titelauswahl relevant sein, sind aber keine zwingende Voraussetzung — ein CC kann auch auf einem nicht-dividendenstarken Titel sinnvoll sein, wenn die Aktie bewusst gehalten und Upside gezielt gegen Prämieneinnahme getauscht werden soll. Wichtiger Rahmen: Der CC-Strategy-Fit bewertet ausschließlich die Eignung einer Aktie zum Überschreiben mit einem Call — er setzt eine bereits gehaltene oder bewusst geplante Aktienposition voraus und ist keine Empfehlung zum erstmaligen Erwerb der zugrunde liegenden Aktie.',
+            principle: principleText,
             // BEGRIFFS-INTEGRITAET (29.08.2026, Reviewer-Punkt 6): "Andienung"
             // ist CSP-spezifisch (Kursbewegung UNTER den Put-Strike loest sie
             // aus). Bei Covered Call ist das relevante Risiko-Ereignis
@@ -4821,38 +4839,23 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
               + 'gewünschte Aktienposition führt. Diesen Unterschied nicht mit CSP-Logik vermischen.'
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Options-Trader mit Fokus auf Covered Call Writing (Call-Verkauf auf bestehende oder neu erworbene Aktienpositionen).\n\n'
-          + '⚠️ Diese Analyse dient ausschliesslich zu Informationszwecken gem. §1 WpHG.\n\n'
-          + '## STRATEGIE-GRUNDLAGEN (Covered Call):\n'
-          + '- Call wird OTM verkauft auf 100 Aktien die der Trader bereits hält oder kauft (Buy-Write)\n'
-          + '- Ziel: Prämieneinnahme + Risikoreduktion auf die Long-Position\n'
-          + '- Strike-Wahl: Kompromiss zwischen Prämie und Upside-Potenzial\n'
-          + '  • Aggressiv (mehr Prämie): Strike nahe Kurs (5-8% OTM)\n'
-          + '  • Konservativ (mehr Upside): Strike weit OTM (10-15%)\n'
-          + '- Laufzeit: bevorzugt 30-45 DTE, Frühausstieg bei 50% Prämiengewinn\n'
-          + '- Rollstrategie: Call rollen wenn Kurs an Strike heranläuft (Aufwärts-Roll)\n'
-          + '- WICHTIG: CC deckt Upside — bei stark steigenden Titeln kann Gewinnpotenzial gekappt werden\n\n'
-          + '🚫 AUSSCHLUSS-KRITERIEN:\n'
-          + '   • HVP < ' + cfg.minHvp + '%: Prämien zu mager für sinnvollen CC\n'
-          + '   • ER innerhalb ' + cfg.erDays + ' Tage: erhöhtes Assignment-Risiko durch Kurssprung\n'
-          + '   • Stark trendende Titel (RSI>75, Momentum hoch): CC kappt Gewinne im besten Moment\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTUMFELD: Günstig für Covered Calls? VIX-Niveau, Trendstärke, Prämienqualität. (2-3 Sätze)\n'
-          + '2. TOP 3 CC-KANDIDATEN: Titel mit stabiler Kursbasis, moderatem Momentum und ausreichend HVP.\n'
-          + '   Für jeden Titel:\n'
-          + '   a) HVP-Bewertung: ≥' + cfg.idealHvp + '% ⭐ · ' + cfg.goodHvp + '-' + (cfg.idealHvp-1) + '% ✅ · ' + cfg.minHvp + '-' + (cfg.goodHvp-1) + '% ⚠️\n'
-          + '   b) Strike-Empfehlung: OTM-Abstand in % und $ vom Kurs (aus "Kurs:$"-Feld)\n'
-          + '   c) Laufzeit: ~' + rules.dteRange[0] + '-' + rules.dteRange[1] + ' DTE, bevorzugt 3. Freitag des Monats\n'
-          + '   d) Delta-Bereich: ' + rules.deltaRange[0] + '-' + rules.deltaRange[1] + '\n'
-          + '   e) Prämien-SCHÄTZUNG aus HVP (⚠️ Schätzung — exakt in IBKR prüfen)\n'
-          + '   f) Upside-Risiko: Wie viel Kursgewinn wird bis zum Strike gedeckelt?\n'
-          + '   g) PFLICHT-CHECKS: OI > 300 · Bid-Ask < 10% · kein ER in Laufzeit\n'
-          + '3. WATCHLIST: Titel die nach ER oder Kurskorrektur interessant werden für CC.\n'
-          + '4. RISIKEN: Assignment-Risiko, Upside-Cap in starkem Trend, niedrige Prämien bei niedrigem VIX.\n'
-          + '\n⚠️ ABSCHLUSS: Strikes und Prämien immer in IBKR/CapTrader Optionskette verifizieren.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 450 Wörter.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // vierte migrierte Strategie nach csp_wheel/atmna/weekly_income):
+        // der alte EIC-Zweig enthielt unbelegte Liquiditaetsschwellen
+        // ("OI > 300 · Bid-Ask < 10%") ohne Quellenangabe — jetzt entfernt,
+        // konsistent zum bei den drei vorherigen Migrationen etablierten
+        // Standard. _eicMasterPrompt() wie bei den anderen drei; §23s
+        // Zahlen-/Quellen-Sperren (ko-prompts.js v2.48.2-v2.50.1) plus der
+        // serverseitige Scanner (ko-ai-worker.js v1.20/v1.21) greifen
+        // unveraendert.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Titel auf strukturelle Eignung für Covered-Call-Writing (Call-Verkauf auf bestehende oder neu erworbene Aktienpositionen, Buy-Write).',
+          stratName: 'Covered-Call-Setups',
+          focus: STRATEGIES.cc.focus,
+          mode: mode,
+          istOptionsStrategie: true,
+          principle: principleText
+        });
       }
     },
 
