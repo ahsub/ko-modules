@@ -1,6 +1,29 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.50.0 (08.09.2026) — WEEKLY_INCOME EIC MASTER PROMPT MIGRATION
+ *  (dritte migrierte Strategie nach csp_wheel/atmna) + QUELLENKORREKTUR
+ *  (Axel-Fund + Quellenpruefung gegen T.R. Lawrence, "Options Trading: How
+ *  to Turn Every Friday...", vom Nutzer hochgeladen). Der alte EIC-Zweig
+ *  enthielt zwei unbelegte/falsche Zahlen: (1) "50% Praemiengewinn" als
+ *  alleinige Gewinnmitnahme-Regel — tatsaechlich ist das laut Quelle
+ *  Lawrences AUSNAHMEREGEL fuer aussergewoehnlich volatile Marktphasen
+ *  (40-50%), der STANDARD ist 80%; (2) "OI>500"/"Spread<10%" als Liquidi-
+ *  taetsschwellen — Lawrence nennt dafuer KEINE konkreten Zahlen, nur
+ *  qualitativ "hohe Liquiditaet"/"enge Spreads". Die vier Kernzahlen der
+ *  Strategie selbst (Long-Put 90-120 Tage, $4-5 unter Kurs, Short-Put ATM
+ *  7-8 Tage) wurden dagegen anhand des SCHW-Beispiels im Buch ($74 Kurs,
+ *  $70 Long-Put-Strike = exakt $4 darunter) bestaetigt, keine Korrektur
+ *  noetig. Beide falschen Werte im gemeinsamen STRATEGIEPRINZIP (Public UND
+ *  EIC) korrigiert — die wortwoertliche alte Zahl wurde bewusst NICHT im
+ *  Prompt-Text zitiert (auch nicht als "war falsch"-Referenz), um jedes
+ *  Echo-Risiko zu vermeiden. weekly_income nutzt jetzt wie csp_wheel/atmna
+ *  _eicMasterPrompt() (Ebenen 1-22 + §23) — die §23-Zahlen-Erfindungs-Sperre
+ *  UND der neue serverseitige Scanner (ko-ai-worker.js v1.20/v1.21) greifen
+ *  unveraendert. Funktional verifiziert: §23 vorhanden, korrigierte 80%-
+ *  Regel in beiden Modi, alte Zahlen vollstaendig entfernt (auch nicht als
+ *  Zitat), alle 14 uebrigen Strategien fehlerfrei in beiden Modi.
+ *
  *  Version: 2.49.4 (07.09.2026) — §23 ZAHLEN-ERFINDUNGS-SPERRE MIT
  *  KONKRETEN VORHER/NACHHER-BEISPIELEN VERSCHÄRFT (vierter Live-Test-Fund,
  *  atmna-Viertlauf — dieselbe Fundklasse trat ERNEUT auf, obwohl die
@@ -4693,7 +4716,11 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
       ],
       prompt: function(ctx) {
         var mode = 'scan';  // s. Kommentar in _publicOptionsPrompt — gilt fuer Public UND EIC
-        var cfg = ctx.optsCfg || { minPrice: 15, maxPrice: 80, minHvp: 40, erDays: 30 };
+        // KORRIGIERT (08.09.2026, Axel-Fund + Quellenpruefung gegen T.R.
+        // Lawrence, "Options Trading: How to Turn Every Friday..."): das
+        // gemeinsame Prinzip enthaelt jetzt die tatsaechlichen Lawrence-
+        // Kriterien statt zwei unbelegter/falscher Werte (s. Fund unten).
+        var principleText = 'CSP (Weekly) implementiert die "Weekly Cash KaChing"-Methode nach T.R. Lawrence: eine langfristige Put-Position (90-120 Tage, Strike ca. $4-5 unter aktuellem Kurs, nach dem naechsten Earnings-Termin) dient als Verlustabsicherung ("Insurance"), waehrend woechentlich ein kurzfristiger Short-Put am Geld (ATM, 7-8 Tage Laufzeit, Kauf donnerstags fuer die Freitags-Expiration) zur Praemieneinnahme verkauft und woechentlich neu eroeffnet wird. Der maximale Verlust ist durch die Differenz der beiden Strikes (abzueglich vereinnahmter Praemie) strukturell begrenzt. Lawrences Gewinnmitnahme-Regel: 80% des Praemiengewinns vor Verfall realisiert → schliessen (Standard); nur bei aussergewoehnlich volatilen Marktphasen auf 40-50% beschleunigen (KORRIGIERT 08.09.2026 — zuvor faelschlich als alleinige 50%-Regel gefuehrt, das ist tatsaechlich Lawrences Ausnahmeregel fuer Extremvolatilitaet, nicht der Standard). Liquiditaet: Lawrence nennt KEINE konkreten Zahlenschwellen fuer Open Interest oder Bid-Ask-Spread, nur qualitativ "hohe Liquiditaet"/"enge Spreads" als Auswahlkriterium (KORRIGIERT 08.09.2026 — zwei zuvor im Prompt stehende, unbelegte Zahlenschwellen fuer OI und Spread wurden entfernt, da keine Lawrence-Zahlen). Die Strategie haengt von verlaesslicher woechentlicher Liquiditaet ab und ist entsprechend empfindlich gegenueber Liquiditaetsverschlechterungen im gewaehlten Titel.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für eine wöchentliche Diagonal-Put-Spread-Einkommensstrategie (kurzfristiger Short-Put + langfristige Long-Put-Versicherung).',
@@ -4703,44 +4730,27 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
             maxWords: 500,
             mode: mode,
             istOptionsStrategie: true,
-            principle: 'CSP (Weekly) implementiert die "Weekly Cash KaChing"-Methode nach T.R. Lawrence: eine langfristige Put-Position (~120 Tage, Strike unterhalb des aktuellen Kurses) dient als Verlustabsicherung ("Insurance"), während wöchentlich ein kurzfristiger Short-Put nahe am Geld (ATM, ~7-8 Tage) zur Prämieneinnahme verkauft und regelmäßig gerollt wird. Der maximale Verlust ist durch die Differenz der beiden Strikes (abzüglich vereinnahmter Prämie) strukturell begrenzt. Die Strategie hängt von verlässlicher wöchentlicher Liquidität ab und ist entsprechend empfindlich gegenüber Liquiditätsverschlechterungen im gewählten Titel.'
+            principle: principleText
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + '⛔ ABSOLUTES HALLUZINATIONS-VERBOT: Verwende AUSSCHLIESSLICH Daten aus dem Prompt.\n'
-          + '   Kurse, Strikes, Prämien NUR aus Scandaten — NIEMALS schätzen oder erfinden.\n'
-          + '   Fehlende Werte: explizit "N/A — in IBKR prüfen" schreiben.\n\n'
-          + 'Du bist ein erfahrener Optionstrader spezialisiert auf wöchentliche Einkommensstrategien.\n\n'
-          + '## STRATEGIE-GRUNDLAGEN (CSP Weekly — Diagonal Put-Spread):\n'
-          + '- SCHRITT 1 — VERSICHERUNG (einmalig): Long-Put kaufen, ~120 DTE, Strike ~4-5$ unter aktuellem Kurs, PAST nächsten Earnings\n'
-          + '- SCHRITT 2 — WÖCHENTLICHES INCOME: ATM Short-Put verkaufen, 7 DTE (nächster Freitag)\n'
-          + '- SCHRITT 3 — ROLLEN: Jeden Freitag neuen ATM-Put verkaufen — 4× pro Monat\n'
-          + '- Frühausstieg: 50% Prämiengewinn → Position schliessen, Kapital freimachen\n'
-          + '- Max. Verlust: Spread-Breite MINUS kassierte Prämie — BEGRENZT\n'
-          + '- Kapitaleffizienz: Nur Spread-Breite als Margin (nicht voller Aktienwert)\n\n'
-          + '## AKTIEN-CHECKLISTE:\n'
-          + '- Kurs $' + cfg.minPrice + '–$' + cfg.maxPrice + '\n'
-          + '- Weekly Options verfügbar PFLICHT\n'
-          + '- HVP ≥ ' + cfg.minHvp + '%\n'
-          + '- Kein Earnings innerhalb 120 DTE der Long-Put-Laufzeit\n'
-          + '- OI am ATM-Strike > 500, Bid-Ask < 10%\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE — RANGFOLGELISTE WEEKLY-INCOME-KANDIDATEN:\n'
-          + '⛔ AUSSCHLUSS VOR ANALYSE:\n'
-          + '   • Kurs < $' + cfg.minPrice + ' oder > $' + cfg.maxPrice + ' → AUSSCHLUSS\n'
-          + '   • HVP < ' + cfg.minHvp + '% → AUSSCHLUSS\n'
-          + '   • ER innerhalb ' + cfg.erDays + ' Tage → AUSSCHLUSS\n\n'
-          + '1. MARKTUMFELD: Günstig für Weekly Income? VIX, Trend. (2 Sätze)\n'
-          + '2. RANGFOLGELISTE TOP-KANDIDATEN (max. 5):\n'
-          + '   a) HVP-Wert + Eignung (⭐/✅/⚠️)\n'
-          + '   b) Long-Put Setup: Strike ~4-5$ unter Kurs · Ziel-DTE ~120\n'
-          + '   c) Short-Put Setup: ATM-Strike · DTE 7 (nächster Freitag)\n'
-          + '   d) Spread-Breite in $ = max. Verlust pro Kontrakt\n'
-          + '   e) PFLICHT-CHECKS: Weekly Options · OI > 500 · Bid-Ask < 10%\n'
-          + '3. NICHT GEEIGNET: Ausgeschlossene Titel + Grund\n'
-          + '4. SETUP-HINWEIS: Optimales Vorgehen diese Woche\n'
-          + '\n⛔ Alle Kurs/Prämienangaben sind SCHÄTZUNGEN — exakte Werte NUR in IBKR.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 500 Wörter.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // dritte migrierte Strategie nach csp_wheel/atmna): der alte EIC-
+        // Zweig instruierte das Modell EXPLIZIT, Kurse/Praemien "NIEMALS zu
+        // schaetzen oder zu erfinden", enthielt aber selbst zwei unbelegte/
+        // falsche Zahlen (eine falsche Gewinnmitnahme-Prozentzahl statt der
+        // echten 80%-Regel, sowie unbelegte OI-/Spread-Schwellen) — jetzt
+        // korrigiert im principleText oben.
+        // _eicMasterPrompt() wie bei csp_wheel/atmna; §23s Zahlen-Erfindungs-
+        // Sperre (ko-prompts.js v2.48.2-v2.49.4) plus der neue serverseitige
+        // Scanner (ko-ai-worker.js v1.20/v1.21) greifen unveraendert.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Titel auf strukturelle Eignung für eine wöchentliche Diagonal-Put-Spread-Einkommensstrategie (kurzfristiger Short-Put + langfristige Long-Put-Versicherung).',
+          stratName: 'CSP (Weekly)-Setups',
+          focus: STRATEGIES.weekly_income.focus,
+          mode: mode,
+          istOptionsStrategie: true,
+          principle: principleText
+        });
       }
     },
 
