@@ -1,6 +1,27 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.53.3 (08.09.2026) — VCP EIC-MIGRATION (dritte Equity-
+ *  Strategie). Quelle: Mark Minervini, "Trade Like a Stock Market Wizard"
+ *  (zweites Minervini-Buch, spezifisch zum VCP-Konzept, vom Nutzer
+ *  hochgeladen — Ursprungsquelle der Felder, die UIQ bereits berechnet:
+ *  vcpContractions, vcpLastPct, vcpAvgPrevPct). NEU: Halbierungsregel
+ *  (Kernkriterium fuer VCP-Reife) — jede nachfolgende Kontraktion sollte
+ *  ungefaehr halb so gross sein wie die vorherige (± Toleranz), typisches
+ *  Beispiel 25%→15%→8% oder 25%→10%→5%. KORRIGIERT: der alte Prompt
+ *  nannte "≥3 Contractions = klassisches VCP" ohne Beleg — tatsaechlich
+ *  sind 2-4 Kontraktionen typisch (gelegentlich 5-6), bereits 2 koennen
+ *  ein valides VCP bilden. Beim Schreiben selbst denselben Selbstzitat-
+ *  Fehler wie mehrfach heute gemacht und sofort korrigiert (die falsche
+ *  alte Schwelle wurde in der eigenen Korrekturnotiz woertlich zitiert,
+ *  jetzt nur noch funktional beschrieben). Stop-Loss bewusst NICHT erneut
+ *  ausformuliert (kein Doppelquelle-Risiko) — folgt implizit Minervinis
+ *  allgemeinem Standard aus der momentum-Strategie. Funktional verifiziert:
+ *  Equity-Block korrekt, Halbierungsregel + korrigierte Kontraktionszahl
+ *  in Public UND EIC, alte falsche Schwelle vollstaendig entfernt (auch
+ *  nicht als Zitat), alle 14 uebrigen Strategien fehlerfrei in beiden
+ *  Modi.
+ *
  *  Version: 2.53.2 (08.09.2026) — DREI FUNDE NACH SWING-ERSTLAUF, EINER
  *  DAVON EIN EIGENER DATEIFEHLER. (1) SCHWERWIEGENDER EIGENER FEHLER
  *  BEHOBEN: die gesamte Datei war seit einer frueheren Strukturaenderung
@@ -4702,6 +4723,11 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         "Risiko eines fehlgeschlagenen Ausbruchs (z.B. fehlendes Volumen, schwacher Gesamtmarkt)"
       ],
       prompt: function(ctx) {
+        // ERGAENZT (08.09.2026, Quelle: Mark Minervini, "Trade Like a Stock
+        // Market Wizard" — zweites Minervini-Buch, spezifisch zum VCP-
+        // Konzept, vom Nutzer hochgeladen; ergaenzt "Think & Trade Like a
+        // Champion", das nur die allgemeinen Stop-Loss-Regeln lieferte).
+        var principleText = 'VCP (Volatility Contraction Pattern) nach Mark Minervini kennzeichnet sich durch sukzessiv enger werdende Korrekturen (Contractions) innerhalb eines übergeordneten Stage-2-Aufwärtstrends — jede Contraction pendelt typischerweise enger als die vorherige, begleitet von abnehmendem Volumen (Volumen-Austrocknung). Das Setup gilt als reif, wenn Volumen und Kursspanne auf ein Minimum komprimiert wurden und ein Ausbruch mit deutlich erhöhtem Volumen unmittelbar bevorsteht — ohne diese Volumen-Bestätigung bleibt ein Ausbruch weniger belastbar. Halbierungsregel (Minervini, Kernkriterium für VCP-Reife): als Faustregel sollte jede nachfolgende Kontraktion ungefähr HALB so groß sein wie die vorherige (± angemessene Toleranz) — typisches Beispiel einer reifen Progression: 25% → 15% → 8%, oder 25% → 10% → 5%. Typischerweise entstehen VCP-Setups aus 2 bis 4 Kontraktionen, gelegentlich bis zu 5-6 — bereits 2 Kontraktionen können ein valides VCP bilden, "mindestens 3" ist KEINE Minervini-Vorgabe (KORRIGIERT 08.09.2026 — der alte Prompt nannte fälschlich eine feste Mindestanzahl als Schwelle für ein "klassisches" VCP). Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Volatility-Contraction-Pattern-Setups (VCP nach Mark Minervini) — sukzessiv enger werdende Korrekturen in einem Stage-2-Aufwärtstrend, auf Basis von Tagesschluss-Daten. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
@@ -4710,7 +4736,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
             focus: STRATEGIES.vcp.focus,
             maxWords: 450,
             istOptionsStrategie: false,
-            principle: 'VCP (Volatility Contraction Pattern) nach Mark Minervini kennzeichnet sich durch sukzessiv enger werdende Korrekturen (Contractions) innerhalb eines übergeordneten Stage-2-Aufwärtstrends — jede Contraction pendelt typischerweise enger als die vorherige, begleitet von abnehmendem Volumen (Volumen-Austrocknung). Das Setup gilt als reif, wenn Volumen und Kursspanne auf ein Minimum komprimiert wurden und ein Ausbruch mit deutlich erhöhtem Volumen unmittelbar bevorsteht — ohne diese Volumen-Bestätigung bleibt ein Ausbruch weniger belastbar. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.',
+            principle: principleText,
             risikenText: 'Zusätzlich klarstellen: SEPA-Score und EMA200-Abstand sind Stage-2-'
               + 'Trendindikatoren, aber KEIN Ersatz für die eigentlichen VCP-spezifischen Kriterien '
               + '(Anzahl Contractions, Tiefe der letzten Korrektur, Volumen-Kompression während der '
@@ -4731,39 +4757,24 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
               + 'Aussage über den zukünftigen Kursverlauf.)'
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener technischer Analyst mit Spezialisierung auf das '
-          + 'Volatility Contraction Pattern (VCP) nach Mark Minervini. '
-          + 'VCP-Setups kennzeichnen sich durch sukzessive enger werdende Korrekturen '
-          + '(Contractions) in einem übergeordneten Stage-2-Aufwärtstrend. '
-          + 'Das Setup ist reif wenn Volumen und Volatilität auf ein Minimum komprimiert wurden '
-          + 'und ein Ausbruch mit Volumen unmittelbar bevorsteht.\n\n'
-          + ctx.marktkontext
-          + '\n\nVCP-SCANDATEN: Die Scandaten enthalten für VCP-Kandidaten:\n'
-          + '- vcpContractions: Anzahl sukzessiver Contractions (≥3 = klassisches VCP)\n'
-          + '- vcpLastPct: Tiefe der letzten Korrektur in % (gut: <10%, ideal: <5%)\n'
-          + '- vcpVolContraction: Volumen während Contraction vs. 20T-Schnitt (<0.6 = stark ausgetrocknet, Minervini-Ideal)\n'
-          + '- vcpBreakoutVol: Volumen des letzten Bars als Ratio (≥2.0 = Ausbruchsvolumen bestätigt)\n'
-          + '- Score: VCP-Reife 0-100 · Kurs:$ · 52W-H · RSI · MACD · OBV\n\n'
-          + 'AUFGABE:\n'
-          + '1. MARKTUMFELD FÜR VCP: Ist das aktuelle Marktumfeld (Regime, VIX, Marktbreite) '
-          + 'günstig für VCP-Ausbrüche? VCP-Setups versagen häufig in schwachen oder '
-          + 'volatilen Märkten. (2-3 Sätze)\n'
-          + '2. TOP 3 VCP-KANDIDATEN: Für jeden Titel aus den Scandaten:\n'
-          + '   - Anzahl Contractions (vcpContractions) + letzte Korrektur-% (vcpLastPct)\n'
-          + '   - Volumen-Analyse: Ist Volumen während Contraction ausgetrocknet? '
-          + '(vcpVolContraction < 0.6 = ideal). Gibt es Ausbruchs-Volumen? '
-          + '(vcpBreakoutVol ≥ 2.0 = bestätigt)\n'
-          + '   - Pivot-Punkt: Aus 52W-H und aktuellem Kurs ableiten — NUR aus Scandaten\n'
-          + '   - Stage-2-Kontext: RSI > 50, MACD positiv, OBV steigend?\n'
-          + '   - Stop-Loss: knapp unter letztem Contraction-Tief\n'
-          + '   - KEIN Kursziel erfinden\n'
-          + '3. SETUPS IN ENTWICKLUNG: Titel die ein VCP aufbauen aber noch nicht reif sind '
-          + '(vcpVolContraction noch >0.6 oder vcpBreakoutVol fehlt).\n'
-          + '4. RISIKEN: Was gefährdet VCP-Ausbrüche aktuell? '
-          + '(Marktbreite, Makro, Sektor, False Breakout Risiko)\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 400 Wörter. '
-          + 'Keine erfundenen Kursziele. Nur Daten aus den Scandaten verwenden.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // dritte migrierte EQUITY-Strategie): der alte EIC-Zweig nannte
+        // "≥3 Contractions = klassisches VCP" ohne Beleg (jetzt korrigiert:
+        // 2-4 typisch) und hatte keine Halbierungsregel — jetzt im
+        // principleText oben ergaenzt. Stop-Loss folgt implizit Minervinis
+        // allgemeinem Standard (s. momentum-Strategie, gleicher Autor,
+        // andere Quelle) — _eicMasterPrompt()s Equity-Schlussblock bleibt
+        // strategie-agnostisch (s. v2.53.2-Fix), daher hier NICHT erneut
+        // ausformuliert, um keine Doppelquelle zu erzeugen; falls das EIC-
+        // Modell eine Stop-Loss-Zahl braucht und keine im principle steht,
+        // bleibt es laut Sperren-Regel qualitativ.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Volatility-Contraction-Pattern-Setups (VCP nach Mark Minervini) — sukzessiv enger werdende Korrekturen in einem Stage-2-Aufwärtstrend, auf Basis von Tagesschluss-Daten. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
+          stratName: 'VCP-Setups',
+          focus: STRATEGIES.vcp.focus,
+          istOptionsStrategie: false,
+          principle: principleText
+        });
       }
     },
 
