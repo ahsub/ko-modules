@@ -1,6 +1,44 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.52.0 (08.09.2026) — ZWEI ZUSAMMENGEFÜHRTE ÄNDERUNGEN IN EINEM
+ *  DEPLOY (Axel: "in einem Rutsch zusammenführen"):
+ *  (1) §23 IMITIERBARE BEISPIELPHRASE ENTFERNT (Live-Test-Fund, cc-
+ *  Erstlauf): "Open Interest ausreichend liquide? (dreistelliger Bereich
+ *  wünschenswert, s. Strategie-Standard)" im cc-Output, obwohl cc's
+ *  STRATEGIEPRINZIP keine solche Zahl enthält. Root Cause: die konkrete
+ *  Beispielphrase "dreistelliger Bereich" stand DREIMAL im gemeinsamen §23-
+ *  Text (Beispielformulierung + zwei eigene Fund-Dokumentationen aus
+ *  v2.49.4/v2.50.1) — selbst korrekt als "nur wenn im eigenen Prinzip
+ *  vorhanden" eingeschränkt, wurde die konkrete, einprägsame Zahl trotzdem
+ *  übernommen. Lehre: ein Verbot, das die zu vermeidende Phrase selbst
+ *  zitiert — und sei es nur als Beispiel oder als Dokumentation eines
+ *  vergangenen Funds —, bleibt eine imitierbare Vorlage. Alle drei Stellen
+ *  auf funktionale Beschreibung ohne die konkrete Phrase umgestellt. atmna
+ *  behält seine ECHTE "dreistelliger Bereich"-Zahl unverändert (steht in
+ *  atmnas EIGENEM STRATEGIEPRINZIP).
+ *  (2) COLLAR EIC MASTER PROMPT MIGRATION (fünfte und letzte migrierte
+ *  Optionsstrategie) + Quellenanreicherung (Ernie Zerenner/Michael Chupka,
+ *  "Protective Options Strategies: Married Puts and Collar Spreads", vom
+ *  Nutzer hochgeladen). Der alte EIC-Zweig hatte KEINE Laufzeit-Konvention
+ *  und behandelte Protective Put vs. vollen Collar als zwei statische
+ *  Alternativen statt als dynamische Abfolge. Neu im gemeinsamen
+ *  STRATEGIEPRINZIP: ~30 Tage Standard-Laufzeit für den Protective Put;
+ *  Faustregel für die Umwandlung in einen vollen Collar (Call erst NACH
+ *  5-8% Kursanstieg verkaufen, 1-2 Monate Laufzeit, mind. 1/3 der Put-
+ *  Kosten als Call-Prämie); 80%-Ausstiegsregel für den verkauften Call
+ *  (bemerkenswert: dieselbe Schwelle wie Lawrences Regel für weekly_income,
+ *  hier aber unabhängig für eine andere Strategie belegt). Begriffs-
+ *  Integrität (Protective Put hat kein Ausübungsrisiko, voller Collar hat
+ *  CC-analoges Ausübungsrisiko auf der Call-Seite) ins principle verankert,
+ *  da _eicMasterPrompt() risikoBegriff/risikenText nicht liest (derselbe
+ *  Fund wie bei cc, s. v2.51.0). Funktional verifiziert: §23 vorhanden,
+ *  alle neuen Konventionen in Public UND EIC, Selbstzitat-Fix bestätigt
+ *  (Phrase in cc/weekly_income entfernt, atmnas echte Zahl unverändert),
+ *  alle 14 übrigen Strategien fehlerfrei in beiden Modi. Damit sind alle
+ *  5 geplanten Optionsstrategien (csp_wheel/atmna/weekly_income/cc/collar)
+ *  auf den EIC Master Prompt migriert.
+ *
  *  Version: 2.51.1 (08.09.2026) — CC-PRINZIP UM DELTA-WAHRSCHEINLICHKEITS-
  *  ERKLÄRUNG ERGÄNZT (Quelle: Steven Place, "Covered Call Trading
  *  Strategies for Enhanced Investing Profits", vom Nutzer hochgeladen).
@@ -3996,17 +4034,17 @@ HARTE SPERRE, VIERFACH BELEGTER FUND (07.09.2026, atmna-Drittlauf UND -Viertlauf
 
 KONKRETE, WIEDERHOLT BELEGTE FEHLER — SO NICHT:
 - "Bid-Ask-Spread <$0,15 ideal, <$0,30 akzeptabel" — KEINE Quelle nennt einen Dollar-Betrag für Bid-Ask-Spreads, auch Ludwig nicht (dessen Kriterium ist rein qualitativ: "Spanne bleibt eng", ohne Zahl).
-- "Open Interest mindestens 50 Kontrakte" — falsch UND unnötig erfunden, obwohl die korrekte Zahl im STRATEGIEPRINZIP bereits steht ("dreistelliger Bereich", also ≥100) — dritter Beleg dafür, dass selbst eine im Prompt bereitgestellte korrekte Zahl ignoriert und durch eine erfundene ersetzt wurde.
+- "Open Interest mindestens 50 Kontrakte" — falsch UND unnötig erfunden, obwohl die korrekte Zahl im STRATEGIEPRINZIP jener damaligen Anfrage bereits vorgegeben war (als Grössenordnung, nicht als exakte Zahl) — dritter Beleg dafür, dass selbst eine im eigenen Prompt bereitgestellte korrekte Angabe ignoriert und durch eine erfundene ersetzt wurde. Diese Grössenordnung galt NUR für die damalige Strategie und deren eigenes STRATEGIEPRINZIP — nicht als wiederverwendbare Zahl für andere Strategien übernehmen.
 - "Prämie ≥2,5% des Kurses" (zweimal belegt) — keine Quelle nennt diesen Schwellenwert.
 
 SO STATTDESSEN:
 - "Bid-Ask-Spread eng genug? (keine UIQ-Zahl verfügbar, im Broker beurteilen)"
-- "Open Interest im dreistelligen Bereich? (s. STRATEGIEPRINZIP)" — NUR wenn das Prinzip diese Zahl tatsächlich nennt, mit DORTIGER Quellenangabe übernehmen (nicht raten oder von einer anderen Strategie/einem anderen Quellenbuch übertragen — §23 wird von mehreren Strategien mit unterschiedlichen Quellenbüchern geteilt, s. Fund unten), sonst ebenfalls nur qualitativ.
+- "Open Interest [NUR eine konkrete Zahl/Grössenordnung nennen, wenn das STRATEGIEPRINZIP DIESER Anfrage eine enthält — sonst 'ausreichend liquide?' ohne jede Zahl]" — WICHTIG: keine konkrete Liquiditäts-Grössenordnung aus einer anderen Strategie, einem anderen Quellenbuch oder einem frühereren Beispiel in dieser Anweisung übernehmen, wenn sie nicht im eigenen STRATEGIEPRINZIP steht (belegter Fund 08.09.2026, cc-Erstlauf: genau das geschah, mit einer vagen Zuschreibung statt eines konkreten falschen Autors — trotzdem erfunden, da cc kein solches Kriterium führt).
 - Prämien-Attraktivität ausschließlich über IVP/HVP-Perzentil einordnen (s. Feld oben), keine %/$-Mindestschwelle.
 
 Wenn eine Zahl im STRATEGIEPRINZIP bereits vorgegeben ist: genau DIESE Zahl verwenden, keine eigene erfinden, auch keine "naheliegend wirkende" Alternative. Wenn keine Zahl vorgegeben ist: qualitativ bleiben ("eng genug", "ausreichend liquide"), niemals eine plausibel klingende Zahl ergänzen, um die Checkliste vollständiger wirken zu lassen.
 
-HARTE SPERRE, NEUE FUNDKLASSE (08.09.2026, weekly_income-Erstlauf): §23 wird von mehreren Strategien geteilt, die auf UNTERSCHIEDLICHEN Quellenbüchern beruhen (z.B. csp_wheel/atmna nach Eric Ludwig, weekly_income nach T.R. Lawrence). Belegter Fund: eine weekly_income-Analyse zitierte "Open Interest im dreistelligen Bereich (Ludwig-Kriterium)" — Lawrence nennt dafür KEINE Zahl, das ist eine Verwechslung mit einer ANDEREN Strategie. Regel: jede Quellenangabe (Autor, Kriterium, Zahl) MUSS ausschließlich aus dem STRATEGIEPRINZIP DIESER Anfrage stammen — niemals aus allgemeinem Trainingswissen über andere Optionsstrategien oder aus einem in diesem Prompt an anderer Stelle als Beispiel genannten Autor übernehmen, auch wenn die Strategien ähnlich klingen (beide sind CSP-Varianten). Ein Kriterium ohne Beleg im STRATEGIEPRINZIP dieser Anfrage bleibt unbequellt und qualitativ, unabhängig davon, ob eine verwandte Strategie ein ähnliches, benanntes Kriterium hätte.
+HARTE SPERRE, NEUE FUNDKLASSE (08.09.2026, weekly_income-Erstlauf): §23 wird von mehreren Strategien geteilt, die auf UNTERSCHIEDLICHEN Quellenbüchern beruhen (z.B. csp_wheel/atmna nach Eric Ludwig, weekly_income nach T.R. Lawrence). Belegter Fund: eine weekly_income-Analyse übernahm eine Liquiditäts-Grössenordnung samt Autorennennung aus einer ANDEREN Strategie — Lawrence nennt dafür KEINE Zahl, das war eine Verwechslung. Regel: jede Quellenangabe (Autor, Kriterium, Zahl) MUSS ausschließlich aus dem STRATEGIEPRINZIP DIESER Anfrage stammen — niemals aus allgemeinem Trainingswissen über andere Optionsstrategien oder aus einem in diesem Prompt an anderer Stelle als Beispiel genannten Autor/Zahl übernehmen, auch wenn die Strategien ähnlich klingen (beide sind CSP-Varianten). Ein Kriterium ohne Beleg im STRATEGIEPRINZIP dieser Anfrage bleibt unbequellt und qualitativ, unabhängig davon, ob eine verwandte Strategie ein ähnliches, benanntes Kriterium hätte.
 
 ## Externe Prüfung bleibt Pflicht
 
@@ -4893,6 +4931,12 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
       ],
       prompt: function(ctx) {
         var mode = 'holding_review';  // gilt fuer Public UND EIC — s. Kommentar in _publicOptionsPrompt
+        // ERGAENZT (08.09.2026, Quelle: Ernie Zerenner/Michael Chupka,
+        // "Protective Options Strategies: Married Puts and Collar Spreads",
+        // vom Nutzer hochgeladen): das gemeinsame Prinzip hatte bisher KEINE
+        // Laufzeit-Konvention und behandelte Protective Put vs. vollen Collar
+        // als zwei statische Alternativen statt als dynamische Abfolge.
+        var principleText = 'Collar/Protective Put ist eine Absicherungsstrategie für bestehende Aktienpositionen: durch den Kauf eines Put wird ein Mindestverkaufspreis ("Boden") für die gehaltene Position abgesichert — die einzigen Kosten sind die gezahlte Put-Prämie. Beim vollen Collar wird zusätzlich ein Call verkauft, um die Put-Prämie ganz oder teilweise zu finanzieren; im Gegenzug wird das Aufwärtspotenzial der Position bis zum Call-Strike gedeckelt. UIQ hat keinen Zugriff auf echte Optionsketten oder tatsächliche Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen zur hypothetischen Prüfung (ergänzt um echte IV-Perzentil-Daten wo verfügbar, sonst HVP als historischer Fallback), keine Aussage über eine tatsächlich gehaltene Position. Laufzeit-Konvention (Zerenner/Chupka): der Standard-Protective-Put läuft üblicherweise ca. 30 Tage (1 Monat), out-of-the-money gekauft. DYNAMISCHE ABFOLGE (Zerenner/Chupka, wichtig — Protective Put und voller Collar sind keine zwei statischen Alternativen, sondern oft eine Abfolge): ein zunächst reiner Protective Put kann zum vollen Collar werden, sobald sich der Kurs güngstig entwickelt hat — Faustregel: erst NACH einem Kursanstieg von ca. 5-8% einen Call verkaufen (1-2 Monate Laufzeit), und dabei mindestens ein Drittel der ursprünglichen Put-Versicherungskosten als Call-Prämie anstreben. Steigt der Kurs weiter über den Call-Strike, kommt ein Aufwärts-Roll des Calls in Betracht. Ausstiegsregel für einen verkauften Call (Zerenner/Chupka, unabhängig von Lawrences identischer Schwelle für eine andere Strategie): bei 80% des Prämiengewinns realisiert und noch mehreren Wochen Restlaufzeit schließen. BEGRIFFS-INTEGRITÄT (31.08.2026, Priorität 3 — gilt für EIC genauso wie für Public, _eicMasterPrompt() liest KEIN separates risikoBegriff/risikenText-Feld, deshalb hier im principle verankert): Protective Put (Kauf eines Puts) hat KEIN Andienungs-/Ausübungsrisiko, da keine eigene Optionsposition verkauft wird — das einzige Risiko ist die gezahlte Prämie (Kosten der Absicherung). Der volle Collar (zusätzlicher Short Call) hat dagegen ein CC-analoges Ausübungsrisiko auf der Call-Seite (Aktien können bei starkem Kursanstieg abgerufen werden, Aufwärtspotenzial gedeckelt) — das ist NICHT dasselbe Konzept wie "Andienung" (CSP-spezifisch, Put-Assignment bei Kursverfall).';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Bestandspositionen auf strukturellen Absicherungsbedarf (Collar/Protective Put) in einem fragilen Bull-Regime. UIQ hat KEINEN Zugriff auf echte Optionsketten oder Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen, ergänzt um echte IV-Perzentil-Daten (ivpPercentile) wo für den Titel verfügbar, sonst HVP als historischer Volatilitäts-Fallback.',
@@ -4902,19 +4946,7 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
             maxWords: 400,
             mode: mode,
             istOptionsStrategie: true,
-            principle: 'Collar/Protective Put ist eine Absicherungsstrategie für bestehende Aktienpositionen: durch den Kauf eines Put wird ein Mindestverkaufspreis ("Boden") für die gehaltene Position abgesichert — die einzigen Kosten sind die gezahlte Put-Prämie. Beim vollen Collar wird zusätzlich ein Call verkauft, um die Put-Prämie ganz oder teilweise zu finanzieren; im Gegenzug wird das Aufwärtspotenzial der Position bis zum Call-Strike gedeckelt. UIQ hat keinen Zugriff auf echte Optionsketten oder tatsächliche Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen zur hypothetischen Prüfung (ergänzt um echte IV-Perzentil-Daten wo verfügbar, sonst HVP als historischer Fallback), keine Aussage über eine tatsächlich gehaltene Position.',
-            // BEGRIFFS-INTEGRITAET (31.08.2026, Prioritaet 3 aus Uebergabe-
-            // protokoll 30.08. §8 — analog zum CC-Fund vom 29.08.). Collar
-            // nutzte bislang den generischen Fallback "Andienung" — begrifflich
-            // falsch fuer eine Struktur mit ZWEI unterschiedlichen Seiten:
-            // (a) Protective Put (Kauf eines Puts) hat KEIN Andienungs-/
-            // Ausuebungsrisiko, da keine eigene Optionsposition verkauft wird —
-            // das einzige Risiko ist die gezahlte Praemie (Kosten der
-            // Absicherung). (b) Voller Collar (zusaetzlicher Short Call) hat
-            // dagegen ein CC-analoges Ausuebungsrisiko auf der Call-Seite
-            // (Aktien koennen bei starkem Kursanstieg abgerufen werden,
-            // Aufwaertspotenzial gedeckelt) — das ist NICHT dasselbe Konzept
-            // wie "Andienung" (CSP-spezifisch, Put-Assignment bei Kursverfall).
+            principle: principleText,
             risikoBegriff: 'Ausübung/Assignment des Short Calls beim vollen Collar (Kursbewegung ÜBER den Call-Strike)',
             risikenText: 'Wichtig: Protective Put und voller Collar risikotechnisch trennen — '
               + 'beim reinen Protective Put entsteht KEIN Andienungs-/Ausübungsrisiko (keine '
@@ -4925,35 +4957,21 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
               + 'den Call-Strike kann die Aktienposition abrufen, Aufwärtspotenzial gedeckelt.'
           });
         }
-        // EIC-Zweig: mode bewusst nur als Marker notiert, keine Logikaenderung —
-        // "Bestandspositionen" ist hier schon explizit in Rolle/Aufgabe verankert.
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Options-Stratege mit Fokus auf Absicherungsstrategien '
-          + '(Collar / Protective Put) für bereits gehaltene Aktienpositionen in einem '
-          + 'fragilen Bull-Regime (Trend intakt, aber erhöhtes Air-Pocket-Risiko).\n\n'
-          + '⚠️ WICHTIG: UIQ hat KEINEN Zugriff auf echte Optionsketten (Strikes/Prämien) '
-          + 'oder deine Bestandspositionen. Alle Strike-Vorschläge sind ATR/HVP-basierte '
-          + 'Näherungen — echte Strikes und Prämien IMMER in IBKR/CapTrader verifizieren. '
-          + 'Diese Analyse dient ausschliesslich zu Informationszwecken gem. §1 WpHG.\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. EINSCHRÄNKUNG: Kurz erklären — keine echten Optionsketten verfügbar, '
-          + 'alle Strikes sind Näherungen, IMMER in IBKR/CapTrader verifizieren.\n'
-          + '2. ABSICHERUNGS-KANDIDATEN: Für Titel mit RSI/Momentum-Auffälligkeit NUR in '
-          + 'Kombination mit hoher HVP und strukturell intaktem übergeordnetem Trend '
-          + '(gezielte Überprüfung des Absicherungsbedarfs bei ausgeprägter kurzfristiger '
-          + 'Kursbewegung — NICHT RSI allein, das wäre konzeptionell widersprüchlich bei '
-          + 'bereits gefallenen Titeln): Protective-Put-Strike-Näherung '
-          + '(ATR-basiert, 1-1.5x ATR unter Kurs), optional Call-Strike-Näherung für vollen '
-          + 'Collar (1-2x ATR über Kurs). KEINEN echten Prämien-Betrag erfinden — nur '
-          + 'Strike-Abstand in % und $ aus "Kurs:$" und "ATR:$" ableiten.\n'
-          + '3. PROTECTIVE PUT vs. VOLLER COLLAR: Wann reicht ein einfacher Protective Put '
-          + '(Kosten in Kauf nehmen), wann lohnt sich der volle Collar (Kosten senken, '
-          + 'Aufwärtspotenzial gedeckelt)?\n'
-          + '4. NÄCHSTE SCHRITTE: Echte Strikes und Prämien in IBKR/CapTrader Optionskette '
-          + 'nachschlagen, bevor eine Position eröffnet wird.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 350 Wörter. '
-          + 'Keine erfundenen Prämien oder Optionsketten-Werte.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // fuenfte und letzte migrierte Optionsstrategie): der alte EIC-Zweig
+        // hatte KEINE Laufzeit-Konvention und keine dynamische Protective-
+        // Put-zu-Collar-Abfolge — jetzt im principleText oben ergaenzt.
+        // _eicMasterPrompt() wie bei den vier anderen; §23s Zahlen-/Quellen-
+        // Sperren (ko-prompts.js v2.48.2-v2.51.2) plus der serverseitige
+        // Scanner (ko-ai-worker.js v1.20/v1.21) greifen unveraendert.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Bestandspositionen auf strukturellen Absicherungsbedarf (Collar/Protective Put) in einem fragilen Bull-Regime. UIQ hat KEINEN Zugriff auf echte Optionsketten oder Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen, ergänzt um echte IV-Perzentil-Daten (ivpPercentile) wo für den Titel verfügbar, sonst HVP als historischer Volatilitäts-Fallback.',
+          stratName: 'Collar/Protective-Put-Setups',
+          focus: STRATEGIES.collar.focus,
+          mode: mode,
+          istOptionsStrategie: true,
+          principle: principleText
+        });
       }
     },
 
