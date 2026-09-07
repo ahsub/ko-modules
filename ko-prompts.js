@@ -1,6 +1,40 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.52.2 (08.09.2026) — VIER FUNDE AUS PARALLELEN LIVE-TESTS
+ *  (collar/cc/weekly_income/atmna, alle nach v2.52.0), IN ZWEI SCHRITTEN
+ *  DEPLOYT WEGEN EINES EIGENEN SKRIPT-ABSTURZES (Assertion-Fehler stoppte
+ *  den ersten Schreibvorgang, bevor er die Datei speicherte — Fix 1+2
+ *  gingen dadurch zunaechst verloren und wurden hier nachgeholt).
+ *  (1) EIGENER FEHLER KORRIGIERT: weekly_income-Prinzip hatte "Strike ca.
+ *  $4-5 unter aktuellem Kurs" woertlich als Fixregel uebernommen — das war
+ *  Lawrences Dollar-Beispiel fuer eine konkrete $74-Aktie (SCHW), keine
+ *  kursunabhaengige Regel. Live-Test zeigte die Folge: das Modell
+ *  berechnete fuer HUBB ($460) "$15-20 unter Kurs" statt der korrekten
+ *  Prozent-Umrechnung — derselbe Fehlertyp wie bei Ludwigs $2,50-Beispiel,
+ *  diesmal selbst gemacht. Korrigiert auf "5-7% unter Kurs".
+ *  (2) ECHTE LÜCKE GESCHLOSSEN: collar-Prinzip hatte keine Call-Strike-
+ *  Naeherung fuer den vollen Collar — das Modell erfand "1-3% über Kurs"
+ *  unter falscher Zuschreibung. Jetzt UIQ-eigene ATR-basierte Naeherung
+ *  ergaenzt (1-2× ATR über Kurs), KEINEM Buch zugeschrieben.
+ *  (3) NEUE ÜBERGREIFENDE REGEL: §23 um eine Sperre gegen FALSCHE
+ *  AUTORENNENNUNG ergaenzt (dritter Beleg: collar zitierte "Ludwig
+ *  Standard" fuer eine Zerenner/Chupka-basierte Strategie).
+ *  (4) LÄNGE NOCHMALS NACHGESCHÄRFT: konkretes Wort-Budget pro Kandidat
+ *  ergaenzt (max. 120-150 Woerter, alle Felder zusammen) — die qualitative
+ *  "1-2 Saetze"-Vorgabe aus v2.49.2 reichte weiterhin nicht, vier von vier
+ *  parallelen Tests zeigten erneut volle Datenbefund+PRO+CONTRA+Hypothese+
+ *  Pruefung-Struktur pro Kandidat, drei brachen trotz 5000-Token-Limit
+ *  erneut ab. Serverseitiges Gegenstueck: ko-ai-worker.js v1.21→v1.22,
+ *  max_tokens fuer EIC-ki_briefing auf 7000 erhoeht (zweiter Hebel neben
+ *  der Wortbudget-Praezisierung). Funktional verifiziert: alle vier Fixes
+ *  vorhanden, alle 13 uebrigen Strategien fehlerfrei in beiden Modi. NICHT
+ *  gefixt (bewusst): cc's wiederkehrende "dreistellige Zahlen"-Erwaehnung
+ *  ist eigenstaendig generiertes Modell-Trainingswissen, kein Prompt-Leck
+ *  mehr — Aufgabe des serverseitigen Scanners, nicht weiterer Prompt-
+ *  Patches. atmna-Kandidatenzahl 5 statt Standard 3 ebenfalls vorerst zur
+ *  Beobachtung belassen.
+ *
  *  Version: 2.52.0 (08.09.2026) — ZWEI ZUSAMMENGEFÜHRTE ÄNDERUNGEN IN EINEM
  *  DEPLOY (Axel: "in einem Rutsch zusammenführen"):
  *  (1) §23 IMITIERBARE BEISPIELPHRASE ENTFERNT (Live-Test-Fund, cc-
@@ -4046,6 +4080,8 @@ Wenn eine Zahl im STRATEGIEPRINZIP bereits vorgegeben ist: genau DIESE Zahl verw
 
 HARTE SPERRE, NEUE FUNDKLASSE (08.09.2026, weekly_income-Erstlauf): §23 wird von mehreren Strategien geteilt, die auf UNTERSCHIEDLICHEN Quellenbüchern beruhen (z.B. csp_wheel/atmna nach Eric Ludwig, weekly_income nach T.R. Lawrence). Belegter Fund: eine weekly_income-Analyse übernahm eine Liquiditäts-Grössenordnung samt Autorennennung aus einer ANDEREN Strategie — Lawrence nennt dafür KEINE Zahl, das war eine Verwechslung. Regel: jede Quellenangabe (Autor, Kriterium, Zahl) MUSS ausschließlich aus dem STRATEGIEPRINZIP DIESER Anfrage stammen — niemals aus allgemeinem Trainingswissen über andere Optionsstrategien oder aus einem in diesem Prompt an anderer Stelle als Beispiel genannten Autor/Zahl übernehmen, auch wenn die Strategien ähnlich klingen (beide sind CSP-Varianten). Ein Kriterium ohne Beleg im STRATEGIEPRINZIP dieser Anfrage bleibt unbequellt und qualitativ, unabhängig davon, ob eine verwandte Strategie ein ähnliches, benanntes Kriterium hätte.
 
+HARTE SPERRE, DRITTFACH BELEGTE FUNDKLASSE — FALSCHE AUTORENNENNUNG (08.09.2026, collar-Erstlauf, dritter Beleg nach weekly_income und cc): das Muster betrifft nicht nur erfundene ZAHLEN, sondern auch erfundene oder VERWECHSELTE AUTORENNENNUNGEN bei ansonsten plausibel klingenden Werten. Belegter Fund: eine collar-Analyse (Quelle: Zerenner/Chupka) zitierte "75-100% Praemien-Finanzierung ... (Ludwig Standard bei hohem IV)" — Ludwig hat mit collar nichts zu tun, das war reines Trainingswissen, fälschlich als Zitat aus DIESEM STRATEGIEPRINZIP ausgegeben. Regel: bevor ein Autorname genannt wird, PRÜFEN ob dieser Autor tatsächlich im STRATEGIEPRINZIP DIESER Anfrage vorkommt — wenn nicht, den Autornamen komplett weglassen (nicht durch einen anderen, plausibler klingenden Namen ersetzen). Ein Wert ohne Autorenbeleg im eigenen Prinzip bleibt unbequellt und wird als solcher benannt oder ganz weggelassen — niemals mit einem Autornamen aus allgemeinem Wissen "aufgewertet".
+
 ## Externe Prüfung bleibt Pflicht
 
 Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broker (Liquidität, Bid/Ask, echte Prämie, Earnings-Termine) — er liefert die UIQ-seitige Vorarbeit dafür, direktiv statt gehedged formuliert. Ein Schlusssatz macht das explizit: "Strike/DTE-Vorschlag ist UIQ-Modell-Ableitung, keine geprüfte Optionskette — reale Prämie/Liquidität im Broker verifizieren." Diese abschließende Prüfliste NENNT WAS zu prüfen ist, OHNE eigene Zahlenschwellen zu erfinden (s. Sperre oben) — z.B. "Bid-Ask-Spread eng genug?" statt "Bid-Ask-Spread <0,10$".
@@ -4066,10 +4102,21 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
       + 'Kandidat — falls ein Tabellenvergleich hilft, EINE gemeinsame '
       + 'Vergleichstabelle für alle Kandidaten, nicht eine pro Titel), PRO/'
       + 'CONTRA in ein bis zwei Sätzen zusammen, Hypothese ebenfalls ein bis '
-      + 'zwei Sätze. Lieber bei wenigen Kandidaten in kompakter, aber '
-      + 'vollständiger Form bleiben (inkl. §23!), als durch ausführliche '
-      + 'Einzelbehandlung abzubrechen, bevor die Handlungsempfehlung überhaupt '
-      + 'erreicht ist — ein vollständiger §23-Block ist wichtiger als eine '
+      + 'zwei Sätze. NOCHMALS NACHGESCHÄRFT (vierfacher Live-Test-Fund, '
+      + '08.09.2026 — die qualitative "1-2 Sätze"-Vorgabe reichte weiterhin '
+      + 'nicht, vier weitere Tests zeigten erneut volle Datenbefund-Tabelle + '
+      + 'PRO + CONTRA + EIC-Hypothese + Nächste-Prüfung PRO Kandidat, drei von '
+      + 'vier brachen trotz auf 5000 erhöhtem Token-Limit erneut mitten im '
+      + 'Satz/Wort ab): KONKRETES WORT-BUDGET, nicht nur Empfehlung — pro '
+      + 'Kandidat insgesamt (alle Felder: Datenbefund, PRO, CONTRA, Hypothese, '
+      + 'nächste Prüfung zusammen) MAXIMAL ca. 120-150 Wörter, nicht mehr. Bei '
+      + '3 Kandidaten sind das ca. 360-450 Wörter für den ganzen Kandidaten-'
+      + 'Abschnitt — der Rest des 1000-1200-Wörter-Budgets bleibt für '
+      + 'Marktkontext, Widerspruchsanalyse und §23. Wenn am Ende eines '
+      + 'Kandidaten-Absatzes das eigene 120-150-Wort-Budget bereits erreicht '
+      + 'ist: NICHT weiterschreiben, auch wenn noch ein Feld fehlt — lieber '
+      + 'ein Feld knapper oder implizit behandeln, als das Budget zu '
+      + 'überziehen. Ein vollständiger §23-Block ist wichtiger als eine '
       + 'erschöpfende Einzelkandidaten-Tiefe davor.'
 ;
   }
@@ -4814,7 +4861,7 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
         // Lawrence, "Options Trading: How to Turn Every Friday..."): das
         // gemeinsame Prinzip enthaelt jetzt die tatsaechlichen Lawrence-
         // Kriterien statt zwei unbelegter/falscher Werte (s. Fund unten).
-        var principleText = 'CSP (Weekly) implementiert die "Weekly Cash KaChing"-Methode nach T.R. Lawrence: eine langfristige Put-Position (90-120 Tage, Strike ca. $4-5 unter aktuellem Kurs, nach dem naechsten Earnings-Termin) dient als Verlustabsicherung ("Insurance"), waehrend woechentlich ein kurzfristiger Short-Put am Geld (ATM, 7-8 Tage Laufzeit, Kauf donnerstags fuer die Freitags-Expiration) zur Praemieneinnahme verkauft und woechentlich neu eroeffnet wird. Der maximale Verlust ist durch die Differenz der beiden Strikes (abzueglich vereinnahmter Praemie) strukturell begrenzt. Lawrences Gewinnmitnahme-Regel: 80% des Praemiengewinns vor Verfall realisiert → schliessen (Standard); nur bei aussergewoehnlich volatilen Marktphasen auf 40-50% beschleunigen (KORRIGIERT 08.09.2026 — zuvor faelschlich als alleinige 50%-Regel gefuehrt, das ist tatsaechlich Lawrences Ausnahmeregel fuer Extremvolatilitaet, nicht der Standard). Liquiditaet: Lawrence nennt KEINE konkreten Zahlenschwellen fuer Open Interest oder Bid-Ask-Spread, nur qualitativ "hohe Liquiditaet"/"enge Spreads" als Auswahlkriterium (KORRIGIERT 08.09.2026 — zwei zuvor im Prompt stehende, unbelegte Zahlenschwellen fuer OI und Spread wurden entfernt, da keine Lawrence-Zahlen). Die Strategie haengt von verlaesslicher woechentlicher Liquiditaet ab und ist entsprechend empfindlich gegenueber Liquiditaetsverschlechterungen im gewaehlten Titel.';
+        var principleText = 'CSP (Weekly) implementiert die "Weekly Cash KaChing"-Methode nach T.R. Lawrence: eine langfristige Put-Position (90-120 Tage, Strike ca. 5-7% unter aktuellem Kurs — KORRIGIERT 08.09.2026, Live-Test-Fund: Lawrences Buchbeispiel nennt "$4-5 unter Kurs" fuer eine konkrete $74-Aktie (SCHW, Strike $70 = 5,4% unter Kurs), das ist ein Dollar-Beispiel fuer DIESEN Kurs, keine kursunabhaengige Fixregel — bei anderen Kurshoehen als Prozentsatz umrechnen, NICHT den Dollarbetrag "$4-5" wörtlich uebernehmen, nach dem naechsten Earnings-Termin) dient als Verlustabsicherung ("Insurance"), waehrend woechentlich ein kurzfristiger Short-Put am Geld (ATM, 7-8 Tage Laufzeit, Kauf donnerstags fuer die Freitags-Expiration) zur Praemieneinnahme verkauft und woechentlich neu eroeffnet wird. Der maximale Verlust ist durch die Differenz der beiden Strikes (abzueglich vereinnahmter Praemie) strukturell begrenzt. Lawrences Gewinnmitnahme-Regel: 80% des Praemiengewinns vor Verfall realisiert → schliessen (Standard); nur bei aussergewoehnlich volatilen Marktphasen auf 40-50% beschleunigen (KORRIGIERT 08.09.2026 — zuvor faelschlich als alleinige 50%-Regel gefuehrt, das ist tatsaechlich Lawrences Ausnahmeregel fuer Extremvolatilitaet, nicht der Standard). Liquiditaet: Lawrence nennt KEINE konkreten Zahlenschwellen fuer Open Interest oder Bid-Ask-Spread, nur qualitativ "hohe Liquiditaet"/"enge Spreads" als Auswahlkriterium (KORRIGIERT 08.09.2026 — zwei zuvor im Prompt stehende, unbelegte Zahlenschwellen fuer OI und Spread wurden entfernt, da keine Lawrence-Zahlen). Die Strategie haengt von verlaesslicher woechentlicher Liquiditaet ab und ist entsprechend empfindlich gegenueber Liquiditaetsverschlechterungen im gewaehlten Titel.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für eine wöchentliche Diagonal-Put-Spread-Einkommensstrategie (kurzfristiger Short-Put + langfristige Long-Put-Versicherung).',
@@ -4936,7 +4983,7 @@ Dieser Block ersetzt nicht die Prüfung der tatsächlichen Optionskette im Broke
         // vom Nutzer hochgeladen): das gemeinsame Prinzip hatte bisher KEINE
         // Laufzeit-Konvention und behandelte Protective Put vs. vollen Collar
         // als zwei statische Alternativen statt als dynamische Abfolge.
-        var principleText = 'Collar/Protective Put ist eine Absicherungsstrategie für bestehende Aktienpositionen: durch den Kauf eines Put wird ein Mindestverkaufspreis ("Boden") für die gehaltene Position abgesichert — die einzigen Kosten sind die gezahlte Put-Prämie. Beim vollen Collar wird zusätzlich ein Call verkauft, um die Put-Prämie ganz oder teilweise zu finanzieren; im Gegenzug wird das Aufwärtspotenzial der Position bis zum Call-Strike gedeckelt. UIQ hat keinen Zugriff auf echte Optionsketten oder tatsächliche Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen zur hypothetischen Prüfung (ergänzt um echte IV-Perzentil-Daten wo verfügbar, sonst HVP als historischer Fallback), keine Aussage über eine tatsächlich gehaltene Position. Laufzeit-Konvention (Zerenner/Chupka): der Standard-Protective-Put läuft üblicherweise ca. 30 Tage (1 Monat), out-of-the-money gekauft. DYNAMISCHE ABFOLGE (Zerenner/Chupka, wichtig — Protective Put und voller Collar sind keine zwei statischen Alternativen, sondern oft eine Abfolge): ein zunächst reiner Protective Put kann zum vollen Collar werden, sobald sich der Kurs güngstig entwickelt hat — Faustregel: erst NACH einem Kursanstieg von ca. 5-8% einen Call verkaufen (1-2 Monate Laufzeit), und dabei mindestens ein Drittel der ursprünglichen Put-Versicherungskosten als Call-Prämie anstreben. Steigt der Kurs weiter über den Call-Strike, kommt ein Aufwärts-Roll des Calls in Betracht. Ausstiegsregel für einen verkauften Call (Zerenner/Chupka, unabhängig von Lawrences identischer Schwelle für eine andere Strategie): bei 80% des Prämiengewinns realisiert und noch mehreren Wochen Restlaufzeit schließen. BEGRIFFS-INTEGRITÄT (31.08.2026, Priorität 3 — gilt für EIC genauso wie für Public, _eicMasterPrompt() liest KEIN separates risikoBegriff/risikenText-Feld, deshalb hier im principle verankert): Protective Put (Kauf eines Puts) hat KEIN Andienungs-/Ausübungsrisiko, da keine eigene Optionsposition verkauft wird — das einzige Risiko ist die gezahlte Prämie (Kosten der Absicherung). Der volle Collar (zusätzlicher Short Call) hat dagegen ein CC-analoges Ausübungsrisiko auf der Call-Seite (Aktien können bei starkem Kursanstieg abgerufen werden, Aufwärtspotenzial gedeckelt) — das ist NICHT dasselbe Konzept wie "Andienung" (CSP-spezifisch, Put-Assignment bei Kursverfall).';
+        var principleText = 'Collar/Protective Put ist eine Absicherungsstrategie für bestehende Aktienpositionen: durch den Kauf eines Put wird ein Mindestverkaufspreis ("Boden") für die gehaltene Position abgesichert — die einzigen Kosten sind die gezahlte Put-Prämie. Beim vollen Collar wird zusätzlich ein Call verkauft, um die Put-Prämie ganz oder teilweise zu finanzieren; im Gegenzug wird das Aufwärtspotenzial der Position bis zum Call-Strike gedeckelt. UIQ hat keinen Zugriff auf echte Optionsketten oder tatsächliche Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen zur hypothetischen Prüfung (ergänzt um echte IV-Perzentil-Daten wo verfügbar, sonst HVP als historischer Fallback), keine Aussage über eine tatsächlich gehaltene Position. Laufzeit-Konvention (Zerenner/Chupka): der Standard-Protective-Put läuft üblicherweise ca. 30 Tage (1 Monat), out-of-the-money gekauft. Call-Strike-Näherung für den vollen Collar (UIQ-eigene ATR-basierte Näherung, KEINEM Buch zugeschrieben, ERGÄNZT 08.09.2026 — Live-Test-Fund: ohne diese Vorgabe wurde eine erfundene "1-3% über Kurs"-Regel unter falscher Zuschreibung genannt): ca. 1-2× ATR über dem aktuellen Kurs, analog zur Put-Strike-Näherung (1-1,5× ATR unter Kurs). DYNAMISCHE ABFOLGE (Zerenner/Chupka, wichtig — Protective Put und voller Collar sind keine zwei statischen Alternativen, sondern oft eine Abfolge): ein zunächst reiner Protective Put kann zum vollen Collar werden, sobald sich der Kurs güngstig entwickelt hat — Faustregel: erst NACH einem Kursanstieg von ca. 5-8% einen Call verkaufen (1-2 Monate Laufzeit), und dabei mindestens ein Drittel der ursprünglichen Put-Versicherungskosten als Call-Prämie anstreben. Steigt der Kurs weiter über den Call-Strike, kommt ein Aufwärts-Roll des Calls in Betracht. Ausstiegsregel für einen verkauften Call (Zerenner/Chupka, unabhängig von Lawrences identischer Schwelle für eine andere Strategie): bei 80% des Prämiengewinns realisiert und noch mehreren Wochen Restlaufzeit schließen. WICHTIG, Live-Test-Fund 08.09.2026 (dritte belegte Cross-Strategie-Verwechslung — §23 wird von mehreren Strategien mit unterschiedlichen Quellenbüchern geteilt): JEDE Konvention in diesem Prinzip stammt von Zerenner/Chupka, NICHT von Ludwig oder Lawrence — auch wenn eine Zahl (z.B. die 80%-Ausstiegsregel) zufällig mit einer Konvention einer anderen Strategie übereinstimmt, bei DIESER Strategie NIEMALS einen anderen Autor als Zerenner/Chupka nennen. BEGRIFFS-INTEGRITÄT (31.08.2026, Priorität 3 — gilt für EIC genauso wie für Public, _eicMasterPrompt() liest KEIN separates risikoBegriff/risikenText-Feld, deshalb hier im principle verankert): Protective Put (Kauf eines Puts) hat KEIN Andienungs-/Ausübungsrisiko, da keine eigene Optionsposition verkauft wird — das einzige Risiko ist die gezahlte Prämie (Kosten der Absicherung). Der volle Collar (zusätzlicher Short Call) hat dagegen ein CC-analoges Ausübungsrisiko auf der Call-Seite (Aktien können bei starkem Kursanstieg abgerufen werden, Aufwärtspotenzial gedeckelt) — das ist NICHT dasselbe Konzept wie "Andienung" (CSP-spezifisch, Put-Assignment bei Kursverfall).';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Bestandspositionen auf strukturellen Absicherungsbedarf (Collar/Protective Put) in einem fragilen Bull-Regime. UIQ hat KEINEN Zugriff auf echte Optionsketten oder Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen, ergänzt um echte IV-Perzentil-Daten (ivpPercentile) wo für den Titel verfügbar, sonst HVP als historischer Volatilitäts-Fallback.',
