@@ -1,6 +1,23 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.53.4 (08.09.2026) — BREAKOUT EIC-MIGRATION (vierte Equity-
+ *  Strategie). Quellen: beide Minervini-Buecher. Zwei echte Korrekturen:
+ *  (1) RS-Rating-Schwelle "≥85 = ideal" war unbelegt — Minervinis Trend
+ *  Template verlangt tatsaechlich "mindestens 70, idealerweise 80er/90er",
+ *  kein starrer 85er-Cutoff. (2) Ausbruchsvolumen-Schwellen (volRatio
+ *  ≥1.2-1.5, vcpBreakoutVol≥2.0) lagen deutlich UNTER Minervinis
+ *  tatsaechlicher Erwartung von 300-400% (3-4x) des Durchschnittsvolumens
+ *  am Ausbruchstag. Zusaetzlich Minervinis "erst nach dem Pivot-Durchbruch
+ *  einsteigen, nicht antizipieren"-Grundsatz ergaenzt. EIGENER FEHLER BEIM
+ *  SCHREIBEN GEFUNDEN UND BEHOBEN: str_replace hatte nur den Anfang des
+ *  alten Prompt-Textes ersetzt, der Rest (ca. 18 Zeilen altes AUFGABE-
+ *  Listing) blieb als syntaktisch ungültiger, verwaister Code stehen —
+ *  beim Syntax-Check sofort aufgefallen, sauber entfernt. Funktional
+ *  verifiziert: Equity-Block korrekt, beide Korrekturen in Public UND
+ *  EIC, kein verwaister Code, alle 14 uebrigen Strategien fehlerfrei in
+ *  beiden Modi.
+ *
  *  Version: 2.53.3 (08.09.2026) — VCP EIC-MIGRATION (dritte Equity-
  *  Strategie). Quelle: Mark Minervini, "Trade Like a Stock Market Wizard"
  *  (zweites Minervini-Buch, spezifisch zum VCP-Konzept, vom Nutzer
@@ -4636,6 +4653,15 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         "Groesstes False-Breakout-Risiko bei diesem spezifischen Setup"
       ],
       prompt: function(ctx) {
+        // ERGAENZT/KORRIGIERT (08.09.2026, Quellen: beide Minervini-Buecher,
+        // vom Nutzer hochgeladen). Zwei Zahlen im alten Prompt waren
+        // unbelegt/ungenau: (1) "RS-Rating >=85 = ideal" — Minervinis Trend-
+        // Template verlangt tatsaechlich NUR "mindestens 70, idealerweise
+        // 80er/90er" als Kriterium, keine feste 85er-Schwelle. (2) Ausbruchs-
+        // volumen-Schwellen (volRatio>=1.2/1.5, vcpBreakoutVol>=2.0) lagen
+        // deutlich UNTER Minervinis tatsaechlicher Erwartung: "300 bis 400
+        // Prozent (oder mehr) des Durchschnittsvolumens" am Ausbruchstag.
+        var principleText = 'Breakout-Setups suchen einen technischen Ausbruch über ein etabliertes Pivot-Niveau (typischerweise ein vorheriges 52-Wochen-Hoch oder eine enge Konsolidierungszone) im Kontext eines übergeordneten Stage-2-Aufwärtstrends (Methodik: Minervini/O\'Neil/IBD). Entscheidend ist die Kombination aus Kursnähe zum Pivot UND Volumenbestätigung (steigendes Volumen beim Ausbruch, vorherige Volumen-Austrocknung während der Konsolidierung) — ein Ausbruch ohne Volumenbestätigung gilt als weniger belastbar (False-Breakout-Risiko). RS-Rating-Kriterium (Minervini Trend Template, KORRIGIERT 08.09.2026 — der alte Prompt nannte fälschlich "≥85 = ideal" als feste Schwelle): mindestens 70, idealerweise in den 80ern oder 90ern — kein starrer 85er-Cutoff. Ausbruchsvolumen (Minervini, KORRIGIERT 08.09.2026 — die bisherigen volRatio/vcpBreakoutVol-Schwellen im Prompt lagen deutlich unter Minervinis tatsächlicher Erwartung): am Ausbruchstag idealerweise 300-400% (3-4x) des durchschnittlichen Tagesvolumens oder mehr — spürbar höher als die zuvor genannten 1,2-2,0x. Grundsatz: erst NACH dem tatsächlichen Durchbruch des Pivot-Niveaus einsteigen, nicht vorher antizipieren ("assuming that a stock will break out is dangerous") — ein früher Einstieg bringt keinen Vorteil, nur unnötiges Risiko. UIQ analysiert ausschließlich Tagesschluss-Daten; Intraday-Techniken sind nicht Teil der Strategie. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst technische Breakout-Setups (52W-Hoch-Nähe, Volumenbestätigung, Stage-2-Kontext nach Minervini/O\'Neil/IBD) auf Basis von Tagesschluss-Daten. UIQ ist KEIN Intraday-Scanner — Gap & Go, ORB, Pre-Market-Gaps, RVOL 5x oder Float-Screening sind NICHT verfügbar. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
@@ -4644,7 +4670,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
             focus: STRATEGIES.breakout.focus,
             maxWords: 450,
             istOptionsStrategie: false,
-            principle: 'Breakout-Setups suchen einen technischen Ausbruch über ein etabliertes Pivot-Niveau (typischerweise ein vorheriges 52-Wochen-Hoch oder eine enge Konsolidierungszone) im Kontext eines übergeordneten Stage-2-Aufwärtstrends (Methodik: Minervini/O\'Neil/IBD). Entscheidend ist die Kombination aus Kursnähe zum Pivot UND Volumenbestätigung (steigendes Volumen beim Ausbruch, vorherige Volumen-Austrocknung während der Konsolidierung) — ein Ausbruch ohne Volumenbestätigung gilt als weniger belastbar (False-Breakout-Risiko). UIQ analysiert ausschließlich Tagesschluss-Daten; Intraday-Techniken sind nicht Teil der Strategie. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst.',
+            principle: principleText,
             risikenText: 'Zusätzlich klarstellen: Nähe zum 52-Wochen-Hoch allein belegt keine '
               + 'Ausbruchsqualität — erst in Kombination mit Volumenbestätigung (obvTrend positiv, '
               + 'vcpBreakoutVol ≥ 2.0) wird ein Pivot-Niveau zu einem belastbaren technischen Setup; '
@@ -4664,50 +4690,18 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
               + 'eine strategische Abwägung, keine Aussage über den zukünftigen Kursverlauf.)'
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Breakout-Trader mit Fokus auf technische Ausbrüche über '
-          + 'Pivot-Punkte und 52-Wochen-Hochs im übergeordneten Stage-2-Aufwärtstrend '
-          + '(Methodik: Minervini/O\'Neil/IBD).\n\n'
-          + '⚠️ WICHTIGER SCOPE-HINWEIS: UIQ analysiert technische Swing-Breakouts auf Basis '
-          + 'von Tagesschluss-Daten (52W-Hoch-Nähe, Volumen vs. 20-Tage-Durchschnitt, '
-          + 'OBV-Akkumulation). UIQ ist KEIN Intraday-Scanner — Gap & Go, ORB (Opening Range '
-          + 'Breakout), Pre-Market-Gaps, RVOL 5x oder Float-Screening sind NICHT verfügbar. '
-          + 'Diese Analyse zeigt strukturell reife Breakout-Setups, die am nächsten Handelstag '
-          + 'als Kandidaten beobachtet werden — kein Einstiegssignal für heute.\n\n'
-          + ctx.marktkontext
-          + '\n\nSCANDATEN BREAKOUT-RELEVANTE FELDER:\n'
-          + '- pctFromHigh52: Abstand zum 52W-Hoch in % (negativ = unter Hoch)\n'
-          + '- volRatio: Volumen heute vs. 20-Tage-Durchschnitt (>1.5 = erhöht)\n'
-          + '- tightnessPct: 5-Tage-Kursrange / Kurs in % (<3% = "Tight" nach Minervini, <5% = akzeptabel)\n'
-          + '- vcpVolContraction: Volumen während Konsolidierung vs. 20T-Schnitt (<0.6 = ausgetrocknet = Tightness-Signal)\n'
-          + '- vcpBreakoutVol: Volumen letzter Bar als Ratio (≥2.0 = Ausbruchs-Bestätigung)\n'
-          + '- obvTrend: OBV-Trend (positiv = Akkumulation, negativ = Distribution)\n'
-          + '- macdHist: MACD-Histogramm (positiv = bullisches Momentum)\n'
-          + '- high52: 52-Wochen-Hoch in $\n'
-          + '- rsRating: Relative Stärke vs. Universum (0-99)\n\n'
-          + 'AUFGABE:\n'
-          + '1. MARKTSTRUKTUR: Unterstützt das aktuelle Regime technische Breakouts? '
-          + 'Marktbreite und VIX-Niveau einordnen — in schwachen/volatilen Märkten '
-          + 'scheitern Breakouts häufig. (2-3 Sätze)\n'
-          + '2. TOP 3 BREAKOUT-KANDIDATEN: Titel mit pctFromHigh52 ≥ -10% '
-          + 'UND volRatio ≥ 1.2 UND obvTrend > 0. Für jeden:\n'
-          + '   - Abstand zum 52W-Hoch (pctFromHigh52-Feld, als % und $ aus high52)\n'
-          + '   - Volumen-Signal (volRatio-Wert nennen, >1.5 = bestätigt)\n'
-          + '   - Tightness-Check: tightnessPct < 3% = enge Konsolidierung (Minervini "Tight"); '
-          + 'vcpVolContraction < 0.6 = Volumen ausgetrocknet; '
-          + 'vcpBreakoutVol ≥ 2.0 = Ausbruch mit Volumen bestätigt.\n'
-          + '   - OBV-Trend (obvTrend-Wert: positiv = Akkumulation)\n'
-          + '   - Entry-Überlegung: Breakout-Level = 52W-Hoch (high52-Feld), '
-          + 'Stop knapp darunter. KEINEN Kurs erfinden.\n'
-          + '   - RS-Rating einordnen (rsRating ≥ 85 = ideale Breakout-Qualität)\n'
-          + '3. WATCHLIST — SETUPS IN VORBEREITUNG: Titel die konsolidieren aber noch '
-          + 'nicht am Pivot sind (pctFromHigh52 -10% bis -20%, aber OBV positiv).\n'
-          + '4. RISIKEN: False Breakouts (Volumen fehlt), breiter Markt schwächer als '
-          + 'Einzeltitel, überdehnter RSI, schwache Sektorzugehörigkeit.\n'
-          + '\n⚠️ Alle Entry-Level sind Tagesschluss-basiert — Intraday-Bestätigung '
-          + '(Gap, ORB, RVOL) muss der Trader selbst in seinem Echtzeit-Scanner prüfen.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-4. Max. 450 Wörter. '
-          + 'Nur Felder aus den Scandaten verwenden, keine Kurse erfinden.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // vierte migrierte EQUITY-Strategie): der alte EIC-Zweig nannte
+        // "RS-Rating >=85"/"volRatio>=1.2-1.5" als Schwellen — jetzt anhand
+        // beider Minervini-Buecher korrigiert (RS >=70/idealerweise 80-90er;
+        // Ausbruchsvolumen 300-400%/3-4x) im principleText oben.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst technische Breakout-Setups (52W-Hoch-Nähe, Volumenbestätigung, Stage-2-Kontext nach Minervini/O\'Neil/IBD) auf Basis von Tagesschluss-Daten. UIQ ist KEIN Intraday-Scanner — Gap & Go, ORB, Pre-Market-Gaps, RVOL 5x oder Float-Screening sind NICHT verfügbar. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
+          stratName: 'Breakout-Setups',
+          focus: STRATEGIES.breakout.focus,
+          istOptionsStrategie: false,
+          principle: principleText
+        });
       }
     },
 
