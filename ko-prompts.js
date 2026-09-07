@@ -1,6 +1,23 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.50.1 (08.09.2026) — §23 QUELLEN-VERMISCHUNGS-SPERRE ERGÄNZT
+ *  (Live-Test-Fund, weekly_income-Erstlauf über Options-Desk). Neue
+ *  Fundklasse, nicht dieselbe wie die bisherigen Zahlen-Erfindungen: §23
+ *  wird jetzt von Strategien mit UNTERSCHIEDLICHEN Quellenbüchern geteilt
+ *  (csp_wheel/atmna nach Eric Ludwig, weekly_income nach T.R. Lawrence).
+ *  Der eigene "SO STATTDESSEN"-Beispieltext aus v2.49.4 nannte "Ludwig"
+ *  konkret — dieses Beispiel ist in eine weekly_income-Analyse gesickert
+ *  ("Open Interest im dreistelligen Bereich (Ludwig-Kriterium)"), obwohl
+ *  Lawrence dafür keine Zahl nennt und mit Ludwig nichts zu tun hat. Fix:
+ *  (1) Beispieltext strategie-agnostisch gemacht (keine Autorennennung mehr
+ *  im Beispiel selbst), (2) neue explizite Regel ergänzt — jede Quellen-
+ *  angabe MUSS aus dem STRATEGIEPRINZIP DIESER Anfrage stammen, niemals aus
+ *  allgemeinem Trainingswissen oder von einer anderen, im Prompt als
+ *  Beispiel genannten Strategie übertragen. Funktional verifiziert: neue
+ *  Regel vorhanden, altes Ludwig-Beispiel entfernt, §23-Block intakt, alle
+ *  14 übrigen Strategien fehlerfrei in beiden Modi.
+ *
  *  Version: 2.50.0 (08.09.2026) — WEEKLY_INCOME EIC MASTER PROMPT MIGRATION
  *  (dritte migrierte Strategie nach csp_wheel/atmna) + QUELLENKORREKTUR
  *  (Axel-Fund + Quellenpruefung gegen T.R. Lawrence, "Options Trading: How
@@ -3947,10 +3964,12 @@ KONKRETE, WIEDERHOLT BELEGTE FEHLER — SO NICHT:
 
 SO STATTDESSEN:
 - "Bid-Ask-Spread eng genug? (keine UIQ-Zahl verfügbar, im Broker beurteilen)"
-- "Open Interest im dreistelligen Bereich? (Ludwig-Kriterium, s. STRATEGIEPRINZIP)" — NUR wenn das Prinzip diese Zahl tatsächlich nennt, sonst ebenfalls nur qualitativ.
+- "Open Interest im dreistelligen Bereich? (s. STRATEGIEPRINZIP)" — NUR wenn das Prinzip diese Zahl tatsächlich nennt, mit DORTIGER Quellenangabe übernehmen (nicht raten oder von einer anderen Strategie/einem anderen Quellenbuch übertragen — §23 wird von mehreren Strategien mit unterschiedlichen Quellenbüchern geteilt, s. Fund unten), sonst ebenfalls nur qualitativ.
 - Prämien-Attraktivität ausschließlich über IVP/HVP-Perzentil einordnen (s. Feld oben), keine %/$-Mindestschwelle.
 
 Wenn eine Zahl im STRATEGIEPRINZIP bereits vorgegeben ist: genau DIESE Zahl verwenden, keine eigene erfinden, auch keine "naheliegend wirkende" Alternative. Wenn keine Zahl vorgegeben ist: qualitativ bleiben ("eng genug", "ausreichend liquide"), niemals eine plausibel klingende Zahl ergänzen, um die Checkliste vollständiger wirken zu lassen.
+
+HARTE SPERRE, NEUE FUNDKLASSE (08.09.2026, weekly_income-Erstlauf): §23 wird von mehreren Strategien geteilt, die auf UNTERSCHIEDLICHEN Quellenbüchern beruhen (z.B. csp_wheel/atmna nach Eric Ludwig, weekly_income nach T.R. Lawrence). Belegter Fund: eine weekly_income-Analyse zitierte "Open Interest im dreistelligen Bereich (Ludwig-Kriterium)" — Lawrence nennt dafür KEINE Zahl, das ist eine Verwechslung mit einer ANDEREN Strategie. Regel: jede Quellenangabe (Autor, Kriterium, Zahl) MUSS ausschließlich aus dem STRATEGIEPRINZIP DIESER Anfrage stammen — niemals aus allgemeinem Trainingswissen über andere Optionsstrategien oder aus einem in diesem Prompt an anderer Stelle als Beispiel genannten Autor übernehmen, auch wenn die Strategien ähnlich klingen (beide sind CSP-Varianten). Ein Kriterium ohne Beleg im STRATEGIEPRINZIP dieser Anfrage bleibt unbequellt und qualitativ, unabhängig davon, ob eine verwandte Strategie ein ähnliches, benanntes Kriterium hätte.
 
 ## Externe Prüfung bleibt Pflicht
 
