@@ -1,6 +1,48 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.53.10 (08.09.2026) — DIVIDEND-PRINZIP UM FUENF WEITERE
+ *  QUELLEN ANGEREICHERT (Charles B. Carlson, "The Little Book of Big
+ *  Dividends"; Jeremy Siegel, "Stocks for the Long Run", 6. Auflage;
+ *  Kelley Wright, "Dividends Still Don't Lie"; Jenny Harrington,
+ *  "Dividend Investing"; Tracey Edwards, "Take My Dividend Strategy" —
+ *  alle vom Nutzer hochgeladen). Konkret uebernommen: (1) Carlsons
+ *  Payout-Ratio-Obergrenze von ca. 60% — MIT der ausdruecklichen
+ *  Ausnahme fuer REITs/MLPs/Royalty Trusts, die strukturbedingt
+ *  regelmaessig ueber 90% liegen, ohne dass das ein Warnsignal ist.
+ *  (2) Siegels empirische Validierung der bestehenden Yield-Trap-Warnung:
+ *  das zweithoechste Dividenden-Rendite-Quintil hat in seinen Langzeit-
+ *  daten das hoechste tatsaechlich leicht outperformt — die hoechsten
+ *  Renditen entstehen oft bei Unternehmen kurz vor einer Dividenden-
+ *  kuerzung. Als Hintergrundwissen dokumentiert, NICHT direkt umsetzbar:
+ *  Wrights sechsteilige "Select Blue Chips"-Kriterien (unter anderem 25
+ *  Jahre ununterbrochene Dividende, Erhoehung in 5 von 12 Jahren) — UIQ
+ *  hat keine mehrjaehrige Dividenden-/Gewinnhistorie dafuer (bereits im
+ *  Backlog-Dokument vom selben Tag vermerkt). Harrington und Edwards
+ *  lieferten keine zusaetzlich verwertbaren, hinreichend belegten Zahlen
+ *  (Edwards' "5% ist eine gute Rendite" blieb ohne Methodik dahinter,
+ *  nicht uebernommen). Eigener Tippfehler beim Schreiben (doppelt
+ *  escapter Apostroph in "Don't Lie") selbst gefunden und behoben.
+ *  Funktional verifiziert: alle drei neuen Fakten in Public UND EIC, alle
+ *  14 uebrigen Strategien fehlerfrei in beiden Modi.
+ *
+ *  Version: 2.53.9 (08.09.2026) — DIVIDEND EIC-MIGRATION (achte Equity-
+ *  Strategie). Reviewer-Architekturvorschlag (3-Score-Split Income/Quality/
+ *  Entry, gestufte Yield-Interpretation 2,5%-15%) als Backlog dokumentiert
+ *  (UIQ_Dividend_Architecture_Proposal_2026-09-08.md) — die vorgeschlagenen
+ *  Yield-Stufen haben KEINE zitierte Quelle (anders als Minervini/Ludwig/
+ *  Lawrence), nur die eigene Kalibrierungs-Hypothese des Reviewers, deshalb
+ *  nicht uebernommen. Bestehendes principle (Yield-Trap-Kernwarnung, kein
+ *  spekulativer Dividendenjaeger) im Kern beibehalten. EIGENER FEHLER BEIM
+ *  MIGRIEREN GEFUNDEN UND BEHOBEN (derselbe wie bei cc/collar am 08.09.):
+ *  die Yield-Trap-Kernwarnung stand nur im risikenText-Feld, das
+ *  _eicMasterPrompt() nicht liest — waere im EIC-Modus stillschweigend
+ *  verschluckt worden. In principleText verschoben. Unbelegte alte Feld-
+ *  schwellen ("divYield>6%=Pruefung", "payoutRatio<80%=nachhaltig")
+ *  bewusst nicht uebernommen. Funktional verifiziert: Equity-Block korrekt,
+ *  Yield-Trap-Warnung UND sDividend-Klarstellung jetzt im EIC-Output
+ *  vorhanden, alle 14 uebrigen Strategien fehlerfrei in beiden Modi.
+ *
  *  Version: 2.53.8 (08.09.2026) — VALUE EIC-MIGRATION (siebte Equity-
  *  Strategie). Quellen: Sven Carlin, "Modern Value Investing" (Axels
  *  Favorit), Jeroen Bos, "Deep Value Investing", Guy Spier, "Die Value-
@@ -5314,6 +5356,16 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         "Groesstes Risiko fuer die Nachhaltigkeit dieser Dividende"
       ],
       prompt: function(ctx) {
+        // ERGAENZT (08.09.2026): Reviewer-Architekturvorschlag gepruft (3
+        // getrennte Scores Income/Quality/Entry, gestufte Yield-Interpretation)
+        // — als Backlog dokumentiert (UIQ_Dividend_Architecture_Proposal_
+        // 2026-09-08.md), da die vorgeschlagenen konkreten Yield-Stufen KEINE
+        // zitierte Quelle haben (anders als Minervini/Ludwig/Lawrence), nur
+        // die eigene Kalibrierungs-Hypothese des Reviewers. Das bestehende
+        // principle enthielt die Kernwarnung (Yield allein kein Qualitaets-
+        // merkmal) bereits — unveraendert uebernommen, keine neuen Zahlen
+        // erfunden oder uebernommen.
+        var principleText = 'Dividend-Growth-Setups suchen Qualitäts-Dividendentitel mit nachhaltiger Ausschüttung und solidem Free Cashflow — die Rendite (divYield) allein ist NICHT das Auswahlkriterium, sondern muss durch Fundamentalstärke (ROE, Verschuldungsgrad, Free-Cashflow-Deckung der Ausschüttung) gerechtfertigt sein. Eine optionale Cash-Secured-Put-Unterlegung kann zusätzliches Einkommen erzeugen, ist aber kein zwingender Bestandteil der Strategie. Reines Direktinvestment im Kern: die Basisrendite kommt aus der Dividende und der Kursbewegung der Aktie selbst, kein spekulativer Dividendenjäger — eine hohe Rendite allein rechtfertigt keine Auswahl, wenn die Ausschüttung nicht nachhaltig gedeckt ist. Payout-Ratio-Schwelle (Charles B. Carlson, "The Little Book of Big Dividends", ERGÄNZT 08.09.2026): als Obergrenze gilt eine Ausschüttungsquote von ca. 60% — deutlich darüber (oft 90%+) wird nervös machend, ABER bestimmte Strukturen (REITs, Master Limited Partnerships, Royalty Trusts) haben strukturbedingt regelmäßig Payout-Ratios weit über 90%, ohne dass das automatisch ein Warnsignal ist — bei diesen Rechtsformen gilt die 60%-Schwelle NICHT unverändert, dort ist ein Vergleich mit sektortypischen Werten sinnvoller. Akademische Validierung der Yield-Trap-Warnung (Jeremy Siegel, "Stocks for the Long Run", 6. Auflage, ERGÄNZT 08.09.2026): in Siegels Langzeitdaten hat das ZWEITHÖCHSTE Dividenden-Rendite-Quintil das HÖCHSTE Quintil tatsächlich leicht outperformt — eine mögliche Erklärung: die höchsten Renditen entstehen oft bei Unternehmen in finanziellen Schwierigkeiten, die ihre Dividende in der Folge kürzen mussten. Das bestätigt empirisch: eine extrem hohe Rendite ist eher ein Warnsignal als ein Kaufargument. Hintergrundwissen, nicht direkt umsetzbar (Kelley Wright, "Dividends Still Don\'t Lie" — Kriterien für "Select Blue Chips"): u.a. mindestens 25 Jahre ununterbrochene Dividendenzahlung, Dividendenerhöhung in mindestens 5 der letzten 12 Jahre, Gewinnverbesserung in mindestens 7 der letzten 12 Jahre — UIQ hat keine mehrjährige Dividenden-/Gewinnhistorie für diese Prüfung (s. Backlog-Dokument zur Dividend-Architektur). Dividenden-/Yield-Trap-Risiko (analog zum Value-Trap-Konzept, gilt fuer EIC genauso wie fuer Public — _eicMasterPrompt() liest KEIN separates risikenText-Feld, deshalb hier im principle verankert): eine hohe Dividendenrendite (divYield) ist NIEMALS automatisch ein Qualitäts- oder Attraktivitätsmerkmal — sie kann auch bedeuten, dass der Markt eine Kürzung der Ausschüttung bereits einpreist (der Kurs ist gefallen, wodurch die rechnerische Rendite steigt, ohne dass die Ausschüttung selbst nachhaltiger geworden wäre). Eine divYield IMMER gemeinsam mit payoutRatio und fcfYield einordnen, NIEMALS isoliert als positives Signal werten. Der sDividend-Score ist ein interner UIQ-Aggregationswert, KEIN externes Qualitätssiegel — bei Erwähnung benennen, was er zusammenfasst (Dividendenqualität + Fundamentalstärke), nicht nur die Zahl nennen.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Qualitäts-Dividendentitel (nachhaltige Ausschüttung, solider Free Cashflow) auf Basis fundamentaler und technischer Kennzahlen. Reines Direktinvestment im Kern (Aktienposition); eine CSP-Unterlegung ist rein optional und sekundär, kein zwingender Bestandteil.',
@@ -5322,7 +5374,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
             focus: STRATEGIES.dividend.focus,
             maxWords: 450,
             istOptionsStrategie: false,
-            principle: 'Dividend-Growth-Setups suchen Qualitäts-Dividendentitel mit nachhaltiger Ausschüttung und solidem Free Cashflow — die Rendite (divYield) allein ist NICHT das Auswahlkriterium, sondern muss durch Fundamentalstärke (ROE, Verschuldungsgrad, Free-Cashflow-Deckung der Ausschüttung) gerechtfertigt sein. Eine optionale Cash-Secured-Put-Unterlegung kann zusätzliches Einkommen erzeugen, ist aber kein zwingender Bestandteil der Strategie. Reines Direktinvestment im Kern: die Basisrendite kommt aus der Dividende und der Kursbewegung der Aktie selbst, kein spekulativer Dividendenjäger — eine hohe Rendite allein rechtfertigt keine Auswahl, wenn die Ausschüttung nicht nachhaltig gedeckt ist.',
+            principle: principleText,
             risikenText: 'Zusätzlich klarstellen (Dividenden-/Yield-Trap-Risiko, analog zum Value-Trap-'
               + 'Konzept): eine hohe Dividendenrendite (divYield) ist NIEMALS automatisch ein Qualitäts-'
               + 'oder Attraktivitätsmerkmal — sie kann auch bedeuten, dass der Markt eine Kürzung der '
@@ -5341,31 +5393,20 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
               + 'Aussage über die zukünftige Dividendenentwicklung.)'
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Income-Investor spezialisiert auf Qualitäts-Dividendentitel '
-          + 'mit nachhaltiger Ausschüttung und solidem Free Cashflow.\n'
-          + 'Ziel: stabile Erträge (Dividende + optionale CSP-Prämie als Unterlegung). '
-          + 'Kein spekulativer Dividendenjäger: Qualität muss die Rendite rechtfertigen.\n\n'
-          + (ctx.marktkontext || '')
-          + '\n\nFELDER-LEGENDE (Dividend-spezifisch):\n'
-          + '- divYield: Dividendenrendite in % (ideal: 1-6%; >6% = Nachhaltigkeitsprüfung)\n'
-          + '- payoutRatio: Ausschüttungsquote in % (<80% = nachhaltig; >100% = Warnsignal)\n'
-          + '- fcfYield: Free-Cashflow-Rendite in % (Puffer für Dividende; >3% = gesund)\n'
-          + '- roe: Return on Equity in % (>10% = Qualitätsindikator)\n'
-          + '- debtToEquity: Verschuldungsgrad (niedrig = stabiler)\n\n'
-          + 'AUFGABE:\n'
-          + '1. MARKTLAGE: Unterstützt das Regime Income-Strategien? '
-          + 'Zinsniveau (TNX), HY-Spread und Regime-Signal einordnen. (2 Sätze)\n'
-          + '2. TOP-3 DIVIDEND-KANDIDATEN: Für jeden Titel:\n'
-          + '   a) Dividendenqualität: divYield + payoutRatio + fcfYield\n'
-          + '   b) Fundamentalstärke: ROE + Verschuldung\n'
-          + '   c) Technisches Bild: EMA200-Position, RSI nicht überhitzt (≤70)\n'
-          + '   d) CSP-Eignung: Strike 5-10% unter Kurs sinnvoll platzierbar?\n'
-          + '   e) Hauptrisiko: Was könnte die Dividende gefährden?\n'
-          + '3. NICHT EMPFOHLEN: Ausgeschlossene Titel + Grund (payoutRatio >80%, divYield <1%, '
-          + 'technisch schwach oder fallendes Messer).\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-3. Max. 400 Wörter. '
-          + 'Keine erfundenen Dividendenzahlungen oder Strike-Werte.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // achte migrierte EQUITY-Strategie): der alte EIC-Zweig enthielt
+        // unbelegte Feldschwellen ("divYield>6%=Pruefung", "payoutRatio<80%=
+        // nachhaltig", "roe>10%=Qualitaetsindikator") ohne Quelle — bewusst
+        // NICHT in den neuen principleText uebernommen, konsistent zum
+        // heutigen Muster. Groesserer Architekturvorschlag (3-Score-Split)
+        // als Backlog dokumentiert, nicht uebernommen.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Qualitäts-Dividendentitel (nachhaltige Ausschüttung, solider Free Cashflow) auf Basis fundamentaler und technischer Kennzahlen. Reines Direktinvestment im Kern (Aktienposition); eine CSP-Unterlegung ist rein optional und sekundär, kein zwingender Bestandteil.',
+          stratName: 'Dividend-Growth-Setups',
+          focus: STRATEGIES.dividend.focus,
+          istOptionsStrategie: false,
+          principle: principleText
+        });
       }
     },
 
