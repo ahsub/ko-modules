@@ -1,6 +1,93 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.53.17 (09.09.2026) — MOMENTUM-PRINZIP UM AKADEMISCHE
+ *  FUNDIERUNG UND WICHTIGEN DATENKANAL-FUND ERWEITERT. Reviewer-
+ *  Architekturvorschlag (Leadership→Trend-Structure→Trend-Quality→Setup→
+ *  Entry-Quality-Funnel mit ADX/DI/ChopIndex/trendScore/perf3m/perf12m)
+ *  GEGEN DEN TATSAECHLICHEN SCANNER-TAB-DATENKANAL verifiziert (exakte
+ *  Feldextraktion aus topResults.push() in index.html, nicht nur Aggregator-
+ *  Existenz) — WICHTIGER FUND: trendScore/ADX/DI+/DI-/ChopIndex/BBPos/
+ *  pctFromHigh52/perf3m/perf12m sind NICHT Teil des Datenkanals, der
+ *  momentum's Prompt tatsaechlich erreicht (existieren an anderen Stellen
+ *  im UIQ-System — z.B. DeepDive-Anzeige — aber nicht hier). perf3m/perf12m
+ *  sind zwar echte Aggregator-Felder, aber nicht im _core-Feldset fuer
+ *  Leaderboards/Prompts enthalten. NUR RS-Rating (rsRating), macdHist,
+ *  obvTrend, volRatio, hvp, rsi, ma200 (Dist200 daraus ableitbar) sind
+ *  tatsaechlich verfuegbar — Reviewer-Vorschlag entsprechend eingeschraenkt
+ *  uebernommen (RS-Rating als Leadership-Proxy statt pctFromHigh52).
+ *  OFFENE FRAGE FUER SPAETER: ob der `ko`-Alpha-Desk-Datenkanal (anderer
+ *  Pfad als Scanner-Tab) tatsaechlich trendScore/ADX/chopIndex liefert,
+ *  wie am 08.09.2026 fuer die ko-Migration angenommen — heute NICHT
+ *  nachgeprueft, sollte separat verifiziert werden. Akademische Quellen
+ *  ergaenzt: Jegadeesh & Titman (1993, JoF) als Momentum-Kernevidenz;
+ *  George & Hwang (2004, JoF) fuer 52W-High-Konzept (mit Datenkanal-
+ *  Einschraenkung); Moskowitz/Ooi/Pedersen (2012, JFE) fuer Time-Series-
+ *  Momentum; Asness/Moskowitz/Pedersen (2013, JoF) fuer Markt-/Asset-
+ *  klassen-uebergreifende Robustheit; Hong/Lim/Stein (2000, JoF) als
+ *  Behavioral-Erklaerung. WICHTIGSTE METHODISCHE ERGAENZUNG: explizite
+ *  Klarstellung, dass Minervini/SEPA selbst KEINE wissenschaftlich
+ *  validierte Faktortheorie ist, sondern bekannte Komponenten praktisch
+ *  operationalisiert — "die Literatur bestaetigt Minervini" wird explizit
+ *  verboten. Bestehender Inhalt (Minervinis echte Stop-Loss-/Pivot-Point-
+ *  Konventionen, Antonacci-Hintergrund) unveraendert erhalten. Funktional
+ *  verifiziert: alle fuenf neuen Zitate + methodische Klarstellung in
+ *  Public UND EIC, bestehender Inhalt intakt, alle 14 uebrigen Strategien
+ *  fehlerfrei in beiden Modi.
+ *
+ *  Version: 2.53.16 (09.09.2026) — VALUE-PRINZIP UM VIER-EBENEN-STRUKTUR
+ *  UND VIER WEITERE AKADEMISCHE QUELLEN ERWEITERT. Reviewer-Vorschlag:
+ *  Value nicht als einzelnen "billig kaufen"-Score, sondern als vier
+ *  getrennte Fragen (Value/Quality/Value-Trap-Filter/Entry-Timing) —
+ *  ALLE VIER mit bereits vorhandenen UIQ-Feldern abdeckbar (peForward/pb/
+ *  fcfYield fuer Value, roe/roicProxy/grossMargin/revGrowth fuer Quality,
+ *  revGrowth/fcfYield/DD/rsRating/trendScore als Value-Trap-Warnsignale,
+ *  RS-Rating/trendScore/RSI/ATR/DD/EMA200 fuer Entry — keine neuen Felder
+ *  noetig, direkt umsetzbar statt Backlog). Neue Quellen: Fama & French
+ *  (1992, "The Cross-Section of Expected Stock Returns", JoF) als
+ *  akademische Value-Faktor-Grundlage; Lakonishok/Shleifer/Vishny (1994,
+ *  "Contrarian Investment, Extrapolation, and Risk", JoF) fuer die
+ *  entscheidende Abgrenzung "guenstig ≠ automatisch fundamental intakt"
+ *  (Extrapolationsfehler-Erklaerung fuer Glamour-/Value-Fehlbewertung);
+ *  Novy-Marx (2013, "The Other Side of Value", JFE) als Begruendung fuer
+ *  Value+Quality-Kombination statt isolierter Betrachtung; Piotroski
+ *  (2000, JAR) als konzeptionelle (nicht vollstaendig umsetzbare, da
+ *  Verschuldungsdaten fehlen) Grundlage des Value-Trap-Filters; Fama &
+ *  French (1998, "Value versus Growth: The International Evidence", JoF)
+ *  als internationale Bestaetigung, relevant fuer UIQs nicht auf einen
+ *  Markt beschraenktes Universum. Bestehender Inhalt (Carlins Fama-French-
+ *  Quintil-Fund, Bos Net-Net-Hintergrund) unveraendert erhalten, nicht
+ *  ersetzt. focus[] entsprechend um die vier Ebenen konkretisiert.
+ *  Funktional verifiziert: alle fuenf neuen Zitate + Vier-Ebenen-Struktur
+ *  in Public UND EIC, bestehender Inhalt intakt, alle 14 uebrigen
+ *  Strategien fehlerfrei in beiden Modi.
+ *
+ *  Version: 2.53.15 (09.09.2026) — BREAKDOWN EIC-MIGRATION (zehnte und
+ *  LETZTE der geplanten Equity-Strategien — alle 9 Equity- plus die 5
+ *  Options-Strategien sind jetzt migriert). Reviewer-Architekturvorschlag
+ *  GEGEN DEN ECHTEN AGGREGATOR-CODE verifiziert (score_short_breakdown()
+ *  vollstaendig gelesen) — WICHTIGER FUND: die vom Reviewer genannten
+ *  Trigger-Felder (patternEntry, ADX, DI-, AVWAP) sind NICHT Teil der
+ *  echten Scoring-Logik. Tatsaechliche Funktion nutzt EMA50/200, RSI,
+ *  MACD-Hist, OBV, VolRatio, BBPos, HVP — bereits alle im Prompt vorhanden,
+ *  jetzt mit verifizierten Schwellenwerten konkretisiert (Gates: Kurs
+ *  max. 2%/0.5% ueber EMA50/200, RSI 20-65, ATR-normalisierter EMA200-
+ *  Abstand <-6.0 schliesst aus/Kapitulation-statt-Breakdown). Akademische
+ *  Fundierung ergaenzt: Jegadeesh & Titman (1993, "Returns to Buying
+ *  Winners and Selling Losers", JoF) als Kontinuitaets-Grundlage — WICHTIG:
+ *  expliziter konzeptioneller GEGENSATZ zu Fading Short (Continuation vs.
+ *  Reversal) im principle verankert, beide Strategien duerfen nie
+ *  gedanklich vermischt werden. George & Hwang (2004, "The 52-Week High
+ *  and Momentum Investing", JoF) als pctFromHigh52-Abgrenzung (kein
+ *  Breakdown-Signal selbst). Park & Irwin (2007, Methodenkritik) als
+ *  Begruendung fuer UIQs verifizierte-statt-erfundene-Schwellen-Ethos.
+ *  RisikenText/tradeoffKontext-Inhalte (Squeeze-Warnung, unbegrenztes
+ *  Verlustrisiko) ins principle verschoben (_eicMasterPrompt() liest diese
+ *  Felder nicht, derselbe Fund wie bei cc/collar/dividend/fading_short).
+ *  Funktional verifiziert: Equity-Block korrekt, alle drei Zitate + echte
+ *  Gates im EIC-Output, Squeeze-/Verlustrisiko-Warnungen vorhanden, alle
+ *  14 uebrigen Strategien fehlerfrei in beiden Modi.
+ *
  *  Version: 2.53.14 (09.09.2026) — ATMNA/WEEKLY_INCOME/COLLAR ERHALTEN
  *  ECHTE lbKeys ("Weg 1"-Entscheidung, Axel: "systematisch und strategie-
  *  offen und zukunftsorientiert planen ... gruendlich und modular geht
@@ -4798,6 +4885,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
       color: 'var(--green)',
       focus: [
         "SEPA/Stage-2-Qualitaet: Erfuellt der Titel die Kernkriterien (Trend, relative Staerke) aus den Scandaten?",
+        "Leadership (KONKRETISIERT 09.09.2026, akademisch fundiert): RS-Rating (0-99-Perzentil-Ranking gegenueber dem Scan-Universum) als primaeres Leadership-Mass — George & Hwang (2004): die Naehe zum 52-Wochen-Hoch erklaert einen erheblichen Teil der Momentum-Rendite; UIQ hat dafuer aktuell allerdings kein direkt im Momentum-Prompt verfuegbares pctFromHigh52-Feld (verifiziert 09.09.2026 gegen den tatsaechlichen Scanner-Tab-Datenkanal — WICHTIG: nicht mit anderen UIQ-Pfaden verwechseln, die dieses Feld ggf. haben), daher RS-Rating als naechstbester verfuegbarer Leadership-Proxy.",
         "Buy-Point/Timing: Steht der Titel am Pivot oder eher im Ruecksetzer zum EMA50 bei steigendem OBV?",
         "Stop-Loss-Sensitivitaet (rein qualitativ, KEIN konkreter Prozentwert/Kursniveau nennen — das ist EIC-exklusiv, Grundgesetz #11): tendiert der HVP-Wert eher zu einer engeren oder weiteren sinnvollen Risikotoleranz fuer eine individuell festzulegende Absicherung (hoeherer HVP tendenziell engere Toleranz sinnvoll, niedrigerer HVP tendenziell weitere)?",
         "Sektor- oder Makro-Risiko, das die Momentum-These aktuell am ehesten gefaehrden wuerde",
@@ -4813,7 +4901,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         // titel-Picking wie hier — einzig der 12-Monats-Lookback als
         // akademisch etablierter Standard fuer Momentum-Messung uebernommen,
         // als Hintergrundwissen, NICHT als direkt zu implementierende Regel.
-        var principleText = 'Momentum/SEPA-Setups folgen der Minervini-Methode (Stage-2-Analyse): gesucht werden Aktien in einer bereits bestätigten Aufwärtsphase (Stage 2) — erkennbar an einer bullischen Anordnung der gleitenden Durchschnitte, starker relativer Stärke gegenüber dem Gesamtmarkt und einem Volumenmuster, das eher Akkumulation als Distribution zeigt. Die Strategie kauft keine fallenden Kurse, sondern bereits etablierte Trends — idealerweise beim ersten Rücksetzer zum EMA50 statt am ersten Ausbruchsimpuls selbst. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst. Pivot Point (Minervini): der optimale Einstiegspunkt ist der Moment, in dem der Kurs durch die obere Grenze einer Konsolidierung ("Base") mit ansteigendem Volumen ausbricht — so nah wie möglich am Pivot kaufen, ohne dem Kurs um mehr als wenige Prozentpunkte hinterherzujagen. Stop-Loss (Minervini): niemals mehr als 8-10% unter Einstieg (harte Obergrenze), Faustregel meist 7-8%; sein tatsächlich realisierter Durchschnittsverlust liegt bei ca. 4-5% (Hälfte des Maximums) bei durchschnittlichem Gewinn von ca. 15% — ein Chance-Risiko-Verhältnis von grob 3:1, das bereits bei einer Trefferquote von nur ca. einem Drittel profitabel ist. Sobald eine Position einen Gewinn erreicht, der ein Vielfaches des ursprünglichen Stop-Loss beträgt, wird der Stop auf Breakeven nachgezogen (kein fixer Prozentwert, sondern ein Verhältnis zum eigenen Risiko). Hintergrundwissen zur Momentum-Messung generell (Antonacci, "Dual Momentum Investing", akademisch etabliert, aber primär für Asset-Klassen-Rotation, nicht Einzeltitel-Picking): ein 12-Monats-Lookback gilt in der akademischen Literatur als der am besten geeignete Standard-Betrachtungszeitraum für Momentum-Messung.';
+        var principleText = 'Momentum/SEPA-Setups folgen der Minervini-Methode (Stage-2-Analyse): gesucht werden Aktien in einer bereits bestätigten Aufwärtsphase (Stage 2) — erkennbar an einer bullischen Anordnung der gleitenden Durchschnitte, starker relativer Stärke gegenüber dem Gesamtmarkt und einem Volumenmuster, das eher Akkumulation als Distribution zeigt. Die Strategie kauft keine fallenden Kurse, sondern bereits etablierte Trends — idealerweise beim ersten Rücksetzer zum EMA50 statt am ersten Ausbruchsimpuls selbst. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung der Aktie selbst. Pivot Point (Minervini): der optimale Einstiegspunkt ist der Moment, in dem der Kurs durch die obere Grenze einer Konsolidierung ("Base") mit ansteigendem Volumen ausbricht — so nah wie möglich am Pivot kaufen, ohne dem Kurs um mehr als wenige Prozentpunkte hinterherzujagen. Stop-Loss (Minervini): niemals mehr als 8-10% unter Einstieg (harte Obergrenze), Faustregel meist 7-8%; sein tatsächlich realisierter Durchschnittsverlust liegt bei ca. 4-5% (Hälfte des Maximums) bei durchschnittlichem Gewinn von ca. 15% — ein Chance-Risiko-Verhältnis von grob 3:1, das bereits bei einer Trefferquote von nur ca. einem Drittel profitabel ist. Sobald eine Position einen Gewinn erreicht, der ein Vielfaches des ursprünglichen Stop-Loss beträgt, wird der Stop auf Breakeven nachgezogen (kein fixer Prozentwert, sondern ein Verhältnis zum eigenen Risiko). WICHTIGE METHODISCHE KLARSTELLUNG (ERGÄNZT 09.09.2026): Momentum als solches ist akademisch breit validiert — Minervini/SEPA selbst ist dagegen KEINE wissenschaftlich validierte Faktortheorie, sondern operationalisiert mehrere empirisch/theoretisch bekannte Komponenten (Momentum, relative Stärke, Trendpersistenz, Breakouts, Volumenbestätigung) zu einem regelbasierten, praktischen Entry-Framework. NIEMALS formulieren "die wissenschaftliche Literatur bestätigt Minervini" — stattdessen: Minervini/SEPA nutzt/operationalisiert Komponenten, für die es akademische Evidenz gibt. Akademische Fundierung der Momentum-Komponente: Jegadeesh & Titman (1993, "Returns to Buying Winners and Selling Losers", Journal of Finance, 48(1), 65-91) liefern die zentrale empirische Grundlage für Cross-Sectional Momentum — Aktien mit relativ starker vergangener Performance zeigen über 3-12 Monate tendenziell weitere relative Stärke. George & Hwang (2004, "The 52-Week High and Momentum Investing", Journal of Finance, 59(5), 2145-2176) zeigen, dass die Nähe zum 52-Wochen-Hoch einen erheblichen Teil der Momentum-Rendite erklärt — WICHTIGER DATENKANAL-HINWEIS (verifiziert 09.09.2026): pctFromHigh52 ist über den für diese Strategie genutzten Datenkanal aktuell NICHT direkt verfügbar (existiert an anderen Stellen im UIQ-System, erreicht aber nicht diesen Prompt) — RS-Rating dient stattdessen als nächstbester verfügbarer Leadership-Proxy. Moskowitz, Ooi & Pedersen (2012, "Time Series Momentum", Journal of Financial Economics, 104(2), 228-250) zeigen Momentum-Persistenz auch als Time-Series-Phänomen (nicht nur Cross-Sectional) über verschiedene Assetklassen. Asness, Moskowitz & Pedersen (2013, "Value and Momentum Everywhere", Journal of Finance, 68(3), 929-985) finden Momentum-Prämien über acht unterschiedliche Märkte und Assetklassen — Momentum ist damit keine bloße Chart-Eigenheit einzelner Aktienmärkte, sondern eine robuste, breit auftretende Eigenschaft. Hong, Lim & Stein (2000, "Bad News Travels Slowly: Size, Analyst Coverage, and the Profitability of Momentum Strategies", Journal of Finance) liefern eine mögliche verhaltensökonomische Erklärung (langsame Informationsverbreitung, insbesondere bei negativen Nachrichten). Hintergrundwissen zur Momentum-Messung generell (Antonacci, "Dual Momentum Investing", akademisch etabliert, aber primär für Asset-Klassen-Rotation, nicht Einzeltitel-Picking): ein 12-Monats-Lookback gilt in der akademischen Literatur als der am besten geeignete Standard-Betrachtungszeitraum für Momentum-Messung.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Aktien nach Minervini/SEPA-Momentum-Kriterien (Stage-2-Trend, relative Stärke) auf Basis technischer Kennzahlen. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
@@ -5517,8 +5605,10 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
       hint:  '📊 Value Investing: Günstig bewertete Qualitätstitel · peForward, P/B, FCF-Yield',
       color: '#94a3b8',
       focus: [
-        "Bewertungs-Kennzahlen: peForward, P/B und FCF-Yield im Verhaeltnis zum Sektor eingeordnet",
-        "Qualitaetscheck: rechtfertigt der ROE-Wert die guenstige Bewertung, oder handelt es sich um einen Value-Trap-Kandidaten?",
+        "Ebene 1 — VALUE: Bewertungs-Kennzahlen peForward, P/B und FCF-Yield im Verhaeltnis zum Sektor eingeordnet",
+        "Ebene 2 — QUALITY (getrennt von Ebene 1 zu benennen, NICHT vermischen): rechtfertigt ROE/ROIC-Proxy/Gross-Margin/Umsatzwachstum die guenstige Bewertung? Novy-Marx (2013): Profitabilitaet ergaenzt Value, ersetzt es nicht.",
+        "Ebene 3 — VALUE-TRAP-FILTER (getrennt von Ebene 1/2): fallendes Umsatzwachstum, schwache Profitabilitaet/FCF, starke Drawdowns, negative relative Staerke, negativer Trendscore als WARNSIGNALE — kein einzelnes Signal fuer sich beweisend, Lakonishok/Shleifer/Vishny (1994): guenstig bedeutet nicht automatisch fundamental intakt.",
+        "Ebene 4 — ENTRY/TIMING (bewusst getrennt von den fundamentalen Ebenen 1-3, andere Frage): RS-Rating, Trendscore, RSI, ATR, Drawdown, EMA200-Abstand, Marktregime — beantwortet 'guenstiger Zeitpunkt', nicht 'guenstige Bewertung'.",
         "Sicherheitsmarge (qualitativ einordnen, KEINEN konkreten \"fairen Wert\" oder Kursziel berechnen/erfinden): wie gross erscheint der Puffer zwischen aktuellem Kurs und den verfuegbaren Bewertungskennzahlen (peForward/P-B/FCF-Yield) im Sektorvergleich?",
         "Staerkstes strukturelles Risiko (schrumpfendes Geschaeftsmodell, Schuldenlast, Sektor-Gegenwind)"
       ],
@@ -5568,7 +5658,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         // -verbindlichkeiten). Chang liefert nur zeitgebundene Einzel-
         // beispiele (Facebook/Tesla-P/E zum Schreibzeitpunkt), keine
         // uebertragbare Regel — nicht uebernommen.
-        var principleText = 'Value-Investing (nach Graham/Buffett-Prinzipien) sucht Aktien, die gegenüber fundamentalen Kennzahlen (Kurs-Gewinn-Verhältnis, Kurs-Buchwert, Free-Cashflow-Rendite) günstig bewertet erscheinen — vorausgesetzt, die zugrunde liegende Geschäftsqualität (ROE, Wettbewerbsposition) rechtfertigt die niedrige Bewertung. Ein niedriger Kurs allein ist kein Kaufgrund: ohne fundamentale Qualitätsprüfung droht ein "Value Trap" — ein Titel, der aus gutem Grund günstig bewertet ist (schrumpfendes Geschäftsmodell, strukturelle Probleme, Sektor-Gegenwind). Akademische Validierung des Grundprinzips (Sven Carlin, "Modern Value Investing", auf Basis von Fama-French-Daten seit 1927): ein Portfolio aus Aktien mit dem niedrigsten 30%-Perzentil an Kurs-Buchwert-Verhältnissen hat ein Portfolio mit dem höchsten 30%-Perzentil über 10-Jahres-Haltezeiträume um durchschnittlich 4,6 Prozentpunkte pro Jahr geschlagen — das ist eine RELATIVE Perzentil-Aussage über das breite Marktuniversum, KEINE absolute P/B-Schwelle, die UIQ ohne ein eigenes Perzentil-Ranking direkt anwenden kann. Hintergrundwissen, nicht umsetzbar (Jeroen Bos, "Deep Value Investing", Ben Grahams "Net-Net"-Konzept): eine Aktie, die unter ihrem Netto-Umlaufvermögen (Umlaufvermögen minus sämtliche Verbindlichkeiten) gehandelt wird, gilt als besonders tiefer Sicherheitspuffer — UIQ hat keine Bilanzdaten (Umlaufvermögen/-verbindlichkeiten) für diese Prüfung. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung/Neubewertung der Aktie selbst.';
+        var principleText = 'Value-Investing (nach Graham/Buffett-Prinzipien) sucht Aktien, die gegenüber fundamentalen Kennzahlen (Kurs-Gewinn-Verhältnis, Kurs-Buchwert, Free-Cashflow-Rendite) günstig bewertet erscheinen — vorausgesetzt, die zugrunde liegende Geschäftsqualität (ROE, Wettbewerbsposition) rechtfertigt die niedrige Bewertung. Ein niedriger Kurs allein ist kein Kaufgrund: ohne fundamentale Qualitätsprüfung droht ein "Value Trap" — ein Titel, der aus gutem Grund günstig bewertet ist (schrumpfendes Geschäftsmodell, strukturelle Probleme, Sektor-Gegenwind). VIER GETRENNTE EBENEN (ERGÄNZT 09.09.2026, akademisch fundiert — bewusst als vier separate Fragen behandelt, NIEMALS zu einem einzigen Werturteil vermischen): (1) VALUE — Ist die Aktie fundamental günstig? (peForward, P/B, FCF-Yield, ergänzend divYield). (2) QUALITY — Ist das Unternehmen fundamental ausreichend gut? (ROE, ROIC-Proxy, Gross Margin, Umsatzwachstum, FCF-Generierung). (3) VALUE-TRAP-FILTER — Ist die niedrige Bewertung möglicherweise gerechtfertigt? (fallendes Umsatzwachstum, schwache Profitabilität/FCF, starke Drawdowns, negative relative Stärke, negativer Trendscore als Warnsignale — KEIN einzelnes Signal für sich genommen beweisend). (4) ENTRY/TIMING — Ist jetzt ein sinnvoller Einstiegszeitpunkt? (RS-Rating, Trendscore, RSI, ATR, Drawdown, EMA200-Abstand, Marktregime) — bewusst GETRENNT von den fundamentalen Ebenen 1-3, beantwortet eine andere Frage ("günstiger Zeitpunkt" statt "günstige Bewertung"). Akademische Fundierung der Vier-Ebenen-Struktur: Fama & French (1992, "The Cross-Section of Expected Stock Returns", Journal of Finance) zeigen, dass Book-to-Market einen erheblichen Teil der Renditeunterschiede zwischen Aktien erklärt — die akademische Grundlage des klassischen Value-Faktors (Ebene 1), aber P/B oder P/E allein sind laut Folgeliteratur keine hinreichende Strategie. Lakonishok, Shleifer & Vishny (1994, "Contrarian Investment, Extrapolation, and Risk", Journal of Finance) liefern die entscheidende Abgrenzung: Value bedeutet NICHT "schlechte Aktie mit niedrigem KGV" — Investoren neigen dazu, vergangene gute UND schlechte Entwicklungen zu weit fortzuschreiben (Extrapolationsfehler), wodurch sowohl überteuerte "Glamour"-Aktien als auch unterbewertete Value-Aktien entstehen können; das rechtfertigt die Trennung zwischen Ebene 1 (günstig) und Ebene 2 (fundamental intakt) statt einer reinen Billig-Suche. Novy-Marx (2013, "The Other Side of Value: The Gross Profitability Premium", Journal of Financial Economics) zeigt, dass Profitabilität (Gross Profit/Assets) eine ähnliche Erklärungskraft wie Book-to-Market besitzt und die Kombination beider Faktoren die Value-Strategie deutlich verbessert — akademische Rückendeckung dafür, Ebene 1 (Value) und Ebene 2 (Quality) gemeinsam statt isoliert zu betrachten. Piotroski (2000, "Value Investing: The Use of Historical Financial Statement Information to Separate Winners from Losers", Journal of Accounting Research) trennt innerhalb des günstig bewerteten Aktien-Universums anhand fundamentaler Finanzkennzahlen (Profitabilität, Cashflow, Verschuldung/Liquidität, operative Entwicklung — sein "F-Score"-Konzept) attraktive Value-Titel von potenziellen Verlierern — konzeptionelle Grundlage für Ebene 3 (Value-Trap-Filter); der vollständige F-Score selbst ist NICHT umsetzbar, da UIQ keine Verschuldungs-/Liquiditätsdaten hat, das Grundprinzip (fundamentale Qualität trennt echten Value von der Falle) ist es aber bereits über ROE/ROIC-Proxy/Gross Margin/FCF. Fama & French (1998, "Value versus Growth: The International Evidence", Journal of Finance) bestätigen die Value-Prämie auch international, nicht nur im US-Markt — relevant, da UIQs Universum nicht auf einen Markt beschränkt ist. Akademische Validierung des Grundprinzips (Sven Carlin, "Modern Value Investing", auf Basis von Fama-French-Daten seit 1927): ein Portfolio aus Aktien mit dem niedrigsten 30%-Perzentil an Kurs-Buchwert-Verhältnissen hat ein Portfolio mit dem höchsten 30%-Perzentil über 10-Jahres-Haltezeiträume um durchschnittlich 4,6 Prozentpunkte pro Jahr geschlagen — das ist eine RELATIVE Perzentil-Aussage über das breite Marktuniversum, KEINE absolute P/B-Schwelle, die UIQ ohne ein eigenes Perzentil-Ranking direkt anwenden kann. Hintergrundwissen, nicht umsetzbar (Jeroen Bos, "Deep Value Investing", Ben Grahams "Net-Net"-Konzept): eine Aktie, die unter ihrem Netto-Umlaufvermögen (Umlaufvermögen minus sämtliche Verbindlichkeiten) gehandelt wird, gilt als besonders tiefer Sicherheitspuffer — UIQ hat keine Bilanzdaten (Umlaufvermögen/-verbindlichkeiten) für diese Prüfung. Zeithorizont-Hinweis (aus der Vier-Ebenen-Literatur abgeleitet): Value-Fehlbewertungen normalisieren sich typischerweise über Monate bis Jahre, nicht Tage — anders als kurzfristige technische Setups sollte Value nicht wie eine tägliche Trading-Strategie behandelt werden, auch wenn UIQ dieselbe tägliche Snapshot-Aktualisierung nutzt. Reines Direktinvestment ohne Hebel und ohne Optionskomponente: die Rendite kommt ausschließlich aus der Kursbewegung/Neubewertung der Aktie selbst.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt({ marktkontext: _marktkontextMitTickern }, {
             rolle: 'Du analysierst günstig bewertete Qualitätstitel nach Value-Kriterien (Graham/Buffett-Prinzipien) auf Basis fundamentaler und technischer Kennzahlen. Reines Direktinvestment ohne Hebel und ohne Optionskomponente.',
@@ -5736,14 +5826,25 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
       hint:  '📉 Breakdown (Short): Death-Cross-Bereich · Distribution · technischer Abwärtstrend',
       color: 'var(--red)',
       focus: [
-        "Trendbruch-Grad: Death-Cross-Naehe (EMA50 unter EMA200) und Kursposition unterhalb beider Linien",
-        "Distribution: negativer OBV-Trend und negatives MACD-Histogramm als Verkaufsdruck-Signale",
-        "Volumen-Bestaetigung: VolRatio > 1,3x als Hinweis auf verstaerkten Abgabedruck",
+        "Trendbruch-Grad (KONKRETISIERT 09.09.2026 anhand der echten score_short_breakdown()-Logik im Aggregator, nicht der bisherigen vagen Beschreibung): Death-Cross-Naehe (EMA50 unter EMA200) UND Kursposition unterhalb beider Linien (Gates: Kurs max. 2% ueber EMA50, max. 0,5% ueber EMA200 — sonst Score 0). RSI-Fenster 30-45 gilt als staerkstes Signal, RSI 20-30 noch als 'dynamischer Breakdown' zulaessig, RSI <20 (zu spaet) oder >65 (bullische Struktur) schliessen die Strategie fuer den Titel komplett aus.",
+        "Distribution (verifiziert): negativer OBV-Trend UND negatives MACD-Histogramm als Verkaufsdruck-Signale — beide getrennt benennen, nicht vermischen.",
+        "Volumen-Bestaetigung (verifizierter Schwellenwert): VolRatio > 1,3x als Hinweis auf verstaerkten Abgabedruck.",
+        "Ueberdehnungs-Kontext (verifiziert): BBPos ≤0,25 (untere Bollinger-Band-Naehe) und HVP ≥65% (steigende Volatilitaet) verstaerken das Signal in der echten Scoring-Logik — HVP hier bewusst GEGENTEILIG zu Fading Short interpretiert (dort senkt hohes HVP das Signal wegen Squeeze-Gefahr, hier verstaerkt es die Short-Dynamik) — beide Interpretationen NIE vermischen, es sind unterschiedliche Strategien mit unterschiedlicher Marktlogik.",
         "Short-Squeeze-Risiko (squeezeRisk-Feld, 0-100, >=70 = kritische Schwelle): eine technisch stark ueberverkaufte, niedrig-volatile Ausgangslage (aufgestaute Energie) kann bei ploetzlichem Volumen-Anstieg zu einer schnellen, heftigen Gegenbewegung fuehren, die eine Short-These abrupt widerlegt — bei erhoehtem Wert IMMER explizit als Gegenargument benennen, nicht nur beilaeufig erwaehnen.",
-        "Kapitulations-Abgrenzung: ein extrem grosser Abstand unterhalb der EMA200 deutet eher auf eine bereits erfolgte Kapitulation (Mean-Reversion-Kandidat) hin als auf einen aktiven Breakdown-Trend — ein grosser Abstand bedeutet NICHT automatisch mehr verbleibenden Verkaufsdruck.",
+        "Kapitulations-Abgrenzung (verifizierter harter Ausschluss in der echten Logik: (Kurs-EMA200)/ATR < -6.0 → Score automatisch 0): ein extrem grosser ATR-normalisierter Abstand unterhalb der EMA200 deutet eher auf eine bereits erfolgte Kapitulation (Mean-Reversion-Kandidat) hin als auf einen aktiven Breakdown-Trend — ein grosser Abstand bedeutet NICHT automatisch mehr verbleibenden Verkaufsdruck.",
         "Groesstes Risiko fuer die Short-These"
       ],
       prompt: function(ctx) {
+        // ERGAENZT (09.09.2026, Reviewer-Architekturvorschlag + akademische
+        // Literatur gegen den ECHTEN Aggregator-Code verifiziert —
+        // score_short_breakdown() vollstaendig gelesen). WICHTIGER FUND:
+        // die vom Reviewer genannten Trigger-Felder (patternEntry, ADX,
+        // DI-, AVWAP) sind NICHT Teil der echten Scoring-Logik — die
+        // tatsaechliche Funktion nutzt EMA50/200, RSI, MACD-Hist, OBV,
+        // VolRatio, BBPos, HVP (bereits alle im bestehenden Prompt
+        // vorhanden). Reviewer-Hypothese NICHT uebernommen, verifizierte
+        // echte Logik stattdessen konkretisiert (s. focus[] oben).
+        var principleText = 'Breakdown-Setups (Short) suchen Titel in technischer Auflösung eines vorherigen Aufwärtstrends — gekennzeichnet durch eine Annäherung an oder Überschreitung eines Death-Cross-Zustands (EMA50 unter EMA200), Distribution (fallender OBV, negatives MACD-Momentum) und Volumen-Bestätigung. UIQ bewertet ausschließlich die technische Eignung des Basiswerts für eine bearische/Breakdown-These — welche konkrete Ausführung (Leerverkauf von Aktien, inverse ETFs, Put-Optionen oder KO-Short-Zertifikate) gewählt wird, liegt vollständig außerhalb von UIQ und bringt jeweils eigene, unterschiedliche Risikoprofile mit sich. Akademische Fundierung (ERGÄNZT 09.09.2026 — "Breakdown Strategy" ist kein etablierter akademischer Fachbegriff, die Evidenz kommt aus der Momentum-/Trend-Persistence-Literatur): Jegadeesh & Titman (1993, "Returns to Buying Winners and Selling Losers", Journal of Finance) zeigen, dass Aktien mit relativ schlechter vergangener Entwicklung über 3-12 Monate zur FORTSETZUNG dieser relativen Schwäche tendieren — das ist der entscheidende konzeptionelle GEGENSATZ zur Fading-Short-Strategie: Breakdown wettet auf Fortsetzung bestehender Schwäche (Momentum/Continuation), Fading Short wettet auf eine Gegenbewegung nach Übertreibung (Reversal) — beide Strategien dürfen NIEMALS gedanklich vermischt werden, auch wenn beide Short-Setups sind. George & Hwang (2004, "The 52-Week High and Momentum Investing", Journal of Finance) zeigen, dass die Nähe zum 52-Wochen-Hoch einen erheblichen Teil der Momentum-Erklärung liefert — WICHTIGE ABGRENZUNG: pctFromHigh52 beschreibt dabei nur die relative Position zum Hoch, ist selbst KEIN Breakdown-Signal. Methodische Mahnung (Park & Irwin, 2007, "What Do We Know About the Profitability of Technical Analysis?", Journal of Economic Surveys): Reviews zur technischen Analyse finden zwar teils positive Ergebnisse, weisen aber ausdrücklich auf Data-Snooping-Risiken und nachträglich angepasste Regeln hin — UIQ begegnet dem durch klar benannte, im Code verifizierte Schwellenwerte statt unbelegter Heuristiken (s. konkrete Modell-Logik unten). Konkrete Modell-Logik (verifiziert gegen die tatsächliche score_short_breakdown()-Funktion, 09.09.2026): harte Gates — Kurs darf max. 2% über EMA50 und max. 0,5% über EMA200 liegen, sonst kein Signal; RSI muss zwischen 20-65 liegen (darunter zu spät, darüber bullische Struktur); ATR-normalisierter Abstand unter EMA200 unter -6.0 schließt die Strategie aus (Kapitulation, dann Mean-Reversion-Territorium statt Breakdown). RSI 30-45 ist das stärkste Signal-Fenster. VolRatio >1,3x, BBPos ≤0,25 und HVP ≥65% verstärken das Signal. WICHTIGE UNTERSCHEIDUNG ZU FADING SHORT: dort senkt hohes HVP das Signal (Squeeze-Schutz), hier verstärkt es die Short-Dynamik — unterschiedliche Marktlogik, niemals vermischen. WICHTIGER RISIKOHINWEIS: eine direkte Leerverkaufsposition (Short-Sale) trägt im Gegensatz zu einer Long-Position ein theoretisch UNBEGRENZTES Verlustrisiko (der Kurs kann unbegrenzt steigen), während eine Long-Position maximal den vollständigen Kapitaleinsatz verlieren kann — dieser fundamentale Unterschied gilt unabhängig vom gewählten Ausführungsinstrument. RISIKO-/BEGRIFFS-KLARSTELLUNGEN (gelten für EIC genauso wie für Public — _eicMasterPrompt() liest KEIN separates risikenText-/tradeoffKontext-Feld, deshalb hier im principle verankert): IMMER auf das Short-Squeeze-Risiko hinweisen, wenn squeezeRisk ≥70 — eine technisch stark überverkaufte, niedrig-volatile Ausgangslage kann bei plötzlichem Volumen-Anstieg zu einer schnellen, heftigen Gegenbewegung führen, die eine Short-These abrupt widerlegt. Ein großer EMA200-Abstand (Death-Cross-Tiefe) beschreibt lediglich eine bereits erfolgte Kursbewegung relativ zum langfristigen Trendmittel (reine Ebene-1-Beobachtung) — daraus NIEMALS automatisch zusätzlichen Verkaufsdruck oder eine Fortsetzung des Abwärtstrends ableiten. Zielkonflikt: ein bereits weiter fortgeschrittener Trendbruch (größerer Abstand unterhalb der EMA200, negativeres OBV/MACD) beschreibt im Modell eine deutlichere technische Bestätigung der Short-These; gleichzeitig kann eine bereits stark überverkaufte Lage (niedrige HVP, überverkaufter RSI) genau die Bedingungen für einen abrupten Short-Squeeze schaffen, der die These schnell widerlegt — die Gewichtung dieser Merkmale ist eine strategische Abwägung, keine Aussage über den zukünftigen Kursverlauf.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel in technischer Auflösung eines vorherigen Aufwärtstrends (Breakdown-Setups) auf Basis von Tagesschluss-Daten. UIQ bewertet ausschließlich die technische Eignung des Basiswerts für eine bearische These — die konkrete Ausführung (Leerverkauf, inverse ETFs, Put-Optionen, KO-Short-Zertifikate) liegt vollständig außerhalb von UIQ.',
@@ -5752,7 +5853,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
             focus: STRATEGIES.breakdown.focus,
             maxWords: 450,
             istOptionsStrategie: false,
-            principle: 'Breakdown-Setups (Short) suchen Titel in technischer Auflösung eines vorherigen Aufwärtstrends — gekennzeichnet durch eine Annäherung an oder Überschreitung eines Death-Cross-Zustands (EMA50 unter EMA200), Distribution (fallender OBV, negatives MACD-Momentum) und Volumen-Bestätigung. UIQ bewertet ausschließlich die technische Eignung des Basiswerts für eine bearische/Breakdown-These — welche konkrete Ausführung (Leerverkauf von Aktien, inverse ETFs, Put-Optionen oder KO-Short-Zertifikate) gewählt wird, liegt vollständig außerhalb von UIQ und bringt jeweils eigene, unterschiedliche Risikoprofile mit sich. WICHTIGER RISIKOHINWEIS: eine direkte Leerverkaufsposition (Short-Sale) trägt im Gegensatz zu einer Long-Position ein theoretisch UNBEGRENZTES Verlustrisiko (der Kurs kann unbegrenzt steigen), während eine Long-Position maximal den vollständigen Kapitaleinsatz verlieren kann — dieser fundamentale Unterschied gilt unabhängig vom gewählten Ausführungsinstrument.',
+            principle: principleText,
             risikenText: 'Zusätzlich IMMER auf das Short-Squeeze-Risiko hinweisen, wenn das '
               + 'squeezeRisk-Feld einen erhöhten Wert zeigt (≥70 als kritische Schwelle) — eine '
               + 'technisch stark überverkaufte, niedrig-volatile Ausgangslage kann bei plötzlichem '
@@ -5775,20 +5876,17 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
               + 'zukünftigen Kursverlauf.)'
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Short-Trader mit Fokus auf technische Trendbrüche '
-          + '(Death Cross, Distribution).\n\n'
-          + '⚠️ WICHTIGER RISIKOHINWEIS: Eine direkte Leerverkaufsposition trägt ein theoretisch '
-          + 'unbegrenztes Verlustrisiko — anders als bei Long-Positionen, wo der maximale Verlust '
-          + 'auf den Kapitaleinsatz begrenzt ist.\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTUMFELD: Unterstützt das aktuelle Regime bearische Setups? (2-3 Sätze)\n'
-          + '2. TOP 3 BREAKDOWN-KANDIDATEN: Für jeden: Trendbruch-Grad (EMA50/200-Position), '
-          + 'Distribution (OBV/MACD), Squeeze-Risiko (squeezeRisk-Feld, ≥70 = kritisch), '
-          + 'Stop-Level knapp über einem lokalen Widerstand.\n'
-          + '3. RISIKEN: Short-Squeeze-Potenzial und unbegrenztes Verlustrisiko explizit benennen.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-3. Max. 400 Wörter.';
+        // ERSETZT (09.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // neunte und letzte migrierte EQUITY-Strategie): der alte EIC-Zweig
+        // war strukturell einfach (kein Ebenen-1-22-Geruest), jetzt
+        // vollstaendig im principleText oben inkl. akademischer Fundierung.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Titel in technischer Auflösung eines vorherigen Aufwärtstrends (Breakdown-Setups) auf Basis von Tagesschluss-Daten. UIQ bewertet ausschließlich die technische Eignung des Basiswerts für eine bearische These — die konkrete Ausführung (Leerverkauf, inverse ETFs, Put-Optionen, KO-Short-Zertifikate) liegt vollständig außerhalb von UIQ.',
+          stratName: 'Breakdown-Setups (Short)',
+          focus: STRATEGIES.breakdown.focus,
+          istOptionsStrategie: false,
+          principle: principleText
+        });
       }
     },
 
