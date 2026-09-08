@@ -1,6 +1,23 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.53.13 (09.09.2026) — FADING_SHORT lbKey KORRIGIERT (Axel-Fund
+ *  nach der v506-Umbenennung in index.html). Der lbKey war 'short_fading_ko'
+ *  — ein reiner UI-Workaround-Schluessel ohne jede Entsprechung im Python-
+ *  Aggregator (verifiziert: 0 Treffer in market_aggregator.py). Der echte,
+ *  datentragende Leaderboard-Schluessel ist 'short_fading' (top20("sFading",
+ *  35)). Durch den falschen lbKey konnte stratFromLb('short_fading') nicht
+ *  auf 'fading_short' aufloesen — der Leaderboard-Tab mit den ECHTEN
+ *  Kandidatendaten hatte dadurch nie einen funktionierenden KI-Button,
+ *  waehrend ein separat erfundener, datenloser 'short_fading_ko'-Tab die
+ *  einzige KI-Anbindung trug (Ursache des seit 06.09.2026 dokumentierten
+ *  Mislabeling-Bugs — die gestrige Umbenennung v506 hatte das Symptom
+ *  behoben, aber genau den falschen der beiden Tabs behalten). Funktional
+ *  verifiziert: stratFromLb('short_fading') -> 'fading_short', getLbKey
+ *  ('fading_short') -> 'short_fading', alle 15 Strategien fehlerfrei in
+ *  beiden Modi. Zugehoerige index.html-Aenderung folgt (v507) — Tab-
+ *  Restrukturierung auf den echten Schluessel.
+ *
  *  Version: 2.53.12 (08.09.2026) — FADING_SHORT-PRINZIP UM AKADEMISCHE
  *  FUNDIERUNG ERGÄNZT. "Fading Short" ist kein etablierter akademischer
  *  Fachbegriff — die Evidenz kommt aus der Short-Term-Reversal-/
@@ -5560,7 +5577,17 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
     // ── SHORT-STRATEGIEN ───────────────────────────────────────────────────
 
     fading_short: {
-      lbKey: 'short_fading_ko',
+      // KORRIGIERT (09.09.2026, Axel-Fund): lbKey war 'short_fading_ko' — ein
+      // reiner UI-Workaround-Schluessel, der NIRGENDS im Python-Aggregator
+      // existiert (verifiziert gegen market_aggregator.py, 0 Treffer). Der
+      // ECHTE, datentragende Leaderboard-Schluessel ist 'short_fading'
+      // (top20("sFading", 35) in market_aggregator.py) — stratFromLb()
+      // konnte diesen bisher nicht auf 'fading_short' aufloesen (Ursache
+      // des seit 06.09.2026 dokumentierten Mislabeling-Bugs), wodurch der
+      // Leaderboard-Tab mit den ECHTEN Kandidatendaten dauerhaft ohne
+      // funktionierenden KI-Button blieb, waehrend ein separat erfundener,
+      // datenloser 'short_fading_ko'-Tab die einzige KI-Anbindung trug.
+      lbKey: 'short_fading',
       label: 'Fading-Short-Setups (experimentell)',
       hint:  '🔻 Fading Short (experimentell): KO-Short · Gegentrend · BULL_FRAGILE/STRESS',
       color: 'var(--red)',
