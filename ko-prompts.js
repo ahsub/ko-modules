@@ -1,6 +1,53 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
+ *  Version: 2.53.12 (08.09.2026) — FADING_SHORT-PRINZIP UM AKADEMISCHE
+ *  FUNDIERUNG ERGÄNZT. "Fading Short" ist kein etablierter akademischer
+ *  Fachbegriff — die Evidenz kommt aus der Short-Term-Reversal-/
+ *  Overreaction-Literatur: Lehmann (1990, "Fads, Martingales, and Market
+ *  Efficiency", QJE) und Jegadeesh (1990, "Evidence of Predictable
+ *  Behavior of Security Returns", Journal of Finance) belegen kurzfristige
+ *  negative Autokorrelation nach extremen Bewegungen — begruendet, warum
+ *  Fading Short NICHT als "Short Momentum" zu verstehen ist. De Bondt/
+ *  Thaler (1989) liefert den Overreaction-Gedanken. WICHTIGSTER FUND:
+ *  Daniel & Moskowitz (2016, "Momentum Crashes", Journal of Financial
+ *  Economics) liefert die wissenschaftliche Begruendung fuer die bereits
+ *  bestehende "Extension ist kein Short-Signal"-Trennung — Momentum-
+ *  Strategien koennen in volatilen Marktphasen massive Crashs erleiden,
+ *  ein extrem gestiegener Titel kann deutlich laenger/staerker
+ *  weiterlaufen als eine reine Ueberdehnungs-Beobachtung nahelegt. Damit
+ *  ist die bereits im Code eingebaute Squeeze-Schutz-Logik (HVP>=85
+ *  senkt das Signal) jetzt auch theoretisch fundiert, nicht nur empirisch
+ *  in der Scoring-Formel verankert. Funktional verifiziert: alle Zitate
+ *  in Public UND EIC, verifizierte Modell-Logik unveraendert erhalten,
+ *  alle 14 uebrigen Strategien fehlerfrei in beiden Modi.
+ *
+ *  Version: 2.53.11 (08.09.2026) — FADING_SHORT EIC-MIGRATION (neunte
+ *  Equity-Strategie). Reviewer-Architekturvorschlag GEGEN DEN ECHTEN
+ *  AGGREGATOR-CODE verifiziert (score_short_fading() vollstaendig
+ *  gelesen) — Besonderheit: die vorgeschlagene Logik existiert in
+ *  wesentlichen Teilen BEREITS, praeziser und mehrfach ueberarbeitet
+ *  ("Gemini-Fix"), als der Reviewer angenommen hatte. ZWEI REVIEWER-
+ *  ANNAHMEN ALS FALSCH IDENTIFIZIERT und NICHT uebernommen: (1) Reviewer
+ *  vermutete hohes Volumen als Erschoepfungssignal — echte Logik nutzt
+ *  NIEDRIGES Volumen (volRatio<0.80) + negativen OBV. (2) HVP-Richtung:
+ *  echte Logik behandelt sehr hohes HVP (>=85) als NEGATIV (Squeeze-
+ *  Schutz), keine "hohe Vola = besseres Signal"-Heuristik. focus[]/
+ *  principle jetzt mit der ECHTEN, verifizierten dist_atr-/RSI-/HVP-/
+ *  Squeeze-Gate-Logik konkretisiert statt der ungeprueften Hypothese.
+ *  NEBENFUND (Backlog-Dokument): calc_last_swing_high() im Aggregator
+ *  existiert, explizit "fuer Short Stop-Loss" kommentiert, wird aber
+ *  NIRGENDS aufgerufen — toter Code, waere ein guenstiger naechster
+ *  Schritt fuer einen echten UIQ-Stop-Referenzwert. Groesserer Architektur-
+ *  vorschlag (3-Score-Split, Momentum-Failure-Trigger, ADX-Verschlechterung
+ *  statt -Hoehe, RS-Rating als Gegen-Signal) als Backlog dokumentiert
+ *  (UIQ_FadingShort_Architecture_Proposal_2026-09-08.md). RisikenText/
+ *  modellGrenzeText-Inhalte (Totalverlust-Warnung, Produkt-Grenze) ins
+ *  principle verschoben, da _eicMasterPrompt() diese Felder nicht liest
+ *  (derselbe Fund wie bei cc/collar/dividend). Funktional verifiziert:
+ *  Equity-Block korrekt, alle verifizierten Fakten im EIC-Output, alle
+ *  14 uebrigen Strategien fehlerfrei in beiden Modi.
+ *
  *  Version: 2.53.10 (08.09.2026) — DIVIDEND-PRINZIP UM FUENF WEITERE
  *  QUELLEN ANGEREICHERT (Charles B. Carlson, "The Little Book of Big
  *  Dividends"; Jeremy Siegel, "Stocks for the Long Run", 6. Auflage;
@@ -5518,7 +5565,10 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
       hint:  '🔻 Fading Short (experimentell): KO-Short · Gegentrend · BULL_FRAGILE/STRESS',
       color: 'var(--red)',
       focus: [
-        "Ueberhitzungsgrad: wie deutlich liegt der RSI-Wert ueber der 75-Schwelle?",
+        "Ueberhitzungsgrad (KORRIGIERT/KONKRETISIERT 08.09.2026 anhand der echten sFading-Scoring-Logik im Aggregator, nicht nur der bisherigen vagen '75-Schwelle'): RSI-Gate liegt bei >68 (darunter kein Fading-Signal), gestaffelt staerker ab 75 und nochmals ab 80 — IMMER in Kombination mit der ATR-normalisierten Distanz zur EMA200 nennen (dist_atr = (Kurs-EMA200)/ATR, Gate bei ≥2.5, staerker ab 3.0 und 4.0), NIEMALS RSI isoliert als hinreichendes Signal behandeln.",
+        "Erschoepfungs-Bestaetigung (WICHTIGER KORREKTUR-FUND 08.09.2026): die echte sFading-Logik wertet NIEDRIGES relatives Volumen (volRatio <0.80) plus negativen OBV-Trend als Kauf-Erschoepfungssignal — NICHT hohes Volumen. Ein Reviewer-Vorschlag hatte faelschlich hohes Volumen als Bestaetigung vermutet; die tatsaechlich implementierte, bereits mehrfach ueberarbeitete Logik geht vom Gegenteil aus (nachlassende Kaufaktivitaet, nicht ein finaler Volumen-Spike).",
+        "Squeeze-Schutz (bereits als eigenes Feld im Prompt vorhanden, hier nochmals im Kontext): ein SEHR HOHES HVP (>=85) wirkt in der echten Scoring-Logik NEGATIV auf das Fading-Signal (Short-Squeeze-/Meme-Stock-Gefahr), waehrend ein NIEDRIGES HVP (<=40) das Signal eher staerkt (ruhiger Erschoepfungs-Peak, kein aufgestautes Squeeze-Potenzial) — das ist eine bewusste Umkehrung der naiven Annahme 'hohe Volatilitaet = besseres Short-Signal'.",
+        "Harte Ausschlusskriterien der echten Logik (bei Erwaehnung als UIQ-Modell-Fakten benennen, nicht als eigene Einschaetzung): Titel unter $15 werden grundsaetzlich ausgeschlossen (Penny-Stock-Schutz); ein Titel innerhalb 1% seines 52-Wochen-Hochs wird NIE als Fading-Kandidat gefuehrt (kein Short gegen ein frisches Allzeit-/Jahreshoch); Squeeze-Risk ab 70 schliesst den Titel komplett aus.",
         "Regime-Voraussetzung: ist das aktuelle Regime (BULL_FRAGILE/STRESS_UNSTABLE) ueberhaupt fuer Fading Short geeignet?",
         "Underlying ≠ Produkt (KO-Short-spezifisch, analog zu KO-Long): UIQ bewertet die technische Ueberhitzung des Basiswerts, NICHT ein konkretes KO-Short-Zertifikat (Barriere, Hebel, Spread, Finanzierungskosten, Emittent, Liquiditaet sind UIQ nicht bekannt). WICHTIG (aktualisiert 07.09.2026 — echte IV-Perzentil-Daten integriert, s. ivpPercentile-Feld): weder HVP (historische realisierte Volatilitaet) noch ivpPercentile (implizite Volatilitaet, falls fuer den Titel verfuegbar) sind ein Mass fuer den Hebel, die Produktvolatilitaet oder die KO-Wahrscheinlichkeit eines konkreten Zertifikats.",
         "RSI-Ueberhitzung ≠ KO-Abstand: der RSI-Wert misst die kurzfristige Ueberhitzung des Basiswerts, NIEMALS den tatsaechlichen Puffer zur KO-Barriere des konkreten Short-Zertifikats — ein extremer RSI-Wert beschreibt eine ausgepraegte kurzfristige Ueberhitzung (reine Ebene-1-Beobachtung), OHNE dass daraus eine Aussage ueber die Naehe zur tatsaechlichen Produkt-Barriere folgt.",
@@ -5535,6 +5585,26 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
       // Bestaetigt 06.09.2026 (Axel): fading_short ist NUR im Scanner-Tab
       // vorhanden, nicht im Alpha Desk — dieser Pfad ist live/testbar.
       prompt: function(ctx) {
+        // ERGAENZT (08.09.2026, Reviewer-Architekturvorschlag gegen den
+        // ECHTEN Aggregator-Code verifiziert — score_short_fading() in
+        // market_aggregator.py vollstaendig gelesen, nicht nur die
+        // Doku-Kommentare). Zwei wichtige Korrekturen gegenueber dem
+        // Reviewer-Vorschlag: (1) Erschoepfung zeigt sich laut echter
+        // Logik durch NIEDRIGES Volumen (volRatio<0.80), nicht hohes, wie
+        // der Reviewer vermutete. (2) HVP wirkt gegenlaeufig zur naiven
+        // Annahme — SEHR HOHES HVP (>=85) SENKT das Signal (Squeeze-
+        // Schutz), SEHR NIEDRIGES HVP (<=40) STAERKT es leicht. Groesserer
+        // Architekturvorschlag (3-Score-Split Extension/Exhaustion/Short-
+        // Risk, Momentum-Failure-Trigger als Hypothese) als Backlog
+        // dokumentiert (UIQ_FadingShort_Architecture_Proposal_2026-09-08.md).
+        // NEBENFUND: calc_last_swing_high() existiert im Aggregator, ist
+        // laut eigenem Kommentar explizit "fuer Short Stop-Loss" gedacht,
+        // wird aber NIRGENDS aufgerufen (toter Code, kein Feld im
+        // ausgegebenen Payload) — waere ein guenstiger naechster Schritt,
+        // um einen echten UIQ-berechneten Stop-Referenzwert fuer Fading
+        // Short UND Breakdown zu bekommen, aber HEUTE nicht nutzbar, da
+        // nicht tatsaechlich exportiert.
+        var principleText = 'Fading Short (experimentell) handelt KO-Zertifikate in Short-Richtung auf technisch überhitzte Basiswerte innerhalb eines übergeordneten Bullmarktes — ein bewusster Gegentrend-Ansatz, der auf eine kurzfristige Erschöpfung/Korrektur eines stark gelaufenen Titels setzt, NICHT auf eine Trendumkehr des Gesamtmarkts. Wie alle KO-Zertifikate sind sie gehebelte Hebelprodukte (typisch 3-8x), die bei Berührung der KO-Barriere wertlos verfallen — reine kurzfristige Trading-Instrumente (Tage bis wenige Wochen). Bei der Produktauswahl sind Laufzeit, Finanzierungskosten, KO-Barriere, Abstand zur Barriere, Emittentenbedingungen und Liquidität des konkreten Produkts zu prüfen. Für viele US-Aktien ist die Emission solcher Hebelprodukte für Privatanleger seit einer US-Steuerregeländerung 2017 eingeschränkt oder gar nicht verfügbar. Besonderer Risikohinweis: Ein KO-Ereignis führt in der Regel zum sofortigen Totalverlust des in der Position eingesetzten Kapitals. Wichtige Abgrenzung: UIQ bewertet die technische Überhitzung des Basiswerts — die Eignung eines konkreten KO-Short-Zertifikats kann ohne produktspezifische Daten nicht beurteilt werden. Status EXPERIMENTELL: nur in klar definierten Regimen relevant, ein Gegentrend-Ansatz im laufenden Bullmarkt trägt strukturell erhöhtes Risiko gegenüber trendfolgenden Strategien. Akademische Fundierung (ERGÄNZT 08.09.2026 — "Fading Short" ist kein etablierter akademischer Fachbegriff, die Evidenz kommt aus der Short-Term-Reversal-/Overreaction-Literatur): Lehmann (1990, "Fads, Martingales, and Market Efficiency", Quarterly Journal of Economics) und Jegadeesh (1990, "Evidence of Predictable Behavior of Security Returns", Journal of Finance) dokumentieren kurzfristige negative Autokorrelation bei Aktienrenditen — außergewöhnlich starke kurzfristige Bewegungen tendieren zu einer Gegenbewegung, während auf mittleren Zeithorizonten das gegenteilige Muster (Momentum, positive Autokorrelation) auftritt. Das begründet, warum Fading Short NICHT als "Short Momentum" verstanden werden darf, sondern als eigenständige, gegenläufige Hypothese. De Bondt/Thaler (1989) liefert den zugrundeliegenden Overreaction-Gedanken. WICHTIGSTE WARNUNG aus der Literatur (Daniel & Moskowitz, 2016, "Momentum Crashes", Journal of Financial Economics): Momentum-Strategien können in bestimmten Marktphasen (insbesondere hohe Volatilität, abrupte Markt-Rebounds) massive, schnelle Verluste erleiden — ein extrem gestiegener Titel kann erheblich länger und stärker weiterlaufen, als eine reine Überdehnungs-Beobachtung nahelegt. Das ist die wissenschaftliche Begründung für die bestehende Trennung "Extension ist kein Short-Signal" — erst Extension in Kombination mit tatsächlicher Momentum-Erschöpfung (s. Modell-Logik unten) und einem dafür geeigneten Marktumfeld macht daraus einen Kandidaten, niemals Extension allein. Konkrete Modell-Logik (verifiziert gegen die tatsächliche score_short_fading()-Funktion, 08.09.2026): ATR-normalisierte Distanz zur EMA200 (dist_atr) als primäres Extensionsmaß, Gate bei ≥2.5, stärker ab 3.0/4.0 — plus RSI-Gate bei >68, stärker ab 75/80. Erschöpfungsbestätigung erfolgt durch NACHLASSENDES Volumen (volRatio <0.80) und negativen OBV-Trend, NICHT durch einen Volumen-Spike. Ein sehr hohes HVP (≥85) senkt das Signal (Short-Squeeze-Gefahr), ein sehr niedriges HVP (≤40) stärkt es leicht (ruhiger Erschöpfungs-Peak). Harte Ausschlüsse: Kurs unter $15, Titel innerhalb 1% seines 52-Wochen-Hochs (nie gegen ein frisches Hoch shorten), Squeeze-Risk ≥70. BEGRIFFS-/RISIKO-KLARSTELLUNGEN (gelten für EIC genauso wie für Public — _eicMasterPrompt() liest KEIN separates risikenText-/modellGrenzeText-Feld, deshalb hier im principle verankert): ein KO-Ereignis führt in der Regel zum sofortigen und vollständigen Verlust des eingesetzten Kapitals — ein grundlegend anderes Risikoprofil als eine klassische Short-Aktienposition. Bei einem hohen RSI-Wert NIEMALS von "erhöhter KO-Wahrscheinlichkeit" oder "näher an der Barriere" sprechen (impliziert, UIQ kenne die tatsächliche Barriere) — stattdessen rein deskriptiv: eine ausgeprägte kurzfristige Überhitzung des Basiswerts. Das Gegentrend-Risiko explizit benennen: ein Short-Ansatz gegen einen übergeordneten Bullmarkt-Trend trägt strukturell höheres Risiko als ein trendfolgender Long-Ansatz. UIQ kann ohne produktspezifische Zertifikatsdaten nicht beurteilen, welches konkrete KO-Short-Zertifikat hinsichtlich Hebel, KO-Abstand, Spread, Finanzierungskosten, Emittentenrisiko und Liquidität geeignet ist.';
         if (!ctx.isEic) {
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst technisch überhitzte Titel auf strukturelle Eignung für einen experimentellen KO-Short-Gegentrend-Ansatz (nur BULL_FRAGILE/STRESS_UNSTABLE-Regime) auf Basis technischer Kennzahlen DES BASISWERTS. UIQ bewertet ausschliesslich den Basiswert, NICHT ein konkretes KO-Short-Produkt (Barriere, Hebel, Spread, Finanzierungskosten, Emittent und Liquidität sind UIQ nicht bekannt).',
@@ -5543,7 +5613,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
             focus: STRATEGIES.fading_short.focus,
             maxWords: 500,
             istOptionsStrategie: false,
-            principle: 'Fading Short (experimentell) handelt KO-Zertifikate in Short-Richtung auf technisch überhitzte Basiswerte innerhalb eines übergeordneten Bullmarktes — ein bewusster Gegentrend-Ansatz, der auf eine kurzfristige Erschöpfung/Korrektur eines stark gelaufenen Titels setzt, NICHT auf eine Trendumkehr des Gesamtmarkts. Wie alle KO-Zertifikate sind sie gehebelte Hebelprodukte (typisch 3-8x), die bei Berührung der KO-Barriere wertlos verfallen — reine kurzfristige Trading-Instrumente (Tage bis wenige Wochen). Bei der Produktauswahl sind Laufzeit, Finanzierungskosten, KO-Barriere, Abstand zur Barriere, Emittentenbedingungen und Liquidität des konkreten Produkts zu prüfen. Für viele US-Aktien ist die Emission solcher Hebelprodukte für Privatanleger seit einer US-Steuerregeländerung 2017 eingeschränkt oder gar nicht verfügbar. Besonderer Risikohinweis: Ein KO-Ereignis führt in der Regel zum sofortigen Totalverlust des in der Position eingesetzten Kapitals. Wichtige Abgrenzung: UIQ bewertet die technische Überhitzung des Basiswerts — die Eignung eines konkreten KO-Short-Zertifikats kann ohne produktspezifische Daten nicht beurteilt werden. Status EXPERIMENTELL: nur in klar definierten Regimen relevant, ein Gegentrend-Ansatz im laufenden Bullmarkt trägt strukturell erhöhtes Risiko gegenüber trendfolgenden Strategien.',
+            principle: principleText,
             risikenText: 'Zusätzlich IMMER auf das besondere Totalverlust-Risiko von Hebelprodukten '
               + 'hinweisen: ein KO-Ereignis führt in der Regel zum sofortigen und vollständigen '
               + 'Verlust des in dieser Position eingesetzten Kapitals — ein grundlegend anderes '
@@ -5581,17 +5651,18 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
               + 'strategische Abwägung, keine Aussage über den zukünftigen Kursverlauf.)'
           });
         }
-        return KI_ANTI_HALLUZINATION
-          + 'Du bist ein erfahrener Trader mit Fokus auf Fading-Strategien (KO-Short auf überhitzte Titel).\n\n'
-          + '⚠️ Fading Short ist experimentell — nur bei klarem BULL_FRAGILE oder STRESS_UNSTABLE Regime.\n\n'
-          + ctx.marktkontext
-          + '\n\nAUFGABE:\n'
-          + '1. MARKTUMFELD: Gibt es aktuell überhitzte Titel die für Fading Short geeignet sind? '
-          + 'Regime, Fear&Greed und SKEW/VVIX-Divergenz einordnen. (2-3 Sätze)\n'
-          + '2. KANDIDATEN: Titel mit RSI>75, hohem Score und möglichem Momentum-Bruch. '
-          + 'Für jeden: Überhitzungs-Signal, Stop-Level (knapp über 52W-Hoch), Timing-Überlegung.\n'
-          + '3. RISIKEN: Gegentrend-Short im Bullmarkt ist das größte Risiko — explizit benennen.\n'
-          + '\nAntworte auf Deutsch, strukturiert 1-3. Max. 300 Wörter.';
+        // ERSETZT (08.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // neunte und vorletzte migrierte EQUITY-Strategie): der alte EIC-
+        // Zweig war strukturell einfach (kein Ebenen-1-22-Geruest) und
+        // nannte nur "RSI>75" ohne die eigentliche ATR-normalisierte
+        // Distanz-Logik — jetzt vollstaendig im principleText oben.
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst technisch überhitzte Titel auf strukturelle Eignung für einen experimentellen KO-Short-Gegentrend-Ansatz (nur BULL_FRAGILE/STRESS_UNSTABLE-Regime) auf Basis technischer Kennzahlen DES BASISWERTS. UIQ bewertet ausschliesslich den Basiswert, NICHT ein konkretes KO-Short-Produkt (Barriere, Hebel, Spread, Finanzierungskosten, Emittent und Liquidität sind UIQ nicht bekannt).',
+          stratName: 'Fading-Short-Setups (experimentell)',
+          focus: STRATEGIES.fading_short.focus,
+          istOptionsStrategie: false,
+          principle: principleText
+        });
       }
     },
 
