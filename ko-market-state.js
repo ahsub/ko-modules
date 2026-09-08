@@ -1,5 +1,26 @@
 /**
- * ko-market-state.js — Market State Engine v2.7
+ * ko-market-state.js — Market State Engine v2.8
+ * ================================================
+ * NEU in v2.8 (09.09.2026, Axel-Entscheidung — Revision der 17.07.-
+ * Entscheidung): dividend/value/breakdown fehlten komplett in
+ * STRATEGY_ORDER/STRATEGY_LABELS/getStrategyGates() — 3 von inzwischen 15
+ * UIQ-Strategien hatten dadurch KEINE Regime-Ampel-Anbindung, obwohl alle
+ * drei laengst echte, produktive STRATEGIES-Eintraege in ko-prompts.js
+ * haben (Scanner-Dropdown, Alpha-Desk-Leaderboard, Options-/Value-Desk).
+ * Die alte Begruendung ("keine Timing-Strategien, keine Prioritaet-1 in
+ * irgendeinem Regime") bleibt fuer die FARBSCHAERFE zutreffend (dividend/
+ * value zeigen bewusst keine scharfen An/Aus-Signale wie momentum), aber
+ * rechtfertigt keinen kompletten Ausschluss — auch Value-/Dividend-
+ * Investing hat echte regimeabhaengige Nuancen (s. ko-prompts.js
+ * STRATEGIES.value/.dividend.principle: Fama-French-Stress-Dislokationen,
+ * Siegels Yield-Trap-Quintil-Befund). Alle drei jetzt mit begruendeten,
+ * unterschiedlichen Notizen je Regime ergaenzt (keine Wiederholungs-
+ * Floskeln). breakdown als Trendfolge-Short-Pendant zu fading_short
+ * (Gegentrend/Erschoepfung) behandelt: STRESS_UNSTABLE=Prioritaet 1,
+ * POST_PANIC=reduzieren (spiegelt fading_shorts eigene Behandlung dort).
+ * Vollstaendigkeit programmatisch verifiziert: alle 15 Strategien in
+ * allen 5 Regimen vorhanden, STRATEGY_LABELS deckt alle ab.
+ *
  * ================================================
  * Bestimmt das übergeordnete Markt-Regime aus normalisierten
  * Dark-Pool, Volatilitäts- und Flow-Indikatoren.
@@ -110,8 +131,23 @@ var KoMarketState = {
   // Timing-Strategien, in KEINEM der 5 Regime Prioritaet-1 — Buy-and-Hold-
   // Konzept gehoert ins spaetere DepotIQ-Modul. VCP ergaenzt (Stage-2-Setup,
   // nahe Momentum/Breakout in der Reihenfolge).
+  // ERGÄNZT (09.09.2026, Axel-Entscheidung — Revision der 17.07.-Entscheidung):
+  // dividend/value/breakdown fehlten komplett, obwohl alle drei laengst echte,
+  // produktive STRATEGIES-Eintraege haben (Scanner-Dropdown, Alpha-Desk-
+  // Leaderboard, Options-/Value-Desk). Die alte Begruendung ("keine Timing-
+  // Strategien, keine Prioritaet-1 in irgendeinem Regime") bleibt fuer die
+  // FARBSCHAERFE zutreffend (dividend/value zeigen bewusst KEINE scharfen
+  // An/Aus-Signale wie momentum), aber das rechtfertigt keinen kompletten
+  // Ausschluss aus der Ampel — auch Value-/Dividend-Investing hat echte
+  // regimeabhaengige Nuancen (s. Carlins Fama-French-Befund: echte Value-
+  // Dislokationen entstehen gerade in Stressphasen, s. ko-prompts.js
+  // STRATEGIES.value.principle). breakdown ist das Trendfolge-Pendant zu
+  // fading_short (Death-Cross/Distribution statt Gegentrend-Erschoepfung)
+  // und folgt strukturell demselben Regime-Muster.
   STRATEGY_ORDER: ['ko', 'momentum', 'breakout', 'vcp', 'swing', 'meanrev',
-                   'csp_wheel', 'atmna', 'weekly_income', 'cc', 'collar', 'fading_short'],
+                   'dividend', 'value',
+                   'csp_wheel', 'atmna', 'weekly_income', 'cc', 'collar',
+                   'fading_short', 'breakdown'],
 
   STRATEGY_LABELS: {
     ko:            '⚡ KO-Zertifikat',
@@ -120,12 +156,15 @@ var KoMarketState = {
     vcp:           '📐 VCP-Setup',
     swing:         '🔄 Swing',
     meanrev:       '↩️ Mean Rev.',
+    dividend:      '💰 Dividend Growth',
+    value:         '📊 Value',
     csp_wheel:     '⚙️ CSP/Wheel',
     atmna:         '🎯 CSP (ATM/NA)',
     weekly_income: '💰 CSP (Weekly)',
     cc:            '📝 Covered Call',
     collar:        '🛡️ Collar/Protective Put',
     fading_short:  '🔻 Fading Short (experimentell)',
+    breakdown:     '📉 Breakdown',
   },
 
   // ── KONFIGURATION ──────────────────────────────────────────────
@@ -348,11 +387,11 @@ var KoMarketState = {
 
   // ── STRATEGY ROUTER ────────────────────────────────────────────
   getStrategyGates(regime) {
-    // ── Alle 12 UIQ-Strategien, regelbasiert je Regime (v2.2.0) ──────────────
-    // Long-Strategien: momentum, swing, breakout, ko, value, dividend
-    // Income-Strategien: csp_wheel, weekly_income, atmna, cc (Covered Call, eigenständig ab 11.07.2026)
+    // ── Alle 15 UIQ-Strategien, regelbasiert je Regime (v2.3.0, 09.09.2026) ──
+    // Long-Strategien: momentum, swing, breakout, ko, value, dividend, vcp
+    // Income-Strategien: csp_wheel, weekly_income, atmna, cc, collar
     // Bidirektional: meanrev
-    // Short-Strategie: fading_short
+    // Short-Strategien: fading_short (Gegentrend/Erschöpfung), breakdown (Trendfolge)
     var gates = {
       BULL_QUIET: {
         label:       '🟢 BULL QUIET — Stabil & Unterstützt',
@@ -368,9 +407,12 @@ var KoMarketState = {
           weekly_income:{ active: true,  color: 'green',  note: 'PRIORITÄT 2 — Covered Calls & Cash-Secured Puts freigegeben' },
           cc:           { active: true,  color: 'green',  note: 'PRIORITÄT 2 — Buy-Write auf Qualitätstitel, hohe Prämien bei geringem Gap-Risiko' },
           vcp:          { active: true,  color: 'green',  note: 'PRIORITÄT 1 — Ideales Contraction→Breakout-Umfeld, Vol komprimiert' },
+          dividend:     { active: true,  color: 'green',  note: 'MÖGLICH — stabiles Umfeld für Positionsaufbau zu fairen Bewertungen, aber wenige echte Schnäppchen (die attraktivsten Dividend-Einstiege entstehen typischerweise NICHT in ruhigen Bullmärkten, s. Siegels Quintil-Befund)' },
+          value:        { active: true,  color: 'amber',  note: 'EINGESCHRÄNKTES ANGEBOT — die meisten Titel fair bis hoch bewertet in stabilem Bullmarkt, echte Sicherheitsmargen selten (s. Fama-French-Befund: die stärkste Value-Prämie entsteht typischerweise NICHT in ruhigen Aufwärtsphasen)' },
           collar:       { active: false, color: 'amber',  note: 'NICHT NÖTIG — stabiles Regime, Absicherungskosten unnötig' },
           meanrev:      { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — kein Oversold-Signal in Bullmarkt' },
           fading_short: { active: false, color: 'red',    note: 'GESPERRT — Gegentrend-Short in stabilem Bullmarkt' },
+          breakdown:    { active: false, color: 'red',    note: 'GESPERRT — kein Abwärtstrend im stabilen Bullmarkt zu erwarten (Trendfolge-Short, kein Gegentrend-Setup)' },
         },
         action: 'Strategischer Kontext: Trendfolge/Breakout laut Modell bevorzugt; Income-Strategien eingeschränkt',
       },
@@ -386,11 +428,14 @@ var KoMarketState = {
           cc:           { active: true,  color: 'amber',  note: 'EINSCHRÄNKEN — nur auf bereits gehaltene Qualitätstitel, defensive Strikes' },
           atmna:        { active: true,  color: 'amber',  note: 'EINSCHRÄNKEN — defensiver Strike-Abstand' },
           collar:       { active: true,  color: 'green',  note: 'PRIORITÄT 1 — Genau das Setup fuer das dieses Regime steht: Trend intakt, Air-Pocket-Risiko absichern' },
+          dividend:     { active: true,  color: 'green',  note: 'MÖGLICH — Qualitäts-Dividendentitel gelten oft als defensiver bei zunehmender Nervosität, Yield-Trap-Prüfung (payoutRatio/fcfYield) besonders wichtig' },
+          value:        { active: true,  color: 'amber',  note: 'BEOBACHTEN — erste Bewertungsdislokationen können bei zunehmender interner Schwäche entstehen, Value-Trap-Risiko bei diesem Regime erhöht' },
           vcp:          { active: false, color: 'amber',  note: 'VORSICHT — Contractions moeglich, aber Air-Pocket-Risiko bei Ausbruch' },
           breakout:     { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — Fehlausbrüche möglich bei erhöhter Vol' },
           ko:           { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — Hebelrisiko bei Air-Pocket erhöht' },
           meanrev:      { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — kein klares Oversold-Umfeld' },
           fading_short: { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — Trend intakt, Short-Risiko zu hoch' },
+          breakdown:    { active: false, color: 'amber',  note: 'SELEKTIV BEOBACHTEN — einzelne Titel koennen bereits Distribution/Death-Cross zeigen, obwohl der Gesamtindex noch haelt (interne Schwaeche unter der Oberflaeche) — noch keine breite Bestaetigung' },
         },
         action: 'Gesamteinschätzung: Engere Stops · Collar/Protective Put auf Bestandspositionen pruefen',
       },
@@ -404,6 +449,8 @@ var KoMarketState = {
           csp_wheel:    { active: true,  color: 'amber',  note: 'NUR DEFENSIV — deutlich defensivere Strike-Nähe, krisenresistente Value-Titel (konkreter Delta-Bereich im Broker)' },
           cc:           { active: true,  color: 'amber',  note: 'SELEKTIV — nur auf bereits gehaltene Positionen, keine Neupositionen zum Buy-Write' },
           collar:       { active: true,  color: 'amber',  note: 'ZU SPÄT FÜR NEUABSICHERUNG — Put-Praemien bereits stark verteuert (hohe IV); bestehende Collars halten' },
+          dividend:     { active: true,  color: 'amber',  note: 'SELEKTIV — Renditen nach Kursverfall optisch hoch, Payout-Ratio UND Free-Cashflow-Deckung besonders sorgfältig prüfen (Yield-Trap-Risiko in Stressphasen am größten — Siegels Quintil-Befund: die höchsten Renditen entstehen oft bei Titeln kurz vor einer Kürzung)' },
+          value:        { active: true,  color: 'amber',  note: 'SELEKTIV — genau hier entstehen laut Fama-French-Daten die stärksten Value-Dislokationen, aber Value-Trap-Risiko ebenfalls am höchsten (fundamentale Qualitätsprüfung nicht überspringen)' },
           vcp:          { active: false, color: 'red',    note: 'GESPERRT — keine Contraction-Struktur in Stressphase moeglich' },
           momentum:     { active: false, color: 'red',    note: 'GESPERRT — fallende Messer nicht anfassen' },
           swing:        { active: false, color: 'red',    note: 'GESPERRT — Fehlausbrüche dominant, keine Trendstruktur' },
@@ -411,6 +458,7 @@ var KoMarketState = {
           ko:           { active: false, color: 'red',    note: 'GESPERRT — Long-Hebelprodukte im Downtrend verboten' },
           atmna:        { active: false, color: 'red',    note: 'GESPERRT — erhöhte IV-Risiken, Gap-Gefahr zu hoch' },
           weekly_income:{ active: false, color: 'red',    note: 'GESPERRT — Short-Put-Risiko bei fortgesetztem Downtrend' },
+          breakdown:    { active: true,  color: 'green',  note: 'PRIORITÄT 1 — genau das Umfeld fuer das diese Trendfolge-Short-Strategie steht: bestaetigter Abwaertstrend, Distribution/Death-Cross-Setups vorhanden' },
         },
         action: 'Gesamteinschätzung: Positionen absichern (experimentell: Fading-Short pruefen) · Defensive CSPs selektiv',
       },
@@ -424,6 +472,8 @@ var KoMarketState = {
           atmna:        { active: true,  color: 'green',  note: 'PRIORITÄT 1 — ATM-Prämien bei hoher IV gut kompatibel' },
           weekly_income:{ active: true,  color: 'green',  note: 'PRIORITÄT 2 — Vol-Crush nutzen für Income' },
           cc:           { active: true,  color: 'green',  note: 'PRIORITÄT 2 — erhöhte IV nach Panik für Buy-Write nutzen, hohe Prämien' },
+          dividend:     { active: true,  color: 'green',  note: 'PRIORITÄT 2 — Renditen nach dem Kursrückgang oft attraktiv, sofern Fundamentaldaten die Ausschüttung weiterhin tragen (Yield-Trap-Check bleibt Pflicht)' },
+          value:        { active: true,  color: 'green',  note: 'PRIORITÄT 2 — echte Bewertungsdislokationen aus der Stressphase oft noch nicht vollständig eingepreist, Sicherheitsmarge meist am größten kurz nach der Panik' },
           fading_short: { active: false, color: 'amber',  note: 'REDUZIEREN — Short-Positionen bei Bodenbildung abbauen' },
           collar:       { active: false, color: 'amber',  note: 'ABBAUEN — bestehende Collars nach Vol-Crush aufloesen, Put-Wert gesunken' },
           vcp:          { active: false, color: 'red',    note: 'ZU FRÜH — kein Stage-2-Trend etabliert nach Panik' },
@@ -431,6 +481,7 @@ var KoMarketState = {
           swing:        { active: false, color: 'red',    note: 'WARTEN — Trendbestätigung abwarten (2-3 Wochen)' },
           breakout:     { active: false, color: 'red',    note: 'ZU FRÜH — kein nachhaltiger Trend nach Panik' },
           ko:           { active: false, color: 'red',    note: 'ZU FRÜH — Long-Hebel erst nach Trendbestätigung' },
+          breakdown:    { active: false, color: 'amber',  note: 'REDUZIEREN — bestehende Trendfolge-Short-Positionen bei Bodenbildung abbauen, keine Neupositionen (spiegelt fading_short-Behandlung in dieser Phase)' },
         },
         action: 'Gesamteinschätzung: Mean Reversion & Income Priorität 1 · Vol-Crush nutzen',
       },
@@ -446,11 +497,14 @@ var KoMarketState = {
           cc:           { active: true,  color: 'amber',  note: 'KONSERVATIV — nur auf bereits gehaltene Qualitätstitel' },
           atmna:        { active: true,  color: 'amber',  note: 'KONSERVATIV — nur klare Setups' },
           collar:       { active: false, color: 'amber',  note: 'OPTIONAL — bei bereits gehaltenen Gewinn-Positionen als Vorsichtsmassnahme moeglich' },
+          dividend:     { active: true,  color: 'amber',  note: 'KONSERVATIV — Fundamentalstärke besonders sorgfältig prüfen bei uneindeutigem Marktumfeld' },
+          value:        { active: true,  color: 'amber',  note: 'SELEKTIV — nur bei klarer, gut begründeter Sicherheitsmarge' },
           vcp:          { active: false, color: 'amber',  note: 'BEOBACHTEN — Contraction-Struktur pruefen, Ausbruch noch unsicher' },
           breakout:     { active: false, color: 'red',    note: 'ABWARTEN — gemischte Signale erhöhen Fehlausbruch-Risiko' },
           ko:           { active: false, color: 'red',    note: 'ABWARTEN — kein klares Trend-Signal für Hebelprodukte' },
           meanrev:      { active: false, color: 'amber',  note: 'SELEKTIV — nur bei extremem Oversold-Signal' },
           fading_short: { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — kein klares Short-Signal' },
+          breakdown:    { active: false, color: 'red',    note: 'NICHT EMPFOHLEN — kein bestaetigter Abwaertstrend bei gemischten Signalen' },
         },
         action: 'Gesamteinschätzung: Selektiv vorgehen · Nur höchste Qualität · Kein Leverage',
       },
@@ -647,4 +701,4 @@ KoMarketState.loadHistoryFromAggregator().then(function(ok) {
   if (ok) console.log('[MSE v2] Aggregator-History bereit — Z-Scores sofort zuverlässig');
 });
 
-console.log('[ko-market-state.js] v2.7 geladen — regime_v2 (VIX3M/VIX-Ratio + GEX-Override), keine VVIX/SKEW-Abhaengigkeit mehr fuers Regime');
+console.log('[ko-market-state.js] v2.8 geladen — regime_v2 (VIX3M/VIX-Ratio + GEX-Override), keine VVIX/SKEW-Abhaengigkeit mehr fuers Regime, alle 15 Strategien mit Regime-Gates');
