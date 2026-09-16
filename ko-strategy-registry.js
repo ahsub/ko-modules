@@ -30,6 +30,50 @@
  * wiederholen. Synchrones <script>, muss im HTML VOR ko-prompts.js und
  * VOR ko-strategies.js eingebunden werden.
  *
+ * Version: 1.5 (16.09.2026 — Canonical Strategy Ontology, Phase 1. Neues
+ *   `ontology`-Feld je Strategie: { style, setup, methodology, vehicle,
+ *   structure }. Fünf Achsen, bewusst OHNE eigene Kombinatorik-Engine (Phase 2,
+ *   nicht Teil dieser Version) — reine Metadaten-/Semantikschicht, ändert
+ *   nichts an bestehenden Scores/Prompts/Leaderboards/Strategy-Matching.
+ *   Entscheidungsverlauf (Ontologie-Review 16.09.2026):
+ *     - Minervini/SEPA ist METHODOLOGY, nicht SETUP (long_minervini bekommt
+ *       setup:'Momentum', methodology:'Minervini_SEPA'; ko_long dieselbe
+ *       Setup/Methodology-Kombination, aber vehicle:'KO' statt 'Stock' —
+ *       dieselbe Investment-Idee, andere Instrumentierung).
+ *     - FUNCTION (Income/Growth/Hedge/...) bewusst NICHT als sechste
+ *       Dimension aufgenommen — Scope-Disziplin, ggf. spätere Erweiterung.
+ *     - DIRECTION bewusst NICHT als eigene Top-Level-Achse: bei Multi-Leg-
+ *       Optionsstrukturen (CC = short call + long stock, Collar = long
+ *       stock + long put + short call) semantisch nicht sauber auf
+ *       Strategieebene abbildbar. Stattdessen bei Stock/KO in `structure`
+ *       kodiert (Direct_Long/Direct_Short, KO_Long) — sonst wäre Richtung
+ *       nirgends erfasst (dieselbe Lücke, die bei Optionen vermieden wurde).
+ *     - CSP-Varianten (csp_wheel/atmna/weekly_income) NICHT auf identisches
+ *       `structure` reduziert — teilen structure.type:'CSP', unterscheiden
+ *       sich über structure.variant ('Wheel'/'ATM_NA'/'Weekly'). Bleiben
+ *       eigenständige UIQ-Strategierezepte, keine künstliche Gleichsetzung.
+ *     - KORREKTUR (zweite Review-Runde): style bei allen fünf Options-
+ *       Strategien (csp_wheel/atmna/weekly_income/cc/collar) auf `null`
+ *       statt 'Income'/'Protection' — das sind Funktionsbeschreibungen,
+ *       keine Investment-Styles im Sinne der STYLE-Achse (Value/Quality/
+ *       Growth/Dividend/LowVol). "Lieber ein Feld leer lassen als eine
+ *       semantisch falsche Information hineinschreiben."
+ *     - Standort geprüft: master_market_data.json.strategyMeta ist reine
+ *       Laufzeit-Snapshot-Metadaten ({regimeUsed, timestamp, enriched}),
+ *       keine statische Konfiguration — deshalb hier in dieser Registry,
+ *       nicht dort.
+ *   Nebenbefund beim Umsetzen: `lbKey` war bei atmna/collar/weekly_income
+ *   seit 18.08.2026 fälschlich `null` ("kein eigener Leaderboard-Tab") —
+ *   market_aggregator.py liefert alle drei Leaderboards längst (verifiziert
+ *   gegen echte master_market_data.json, 15.09.2026). Korrigiert.
+ *   Neue Funktion getOntology(stratId) — bewusst NICHT in getMeta()
+ *   integriert (andere Konsumenten-Erwartung). getMeta()/getRules() für die
+ *   zehn neuen reinen Ontologie-Einträge (Stock/KO, ohne label/hint/lbKey)
+ *   explizit gegen Regression getestet: liefern weiterhin `null` wie vor
+ *   dieser Version, nicht `undefined` (s. getMeta()-Fix: prüft `s.label`
+ *   statt nur `s`, sonst hätte ein Objekt aus lauter undefined-Feldern
+ *   `null` ersetzt — bei Kombinatorik-Checks à la `if (getMeta(id))` hätte
+ *   das falsch-positiv gegriffen).
  * Version: 1.4 (18.08.2026 — atmna.rules um 3 Punkte ergänzt nach kritischer
  *   Prüfung gegen Eric Ludwig, "Optionen unschlagbar handeln" (von Axel
  *   bereitgestellt): expirationPreference (monatlich vor Weekly),
@@ -81,6 +125,8 @@
       category: 'options',
       color: 'var(--amber)',
       memberOf: 'wheel',
+      ontology: { style: null, setup: null, methodology: null, vehicle: 'Option',
+        structure: { type: 'CSP', variant: 'Wheel' } },
       rules: {
         deltaRange: [0.15, 0.30],       // KORRIGIERT 15.08.2026: Marktstandard-Recherche
                                         // (Theta-Decay/Gamma-Begründung), ersetzt EIC-Prompt-Wert
@@ -118,6 +164,8 @@
       category: 'options',
       color: '#f59e0b',
       memberOf: 'wheel',
+      ontology: { style: null, setup: null, methodology: null, vehicle: 'Option',
+        structure: { type: 'CoveredCall' } },
       rules: {
         deltaRange: [0.20, 0.30],       // unveraendert korrekt, deckt sich mit Marktstandard
         dteRange: [30, 45],             // KORRIGIERT 15.08.2026: war fälschlich [21,45]
@@ -140,10 +188,17 @@
     atmna: {
       label: '🎯 CSP (ATM/NA)',
       hint: '🎯 CSP (ATM/NA): ATM-CSP · 50-70% Frühausstieg · 3-Stufen-Roll · Andienungs-Vermeidung',
-      lbKey: null,                      // kein eigener Leaderboard-Tab (Stand 13.08.2026)
+      // KORRIGIERT 16.09.2026: lbKey war seit 18.08. faelschlich `null` ("kein
+      // eigener Leaderboard-Tab") — market_aggregator.py liefert das
+      // `options_atmna`-Leaderboard laengst (verifiziert gegen echte
+      // master_market_data.json, 15.09.2026). Drift zwischen dieser Registry
+      // und dem tatsaechlichen Aggregator-Output, nicht erst hier entstanden.
+      lbKey: 'options_atmna',
       category: 'options',
       color: '#a371f7',
       memberOf: null,                   // eigenständig, NICHT Teil der Wheel-Composite
+      ontology: { style: null, setup: null, methodology: null, vehicle: 'Option',
+        structure: { type: 'CSP', variant: 'ATM_NA' } },
       rules: {
         deltaRange: null,               // ATM per Definition — kein Delta-Fenster
         dteRange: [30, 30],             // "~30 Tage, bevorzugt 3. Freitag"; Roll-Fenster separat
@@ -198,10 +253,14 @@
     collar: {
       label: '🛡️ Collar/Protective Put',
       hint: '🛡️ Collar/Protective Put: Absicherung Bestandsposition · BULL_FRAGILE · Proxy-Strikes',
-      lbKey: null,
+      // KORRIGIERT 16.09.2026: s. Kommentar bei atmna — options_collar-Leaderboard
+      // existiert bereits im Aggregator-Output.
+      lbKey: 'options_collar',
       category: 'options',
       color: '#0ea5e9',
       memberOf: null,
+      ontology: { style: null, setup: null, methodology: null, vehicle: 'Option',
+        structure: { type: 'Collar' } },
       rules: null   // kein STRATEGIE_MATRIX-Eintrag — vollständige Behandlung in
                      // Options-Doktor-Modul (Suite Phase 3), s. ko-prompts.js Kommentar
     },
@@ -223,10 +282,14 @@
     weekly_income: {
       label: '💰 CSP (Weekly)',
       hint: '💰 CSP (Weekly): Diagonal Put-Spread · ATM-Short 7 DTE + Long-Versicherung 120 DTE · 4×/Monat',
-      lbKey: null,
+      // KORRIGIERT 16.09.2026: s. Kommentar bei atmna — options_weekly-Leaderboard
+      // existiert bereits im Aggregator-Output.
+      lbKey: 'options_weekly',
       category: 'options',
       color: '#34d399',
       memberOf: null,
+      ontology: { style: null, setup: null, methodology: null, vehicle: 'Option',
+        structure: { type: 'CSP', variant: 'Weekly' } },
       rules: {
         deltaRange: [0.25, 0.50],       // Buch zeigt Beispiele 0.27 (konservativ,
                                         // 73% Erfolgsws.) bis 0.50 (ATM) — kein
@@ -255,6 +318,64 @@
                  + 'erfasst, nur als Kontext fuer Block E (KI-Erklaerschicht).'
         }
       }
+    },
+
+    // Nicht-Options-Strategien: label/hint/lbKey/category/color bleiben
+    // unverändert Single-Source-of-Truth in ko-strategies.js (keine
+    // Duplizierung). Diese Einträge tragen AUSSCHLIESSLICH das neue
+    // `ontology`-Feld (Phase 1, 16.09.2026) — s. Versions-Historie unten.
+    long_minervini: {
+      ontology: { style: null, setup: 'Momentum', methodology: 'Minervini_SEPA',
+        vehicle: 'Stock', structure: 'Direct_Long' },
+      rules: null   // s. getRules()-Kommentar: explizit statt undefined
+    },
+    ko_long: {
+      // Dieselbe Setup/Methodology-Kombination wie long_minervini — ko_long
+      // ist dieselbe Investment-Idee, nur mit KO-Zertifikat statt Aktie
+      // instrumentiert (s. Ontologie-Entscheidung 16.09.2026).
+      ontology: { style: null, setup: 'Momentum', methodology: 'Minervini_SEPA',
+        vehicle: 'KO', structure: 'KO_Long' },
+      rules: null
+    },
+    long_swing: {
+      ontology: { style: null, setup: 'Swing', methodology: null,
+        vehicle: 'Stock', structure: 'Direct_Long' },
+      rules: null
+    },
+    long_mr: {
+      ontology: { style: null, setup: 'MeanReversion', methodology: null,
+        vehicle: 'Stock', structure: 'Direct_Long' },
+      rules: null
+    },
+    long_breakout: {
+      ontology: { style: null, setup: 'Breakout', methodology: null,
+        vehicle: 'Stock', structure: 'Direct_Long' },
+      rules: null
+    },
+    vcp_setups: {
+      ontology: { style: null, setup: 'VCP', methodology: null,
+        vehicle: 'Stock', structure: 'Direct_Long' },
+      rules: null
+    },
+    short_breakdown: {
+      ontology: { style: null, setup: 'Breakdown', methodology: null,
+        vehicle: 'Stock', structure: 'Direct_Short' },
+      rules: null
+    },
+    short_fading: {
+      ontology: { style: null, setup: 'Fading', methodology: null,
+        vehicle: 'Stock', structure: 'Direct_Short' },
+      rules: null
+    },
+    long_dividend: {
+      ontology: { style: 'Dividend', setup: null, methodology: null,
+        vehicle: 'Stock', structure: 'Direct_Long' },
+      rules: null
+    },
+    long_value: {
+      ontology: { style: 'Value', setup: null, methodology: null,
+        vehicle: 'Stock', structure: 'Direct_Long' },
+      rules: null
     },
 
     // Nicht-Options-Strategien (ko, momentum, vcp, swing,
@@ -303,16 +424,39 @@
     strategies: strategies,
     composites: composites,
 
-    /** Metadaten (label/hint/lbKey/category/color) für eine Strategie-ID. */
+    /** Metadaten (label/hint/lbKey/category/color) für eine Strategie-ID.
+     * Prüft bewusst `s.label` statt nur `s` — die zehn reinen Ontologie-
+     * Einträge (16.09.2026, Stock/KO-Strategien) haben kein label/hint/etc.
+     * und sollen hier weiterhin `null` liefern (Verhalten vor 16.09.2026),
+     * nicht ein Objekt aus lauter `undefined`-Feldern. */
     getMeta(stratId) {
       const s = strategies[stratId];
-      if (s) return { label: s.label, hint: s.hint, lbKey: s.lbKey, category: s.category, color: s.color };
+      if (s && s.label) return { label: s.label, hint: s.hint, lbKey: s.lbKey, category: s.category, color: s.color };
       const c = composites[stratId];
       if (c) return { label: c.label, hint: c.hint, lbKey: c.lbKey, category: c.category, color: c.color };
       return null;
     },
 
-    /** rules-Objekt für eine Einzelstrategie (Trade-Doktor-Konsument). */
+    /**
+     * Ontologie-Metadaten (Phase 1, 16.09.2026) für eine Strategie-ID —
+     * STYLE/SETUP/METHODOLOGY/VEHICLE/STRUCTURE. Bewusst eigene Funktion,
+     * NICHT in getMeta() integriert: getMeta() wird von bestehendem Code
+     * konsumiert, der ein Objekt mit genau den fünf alten Feldern erwartet
+     * (label/hint/lbKey/category/color) — das hier anzuhängen haette
+     * bestehendes Verhalten unnoetig veraendert. Gibt `null` zurueck, wenn
+     * fuer diese stratId noch keine Ontologie erfasst ist (z.B. `wheel`-
+     * Composite selbst, oder eine kuenftig neu hinzukommende Strategie vor
+     * ihrer Ontologie-Einordnung).
+     */
+    getOntology(stratId) {
+      const s = strategies[stratId];
+      return (s && s.ontology) ? s.ontology : null;
+    },
+
+    /** rules-Objekt für eine Einzelstrategie (Trade-Doktor-Konsument). Die
+     * zehn Stock/KO-Ontologie-Einträge (16.09.2026) setzen `rules: null`
+     * explizit, damit diese Funktion für sie weiterhin `null` liefert statt
+     * `undefined` — sie existierten vorher gar nicht in `strategies`. */
     getRules(stratId) {
       const s = strategies[stratId];
       return s ? s.rules : null;
