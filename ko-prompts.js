@@ -1,7 +1,19 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
- *  Version: VERSION: '2.53.29' (18.09.2026) — ERSTER LIVE-TEST NACH v2.53.26/27,
+ *  Version: 2.53.29 (20.09.2026) — "DETERMINISTIC BRIEFING COMPLIANCE":
+ *  Reviewer-Diagnose zu v2.53.28 — das SCHRITT-3-Selbstcheck-Muster wirkt
+ *  zuverlässig bei linguistischer Umformulierung bereits generierten Inhalts,
+ *  aber nicht bei aktiver Generierung neuen Pflichtinhalts (Options-
+ *  Validierungsstatus, atmna-BB/Tightness-Pflicht). Fix: neue Funktion
+ *  _deterministicOptionsFactBlock() injiziert die Fakten vorab-berechnet in
+ *  den Prompt statt sie dem Modell zur Erinnerung zu überlassen; neuer
+ *  exportierter Post-hoc-Validator KoPrompts.validateBriefingCompliance()
+ *  für einen künftigen REPAIR-Loop in ko-ai.js/ko-ai-worker.js. stratId an
+ *  allen fünf Optionsstrategien (Public+EIC) ergänzt, atmnaFactors bei
+ *  atmna. Noch KEIN Live-Test.
+ *
+ *  Version: 2.53.28 (18.09.2026) — ERSTER LIVE-TEST NACH v2.53.26/27,
  *  REVIEWER-FEEDBACK ZUM ATM/NA-OUTPUT. Befund: die beiden zuvor neu
  *  eingeführten Pflicht-Zusätze (Options-Validierungsstatus aus v2.53.26,
  *  BB-Position/Tightness-Pflicht aus v2.53.27) fehlten im ersten Live-Test
@@ -6589,7 +6601,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
   const KoPrompts = {
-    VERSION: '2.22.4',
+    VERSION: '2.53.29',
 
     STRATEGIES,
     KI_ANTI_HALLUZINATION,
