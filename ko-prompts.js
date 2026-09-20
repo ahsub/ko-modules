@@ -3107,8 +3107,91 @@ Das bedeutet konkret:
   // deskriptive Variante (fail-safe), analog zum _getSystemPrompt()-Fix
   // v2.5.7. Die EIC-Variante bleibt in jeder Strategie unveraendert im
   // bestehenden Code-Zweig erhalten.
-  function _publicKriterienBlock(focus) {
+    function _publicKriterienBlock(focus) {
     return (focus || []).map(function(f, i) { return (i + 1) + '. ' + f; }).join('\n');
+  }
+
+  // ── DETERMINISTISCHE FAKTORENPRÜFUNG (v2.53.29, "Deterministic Briefing
+  // Compliance") ──────────────────────────────────────────────────────────
+  // Reviewer-Diagnose 18.09.2026: das bisherige SCHRITT-3-Selbstcheck-Muster
+  // funktioniert zuverlässig für "linguistische Transformation bereits
+  // generierten Inhalts" (IVP-Terminologie, Gleichstand-Sprache), aber NICHT
+  // für "aktive Generierung von Inhalt, der sonst nicht anfallen würde" (die
+  // beiden hier betroffenen Pflicht-Zusätze) — reine "prüfe vor Abgabe"-
+  // Selbstkontrolle ist für Letzteres strukturell unzuverlässig. Fix: die
+  // Fakten werden NICHT mehr vom Modell erinnert/generiert, sondern hier
+  // deterministisch (ohne LLM) vorberechnet und als fertiger Status-Block
+  // in den Prompt injiziert — die Aufgabe des Modells wird dadurch von
+  // "denk daran, das zu erwähnen" zu "benutze die gegebenen Fakten".
+  // o.atmnaFactors ist optional — {bbPos, tightnessPct} pro Kandidat, falls
+  // der Aufrufer (index.html/generate_public_recommendations.js) diese
+  // bereits mitgibt. Ohne echte Werte: expliziter NOT_AVAILABLE-Status statt
+  // Erfindung — Axel muss die echten Werte aus dem Datenpfad noch verdrahten,
+  // damit dieser Block bei atmna vollen Effekt entfaltet (s. Übergabehinweis
+  // am Dateiende).
+  function _deterministicOptionsFactBlock(stratId, o) {
+    var lines = [];
+    lines.push(
+      '- Optionsmarkt-Auswahlkriterien laut STRATEGIEPRINZIP (Strike-' +
+      'Staffelung/OI-Volumen/Wochenoptionen o.ä., strategiespezifisch): ' +
+      'IM SNAPSHOT NICHT VERIFIZIERT (UIQ identifiziert den Underlying-' +
+      'Kandidaten, nicht die konkret handelbare Option — dieser Status ' +
+      'gilt für JEDEN Optionsstrategie-Lauf unveränderlich, da UIQ ' +
+      'grundsätzlich keine Live-Optionskette hat).'
+    );
+    if (stratId === 'atmna') {
+      var f = (o && o.atmnaFactors) || null;
+      var bb = (f && f.bbPos != null) ? f.bbPos : null;
+      var tight = (f && f.tightnessPct != null) ? f.tightnessPct : null;
+      lines.push(
+        '- Bollinger-Position (BB) der in Abschnitt 3 genannten Kandidaten: ' +
+        (bb != null
+          ? bb
+          : 'NICHT VERFÜGBAR (im aktuellen Datenkontext für diesen Lauf ' +
+            'nicht mitgeliefert — als Datenlücke benennen, nicht erfinden).')
+      );
+      lines.push(
+        '- Tightness der in Abschnitt 3 genannten Kandidaten: ' +
+        (tight != null
+          ? tight
+          : 'NICHT VERFÜGBAR (im aktuellen Datenkontext für diesen Lauf ' +
+            'nicht mitgeliefert — als Datenlücke benennen, nicht erfinden).')
+      );
+    }
+    return lines.join('\n');
+  }
+
+  // ── DETERMINISTISCHER POST-HOC-VALIDATOR (v2.53.29) ───────────────────────
+  // Kein LLM-Self-Grading — reiner String-/Regex-Check auf den fertigen
+  // Output. Wird von KoPrompts.validateBriefingCompliance() exportiert.
+  // Axel: siehe Integrationshinweis am Dateiende für den REPAIR-Loop in
+  // ko-ai.js/ko-ai-worker.js — diese Funktion selbst löst noch keinen
+  // Repair aus, sie liefert nur PASS/FAIL + fehlende Punkte.
+  var _OPTIONS_STRATEGY_IDS = ['csp_wheel', 'atmna', 'weekly_income', 'cc', 'collar'];
+
+  function _validateBriefingCompliance(stratId, outputText) {
+    var missing = [];
+    var text = (outputText || '');
+
+    if (_OPTIONS_STRATEGY_IDS.indexOf(stratId) !== -1) {
+      // semantischer Check statt reiner Substring-Suche (Reviewer-Hinweis):
+      // "nicht verifiziert" MUSS im selben Umfeld wie ein Optionsmarkt-/
+      // Kriterien-Begriff stehen, nicht irgendwo isoliert im Text.
+      var validationRe = /nicht\s+verifiziert[^.]{0,120}?(optionsmarkt|options-|auswahlkriterien|strike-staffel|open\s+interest|wochenoption)/i;
+      var validationReRev = /(optionsmarkt|options-|auswahlkriterien|strike-staffel|open\s+interest|wochenoption)[^.]{0,120}?nicht\s+verifiziert/i;
+      if (!validationRe.test(text) && !validationReRev.test(text)) {
+        missing.push('optionsmarkt-validierungsstatus');
+      }
+    }
+
+    if (stratId === 'atmna') {
+      var hasBB = /bollinger|\bBB\b|\bBB-Position\b/i.test(text);
+      var hasTightness = /tightness/i.test(text);
+      if (!hasBB) missing.push('bollinger-position');
+      if (!hasTightness) missing.push('tightness');
+    }
+
+    return { status: missing.length ? 'FAIL' : 'PASS', missing: missing };
   }
 
   // ── PUBLIC-MODUS REGULATORY GUARDRAIL (29.08.2026, zweiter Legal-Review-
@@ -3657,25 +3740,22 @@ Das bedeutet konkret:
         + 'Kriterien-Übereinstimmung" (Top-Fit) unterscheiden — beide Ebenen '
         + 'nicht gleichsetzen, auch wenn mehrere Titel denselben Score-Wert '
         + 'teilen.'
-        + (istOptions
-            ? (' PFLICHT-ZUSATZ OPTION-VALIDIERUNGSSTATUS (18.09.2026, '
-               + 'Reviewer-Feedback zur ATM/NA-CSP-Tagesempfehlung, Punkt 5 — '
-               + 'gilt für JEDE Optionsstrategie, nicht nur CSP/ATM-NA): direkt '
-               + 'im Anschluss an die Titelliste, als eigener Satz sinngemäß: '
-               + '"Die im STRATEGIEPRINZIP genannten Optionsmarkt-'
-               + 'Auswahlkriterien (Strike-Staffelung, Open Interest/Volumen, '
-               + 'Wochenoptionen-Verfügbarkeit) sind im aktuellen UIQ-Snapshot '
-               + 'nicht verifiziert — UIQ identifiziert den Underlying-'
-               + 'Kandidaten, nicht die konkret handelbare Option." Begründung: '
-               + 'das STRATEGIEPRINZIP nennt diese Kriterien bereits, sie '
-               + 'tauchen aber bisher in der konkreten Kandidatenbewertung '
-               + 'nicht mehr auf — dieser Satz schließt die Lücke explizit, '
-               + 'statt sie nur implizit über den allgemeinen Broker-Hinweis '
-               + 'in Abschnitt 8 abzudecken. NIEMALS als reine Wiederholung '
-               + 'des STRATEGIEPRINZIP-Absatzes formulieren — der Satz muss '
-               + 'ausdrücklich benennen, dass dies der aktuelle Bewertungs-'
-               + 'schritt (Kandidatenebene) betrifft, nicht nur allgemeines '
-               + 'Hintergrundwissen ist.')
+                + (istOptions
+            ? (' PFLICHT-ZUSATZ OPTION-VALIDIERUNGSSTATUS (v2.53.29, '
+               + 'Deterministic Briefing Compliance — ERSETZT die bisherige '
+               + '"sinngemäß formulieren"-Anweisung, die im ersten Live-Test '
+               + 'nach Einführung ersatzlos ausgelassen wurde, s. VERPFLICHTENDE '
+               + 'FAKTORENPRÜFUNG oben): direkt im Anschluss an die Titelliste, '
+               + 'als eigener Satz — verwende dafür GENAU den unter '
+               + '"VERPFLICHTENDE FAKTORENPRÜFUNG" vorgegebenen Optionsmarkt-'
+               + 'Status (erste Zeile) und formuliere ihn NUR sprachlich in '
+               + 'einen vollständigen Satz um, z.B. "Die im STRATEGIEPRINZIP '
+               + 'genannten Optionsmarkt-Auswahlkriterien sind im aktuellen '
+               + 'UIQ-Snapshot nicht verifiziert — UIQ identifiziert den '
+               + 'Underlying-Kandidaten, nicht die konkret handelbare Option." '
+               + 'Diesen Satz NIEMALS weglassen, auch nicht wenn er wie eine '
+               + 'Wiederholung des STRATEGIEPRINZIP-Absatzes wirkt — er bezieht '
+               + 'sich explizit auf DIESEN Bewertungsschritt.')
             : '')
         + (o.kriterienDifferenzierungText ? ' ' + o.kriterienDifferenzierungText : '')
         + '\n';
@@ -3713,7 +3793,13 @@ Das bedeutet konkret:
              + 'Referenzniveau" oder "errechneter Abstand zum '
              + 'Referenzniveau".')
           : '')
-      + (o.expliziteFaktorenPflicht ? ' ' + o.expliziteFaktorenPflicht : '')
+      + (o.expliziteFaktorenPflicht
+          ? (' ' + o.expliziteFaktorenPflicht
+             + ' Verwende dafür GENAU die unter "VERPFLICHTENDE '
+             + 'FAKTORENPRÜFUNG" vorgegebenen BB-/Tightness-Werte (bzw. deren '
+             + 'NICHT-VERFÜGBAR-Status) — erfinde diese Werte nicht neu und '
+             + 'lass sie nicht implizit im Ticker-Kontext stehen.')
+          : '')
       + '\n';
 
     var abschnitt5 = '5. GEGENARGUMENTE/RISIKEN: EIN gemeinsamer Absatz, der '
@@ -3886,6 +3972,13 @@ Das bedeutet konkret:
              + 'Antwort setzen, VOR Abschnitt 1, als eigener Absatz ohne '
              + 'Nummerierung, Ueberschrift EXAKT "STRATEGIEPRINZIP"):\n'
              + '"' + o.principle + '"\n\n')
+          : '')
+            + (istOptions
+          ? ('VERPFLICHTENDE FAKTORENPRÜFUNG (v2.53.29, deterministisch '
+             + 'vorberechnet — NICHT selbst herleiten, erinnern oder '
+             + 'umformulierend erfinden, sondern GENAU diese Werte an den '
+             + 'dafür vorgesehenen Stellen in Abschnitt 3/4 verwenden):\n'
+             + _deterministicOptionsFactBlock(o.stratId, o) + '\n\n')
           : '')
       + 'REASONING-GUARDRAILS (04.09.2026, Reviewer-Feedback zum Momentum-'
       + '9-Punkte-Live-Test — gelten für ALLE Abschnitte 1-9 der folgenden '
@@ -5690,6 +5783,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für eine Cash-Secured-Put/Covered-Call-Wheel-Strategie (Theta-Einkommen).',
             stratName: 'CSP/Wheel-Setups',
+            stratId: 'csp_wheel',
             marktumfeldFrage: 'Ist das aktuelle Volatilitätsniveau (VIX) strukturell günstig für Prämien-Strategien?',
             focus: STRATEGIES.csp_wheel.focus,
             maxWords: 500,
@@ -5701,6 +5795,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         return _eicMasterPrompt(ctx, {
           rolle: 'Du analysierst Titel auf strukturelle Eignung für eine Cash-Secured-Put/Covered-Call-Wheel-Strategie (Theta-Einkommen).',
           stratName: 'CSP/Wheel-Setups',
+          stratId: 'csp_wheel',
           focus: STRATEGIES.csp_wheel.focus,
           mode: mode,
           istOptionsStrategie: true,
@@ -5727,7 +5822,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         "Roll-Eignung: Wie realistisch ist eine Andienungsvermeidung ueber die 3-Stufen-Rolllogik bei diesem Titel?",
         "Risiko einer Andienung trotz Rollversuchen (z.B. anhaltender Abwaertstrend unter den Strike)"
       ],
-      prompt: function(ctx) {
+    prompt: function(ctx) {
         var mode = 'scan';  // s. Kommentar in _publicOptionsPrompt — gilt fuer Public UND EIC
         // KORRIGIERT (07.09.2026, Axel-Fund + Quellenpruefung gegen Eric
         // Ludwig, "Optionen unschlagbar handeln"): das gemeinsame Prinzip
@@ -5742,7 +5837,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         // 16.09.2026): Score/Pipeline bevorzugen korrekt neutrale/stabile
         // Setups ueber bbPos (Bollinger-Position, Mittelzone) und
         // tightnessPct (Kurs-Tightness) — genau die beiden Felder, die atmna
-        // von den vier anderen Options-Strategien unterscheidet (s. dortige
+        // von den vier anderen Options-Strategien unterscheiden (s. dortige
         // OPTIONS_STRATEGY_SIGNAL_MAP). Der bisherige Public-Output nannte
         // stattdessen ueberwiegend generische Faktoren (RSI/Grade/D200/IVP)
         // und liess bbPos/tightnessPct implizit als Rohdaten im Ticker-
@@ -5770,6 +5865,38 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für eine systematische ATM-Cash-Secured-Put-Strategie (Zeitwert-Maximierung, ~30 Tage Laufzeit).',
             stratName: 'CSP (ATM/NA)-Setups',
+            stratId: 'atmna',
+            atmnaFactors: ctx.atmnaFactors || null,
+            marktumfeldFrage: 'Ist das aktuelle Volatilitätsniveau (VIX) strukturell günstig für ATM-CSPs?',
+            focus: STRATEGIES.atmna.focus,
+            maxWords: 500,
+            mode: mode,
+            istOptionsStrategie: true,
+            principle: principleText,
+            expliziteFaktorenPflicht: atmnaExpliziteFaktorenText
+          });
+        }
+        // ERSETZT (07.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
+        // zweite migrierte Strategie nach csp_wheel): der alte EIC-Zweig
+        // instruierte das Modell EXPLIZIT, erfundene $-Prämienbeträge zu
+        // nennen ("d) Prämien-SCHÄTZUNG...+ 50/60/70%-Gewinn-Ziele in $")
+        // und eine erfundene Rollregel ("e) Roll-Szenario Stufe 1: Strike
+        // ≈ Kurs − 2,5%") — beides direkt im Prompt-Text verankert, keine
+        // Modell-Entgleisung. Jetzt _eicMasterPrompt() wie bei csp_wheel;
+        // principleText oben traegt Ludwigs ECHTE Kriterien, §23 verhindert
+        // strukturell die Rueckkehr der erfundenen Rollregel (Praeffrage-
+        // Dreiteilung, s. ko-prompts.js v2.48.2).
+        return _eicMasterPrompt(ctx, {
+          rolle: 'Du analysierst Titel auf strukturelle Eignung für eine systematische ATM-Cash-Secured-Put-Strategie (Zeitwert-Maximierung, ~30 Tage Laufzeit).',
+          stratName: 'CSP (ATM/NA)-Setups',
+          stratId: 'atmna',
+          atmnaFactors: ctx.atmnaFactors || null,
+          focus: STRATEGIES.atmna.focus,
+          mode: mode,
+          istOptionsStrategie: true,
+          principle: principleText
+        });
+      }
             marktumfeldFrage: 'Ist das aktuelle Volatilitätsniveau (VIX) strukturell günstig für ATM-CSPs?',
             focus: STRATEGIES.atmna.focus,
             maxWords: 500,
@@ -5823,6 +5950,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für eine wöchentliche Diagonal-Put-Spread-Einkommensstrategie (kurzfristiger Short-Put + langfristige Long-Put-Versicherung).',
             stratName: 'CSP (Weekly)-Setups',
+            stratId: 'weekly_income',
             marktumfeldFrage: 'Ist das aktuelle Umfeld (VIX, Trend) für wöchentliche Einkommensstrategien günstig?',
             focus: STRATEGIES.weekly_income.focus,
             maxWords: 500,
@@ -5844,6 +5972,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         return _eicMasterPrompt(ctx, {
           rolle: 'Du analysierst Titel auf strukturelle Eignung für eine wöchentliche Diagonal-Put-Spread-Einkommensstrategie (kurzfristiger Short-Put + langfristige Long-Put-Versicherung).',
           stratName: 'CSP (Weekly)-Setups',
+          stratId: 'weekly_income',
           focus: STRATEGIES.weekly_income.focus,
           mode: mode,
           istOptionsStrategie: true,
@@ -5874,6 +6003,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Titel auf strukturelle Eignung für Covered-Call-Writing (Call-Verkauf auf bestehende oder neu erworbene Aktienpositionen, Buy-Write).',
             stratName: 'Covered-Call-Setups',
+            stratId: 'cc',
             marktumfeldFrage: 'Ist das aktuelle Umfeld (VIX-Niveau, Trendstärke) für Covered Calls günstig?',
             focus: STRATEGIES.cc.focus,
             maxWords: 500,
@@ -5911,6 +6041,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         return _eicMasterPrompt(ctx, {
           rolle: 'Du analysierst Titel auf strukturelle Eignung für Covered-Call-Writing (Call-Verkauf auf bestehende oder neu erworbene Aktienpositionen, Buy-Write).',
           stratName: 'Covered-Call-Setups',
+          stratId: 'cc',
           focus: STRATEGIES.cc.focus,
           mode: mode,
           istOptionsStrategie: true,
@@ -5950,6 +6081,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
           return _publicNinePointPrompt(ctx, {
             rolle: 'Du analysierst Bestandspositionen auf strukturellen Absicherungsbedarf (Collar/Protective Put) in einem fragilen Bull-Regime. UIQ hat KEINEN Zugriff auf echte Optionsketten oder Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen, ergänzt um echte IV-Perzentil-Daten (ivpPercentile) wo für den Titel verfügbar, sonst HVP als historischer Volatilitäts-Fallback.',
             stratName: 'Collar/Protective-Put-Setups',
+            stratId: 'collar',
             marktumfeldFrage: 'Spricht das aktuelle Regime (BULL_FRAGILE o.ä.) grundsätzlich für Absicherungsüberlegungen?',
             focus: STRATEGIES.collar.focus,
             maxWords: 400,
@@ -5976,6 +6108,7 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
         return _eicMasterPrompt(ctx, {
           rolle: 'Du analysierst Bestandspositionen auf strukturellen Absicherungsbedarf (Collar/Protective Put) in einem fragilen Bull-Regime. UIQ hat KEINEN Zugriff auf echte Optionsketten oder Bestandspositionen — alle Einordnungen sind ATR-basierte Näherungen, ergänzt um echte IV-Perzentil-Daten (ivpPercentile) wo für den Titel verfügbar, sonst HVP als historischer Volatilitäts-Fallback.',
           stratName: 'Collar/Protective-Put-Setups',
+          stratId: 'collar',
           focus: STRATEGIES.collar.focus,
           mode: mode,
           istOptionsStrategie: true,
@@ -6565,6 +6698,18 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
      */
     getMetaAnalysisPrompt(ctx) {
       return _getMetaAnalysisPrompt(ctx);
+    },
+
+    /**
+     * Deterministischer Post-hoc-Compliance-Check (v2.53.29, "Deterministic
+     * Briefing Compliance") — kein LLM-Self-Grading, reiner String-/Regex-
+     * Abgleich auf den fertigen Output einer Optionsstrategie.
+     * @param {string} stratId - z.B. 'atmna', 'csp_wheel'
+     * @param {string} outputText - die fertige Modellantwort
+     * @returns {{status: 'PASS'|'FAIL', missing: string[]}}
+     */
+    validateBriefingCompliance(stratId, outputText) {
+      return _validateBriefingCompliance(stratId, outputText);
     },
 
     /**
