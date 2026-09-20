@@ -1,7 +1,7 @@
 /**
  * ko-prompts.js — UnderlyingIQ Strategy Prompts Module
  * ══════════════════════════════════════════════════════════════════
- *  Version: 2.53.28 (18.09.2026) — ERSTER LIVE-TEST NACH v2.53.26/27,
+ *  Version: VERSION: '2.53.29' (18.09.2026) — ERSTER LIVE-TEST NACH v2.53.26/27,
  *  REVIEWER-FEEDBACK ZUM ATM/NA-OUTPUT. Befund: die beiden zuvor neu
  *  eingeführten Pflicht-Zusätze (Options-Validierungsstatus aus v2.53.26,
  *  BB-Position/Tightness-Pflicht aus v2.53.27) fehlten im ersten Live-Test
@@ -5891,34 +5891,6 @@ Das ist der eigentliche Mehrwert des EIC-Modus.
           stratName: 'CSP (ATM/NA)-Setups',
           stratId: 'atmna',
           atmnaFactors: ctx.atmnaFactors || null,
-          focus: STRATEGIES.atmna.focus,
-          mode: mode,
-          istOptionsStrategie: true,
-          principle: principleText
-        });
-      }
-            marktumfeldFrage: 'Ist das aktuelle Volatilitätsniveau (VIX) strukturell günstig für ATM-CSPs?',
-            focus: STRATEGIES.atmna.focus,
-            maxWords: 500,
-            mode: mode,
-            istOptionsStrategie: true,
-            principle: principleText,
-            expliziteFaktorenPflicht: atmnaExpliziteFaktorenText
-          });
-        }
-        // ERSETZT (07.09.2026, Master-Prompt-Migration, Axel-Entscheidung,
-        // zweite migrierte Strategie nach csp_wheel): der alte EIC-Zweig
-        // instruierte das Modell EXPLIZIT, erfundene $-Prämienbeträge zu
-        // nennen ("d) Prämien-SCHÄTZUNG...+ 50/60/70%-Gewinn-Ziele in $")
-        // und eine erfundene Rollregel ("e) Roll-Szenario Stufe 1: Strike
-        // ≈ Kurs − 2,5%") — beides direkt im Prompt-Text verankert, keine
-        // Modell-Entgleisung. Jetzt _eicMasterPrompt() wie bei csp_wheel;
-        // principleText oben traegt Ludwigs ECHTE Kriterien, §23 verhindert
-        // strukturell die Rueckkehr der erfundenen Rollregel (Praeffrage-
-        // Dreiteilung, s. ko-prompts.js v2.48.2).
-        return _eicMasterPrompt(ctx, {
-          rolle: 'Du analysierst Titel auf strukturelle Eignung für eine systematische ATM-Cash-Secured-Put-Strategie (Zeitwert-Maximierung, ~30 Tage Laufzeit).',
-          stratName: 'CSP (ATM/NA)-Setups',
           focus: STRATEGIES.atmna.focus,
           mode: mode,
           istOptionsStrategie: true,
