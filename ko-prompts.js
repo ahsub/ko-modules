@@ -3152,20 +3152,22 @@ Das bedeutet konkret:
       'grundsätzlich keine Live-Optionskette hat).'
     );
     if (stratId === 'atmna') {
+      // GEAENDERT (20.09.2026, ATMNA-Explainability-Gap-Fix, Teil 2 —
+      // generate_public_recommendations.js v1.6): atmnaFactors liefert jetzt
+      // EINEN fertig formatierten Summary-String ueber alle Top-3-Kandidaten
+      // ("SYM: BB X%, Tightness Y%" je Kandidat, mit " | " verbunden) statt
+      // zweier einzelner Skalarwerte — bei bis zu drei Kandidaten waeren
+      // {bbPos, tightnessPct} als gemeinsame Werte ohnehin falsch modelliert
+      // gewesen (welcher der drei Kandidaten?). Die Formatierung (inkl.
+      // Datenintegritaets-Pruefung/Plausibilitaetswarnung) passiert bereits
+      // in buildAtmnaFactorsSummary() auf der Aufruferseite.
       var f = (o && o.atmnaFactors) || null;
-      var bb = (f && f.bbPos != null) ? f.bbPos : null;
-      var tight = (f && f.tightnessPct != null) ? f.tightnessPct : null;
+      var summary = (f && f.summary) ? f.summary : null;
       lines.push(
-        '- Bollinger-Position (BB) der in Abschnitt 3 genannten Kandidaten: ' +
-        (bb != null
-          ? bb
-          : 'NICHT VERFÜGBAR (im aktuellen Datenkontext für diesen Lauf ' +
-            'nicht mitgeliefert — als Datenlücke benennen, nicht erfinden).')
-      );
-      lines.push(
-        '- Tightness der in Abschnitt 3 genannten Kandidaten: ' +
-        (tight != null
-          ? tight
+        '- Bollinger-Position (BB) und Tightness je Kandidat (Format ' +
+        '"SYM: BB X%, Tightness Y%"): ' +
+        (summary != null
+          ? summary
           : 'NICHT VERFÜGBAR (im aktuellen Datenkontext für diesen Lauf ' +
             'nicht mitgeliefert — als Datenlücke benennen, nicht erfinden).')
       );
